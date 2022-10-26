@@ -5,7 +5,9 @@ You can find all the parameters used by the experiment in the source file of the
 """
 
 # select the experiment
-from experiments.split_mnist import synaptic_intelligence_smnist
+# from experiments.split_mnist import synaptic_intelligence_smnist
+from experiments.split_sys_vqa import er_ssysvqa
 
 # run the experiment with custom parameters (do not provide arguments to use default parameters)
-synaptic_intelligence_smnist({'learning_rate': 1e-3, 'si_lambda': 1})
+# synaptic_intelligence_smnist({'learning_rate': 1e-3, 'si_lambda': 1})
+er_ssysvqa()

@@ -1,3 +1,6 @@
+import os
+from datetime import datetime
+
 from types import SimpleNamespace
 import torch
 import numpy as np
@@ -25,3 +28,24 @@ def create_default_args(args_dict, additional_args=None):
         for k, v in additional_args.items():
             args.__dict__[k] = v
     return args
+
+
+def create_experiment_folder(root='.', exp_name=None):
+    """
+    generate exp folder, with a subfolder: Checkpoints to store model params.
+
+    if exp_name is None, use timestmps as folder name.
+    """
+    if exp_name is None:
+        exp_path = os.path.abspath(os.path.join(root, datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
+    else:
+        exp_path = os.path.abspath(os.path.join(root, exp_name))
+    if os.path.exists(exp_path):
+        print(f"Exist experiment with path: {exp_path}")
+    else:
+        print(f"Create experiment with path: {exp_path}")
+        os.makedirs(exp_path)
+    if not os.path.exists(os.path.join(exp_path, "Checkpoints")):
+        os.makedirs(os.path.join(exp_path, "Checkpoints"))
+    checkpoint_path = os.path.join(exp_path, "Checkpoints")
+    return exp_path, checkpoint_path

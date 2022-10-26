@@ -22,7 +22,7 @@ def ewc_pmnist(override_args=None):
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
 
-    benchmark = avl.benchmarks.PermutedMNIST(10)
+    benchmark = avl.benchmarks.PermutedMNIST(10, dataset_root='/liaoweiduo/datasets')
     model = MLP(hidden_size=args.hidden_size, hidden_layers=args.hidden_layers,
                 drop_rate=args.dropout)
     criterion = CrossEntropyLoss()

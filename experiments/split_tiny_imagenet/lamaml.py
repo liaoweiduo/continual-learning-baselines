@@ -32,7 +32,8 @@ def lamaml_stinyimagenet(override_args=None):
                           args.cuda >= 0 else "cpu")
     # Benchmark
     benchmark = avl.benchmarks.SplitTinyImageNet(n_experiences=20,
-                                                 return_task_id=True)
+                                                 return_task_id=True,
+                                                 dataset_root='/liaoweiduo/datasets')
 
     # Loggers and metrics
     interactive_logger = avl.logging.InteractiveLogger()

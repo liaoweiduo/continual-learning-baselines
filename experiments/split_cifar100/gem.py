@@ -20,7 +20,7 @@ def gem_scifar100(override_args=None):
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
 
-    benchmark = avl.benchmarks.SplitCIFAR100(20, return_task_id=True)
+    benchmark = avl.benchmarks.SplitCIFAR100(20, return_task_id=True, dataset_root='/liaoweiduo/datasets')
     model = MultiHeadReducedResNet18()
     criterion = CrossEntropyLoss()
 
