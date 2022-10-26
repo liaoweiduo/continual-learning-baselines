@@ -1,6 +1,5 @@
 import os
 
-import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 
@@ -156,15 +155,4 @@ def naive_ssysvqa(override_args=None):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cuda", type=int, default=0, help="Select zero-indexed cuda device. -1 to use CPU.")
-    parser.add_argument("--pretrained", action='store_true', help='Whether to load pretrained resnet and in eval mode.')
-    parser.add_argument("--use_wandb", action='store_true', help='True to use wandb.')
-    parser.add_argument("--exp_name", type=str, default='Naive')
-    args = parser.parse_args()
-
-    res, res_novel = naive_ssysvqa(vars(args))
-
-    import wandb
-
-    wandb.finish()
+    res, res_novel = naive_ssysvqa()
