@@ -34,6 +34,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+from collections import OrderedDict
 
 import torch.nn as nn
 import torch
@@ -162,19 +163,26 @@ class ResNet(nn.Module):
 
 def resnet18(pretrained=False, pretrained_model_path=None, **kwargs) -> ResNet:
     """
-        Constructs a ResNet-18 model.
+        Constructs a ResNet-18 feature extractor.
     """
 
-    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    feature_extractor = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
         print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
         ckpt_dict = torch.load(pretrained_model_path)
-        model.load_state_dict(ckpt_dict['state_dict'])
+        if 'state_dict' in ckpt_dict:
+            feature_extractor.load_state_dict(ckpt_dict['state_dict'])
+        else:
+            d = OrderedDict()
+            for key, item in ckpt_dict.items():
+                if key.startswith('resnet'):
+                    d['.'.join(key.split('.')[1:])] = item
+            feature_extractor.load_state_dict(d)
 
         # Freeze the parameters of the feature extractor
-        for param in model.parameters():
+        for param in feature_extractor.parameters():
             param.requires_grad = False
-    return model
+    return feature_extractor
 
 
 """

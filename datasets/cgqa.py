@@ -1,5 +1,4 @@
 ################################################################################
-# Copyright (c) 2021 ContinualAI.                                              #
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
@@ -26,9 +25,10 @@ Default transforms borrowed from MetaShift.
 Image shape: (3, 84, 84). 
 Imagenet normalization.
 """
+_image_size = (128, 128)
 _default_cgqa_train_transform = transforms.Compose(
     [
-        transforms.Resize([84, 84]),      # allow reshape but not equal scaling
+        transforms.Resize(_image_size),      # allow reshape but not equal scaling
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(
@@ -39,7 +39,7 @@ _default_cgqa_train_transform = transforms.Compose(
 
 _default_cgqa_eval_transform = transforms.Compose(
     [
-        transforms.Resize([84, 84]),
+        transforms.Resize(_image_size),
         transforms.ToTensor(),
         transforms.Normalize(
             mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -60,7 +60,6 @@ def SplitSysGQA(
         dataset_root: Union[str, Path] = None,
         novel_combination: Optional[bool] = False,
         num_samples_each_label: Optional[int] = None,
-        task_id: Optional[int] = None
 ):
     """
     Creates a CL benchmark using the pre-processed GQA dataset.
@@ -138,13 +137,10 @@ def SplitSysGQA(
         since we want to test the model performance on novel combination,
         and do not need the CL setting.
     :param num_samples_each_label: Sample specific number of images
-        for each class (replace=True) with a build-in seed
+        for each class for each exp (replace=True) with a build-in seed
         to support balance training.
         If is None, all samples are used.
-        Note that total train samples are 136.
-    :param task_id: If return_task_id (task_IL) and novel_combination, task_id should be specified,
-        usually equaling to n_experiences (4).
-        Only enable in task-IL setting.
+        Note that total train samples for novel comb are around 100-200.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
@@ -152,28 +148,16 @@ def SplitSysGQA(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
-    if novel_combination:
-        n_experiences = 1
-        if task_id is None and return_task_id:      # task-IL setting
-            raise ValueError(
-                "Please specify the task_id for the novel combination task."
-            )
-    elif task_id is not None:
-        # only enable in novel_combination
-        raise ValueError(
-            "task_id is only enabled when novel_combination is True and in task-IL setting."
-        )
-
     '''Get _train_set, _test_set, _label_info defined in json'''
     _train_set, _test_set, _label_info = _get_sys_gqa_datasets(dataset_root,
+                                                               shuffle=True, seed=1234,
                                                                novel_combination=novel_combination,
-                                                               num_samples_each_label=num_samples_each_label,
-                                                               task_label=task_id)
+                                                               num_samples_each_label=num_samples_each_label)
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
 
     if novel_combination:
         _benchmark_instance = dataset_benchmark(
-            train_datasets=[_train_set],
+            train_datasets=[_train_set for _ in range(n_experiences)],
             test_datasets=[_test_set],
             complete_test_set_only=True,
             train_transform=train_transform,
@@ -208,6 +192,7 @@ def SplitSysGQA(
 
 def _get_sys_gqa_datasets(
         dataset_root,
+        shuffle=True, seed: Optional[int] = None,
         novel_combination=False, num_samples_each_label=None,
         task_label=None):
     """
@@ -224,6 +209,10 @@ def _get_sys_gqa_datasets(
     since it is used after several train tasks.
 
     :param dataset_root: Path to the dataset root folder.
+    :param shuffle: If true, the train sample order in the incremental experiences is
+        randomly shuffled. Default to True.
+    :param seed: A valid int used to initialize the random number generator.
+        Can be None.
     :param novel_combination: Whether to return novel comb.
         for evaluating model's compositional generalization performance.
     :param num_samples_each_label: If specify a certain number of samples for each label,
@@ -315,6 +304,13 @@ def _get_sys_gqa_datasets(
         instance_tuple = (item['image'], item['label'], item['boundingBox'])
         test_list.append(instance_tuple)
     # [('2325499C73236.jpg', 0, [2, 4, 335, 368]), ('2369086C73237.jpg', 0, [2, 4, 335, 368]),...
+
+    '''shuffle the train set'''
+    if shuffle:
+        rng = np.random.RandomState(seed=seed)
+        order = np.arange(len(train_list))
+        rng.shuffle(order)
+        train_list = [train_list[idx] for idx in order]
 
     '''generate train_set and test_set using PathsDataset'''
     '''generate AvalancheDataset with specified task_labels if provided'''
@@ -456,27 +452,27 @@ if __name__ == "__main__":
 
     # train_set, test_set, label_info = _get_sys_gqa_datasets(
     #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
-    # train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
-    #     '../../datasets', novel_combination=True, num_samples_each_label=100, task_label=4)
+    train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
+        '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
-    benchmark_instance = SplitSysGQA(n_experiences=4, return_task_id=True, seed=1234, shuffle=True,
-                                     dataset_root='../../datasets')
+    # benchmark_instance = SplitSysGQA(n_experiences=4, return_task_id=True, seed=1234, shuffle=True,
+    #                                  dataset_root='../../datasets')
 
-    benchmark_novel = SplitSysGQA(n_experiences=1, return_task_id=True, seed=1234, shuffle=True,
-                                  novel_combination=True, num_samples_each_label=100, task_id=4,
-                                  dataset_root='../../datasets')
+    # benchmark_novel = SplitSysGQA(n_experiences=4, return_task_id=True, seed=1234, shuffle=True,
+    #                               novel_combination=True, num_samples_each_label=100,
+    #                               dataset_root='../../datasets')
 
-    from torchvision.transforms import ToPILImage
-    from matplotlib import pyplot as plt
-    dataset = benchmark_instance.train_stream[0].dataset
-    x = dataset[0][0]
-    y = dataset[0][1]
-    # img = ToPILImage()(x)
-    img = x.numpy().transpose([1,2,0])
-    plt.figure()
-    plt.imshow(img)
-    plt.title(f'y:{y}')
-    plt.show()
+    # from torchvision.transforms import ToPILImage
+    # from matplotlib import pyplot as plt
+    # dataset = benchmark_instance.train_stream[0].dataset
+    # x = dataset[0][0]
+    # y = dataset[0][1]
+    # # img = ToPILImage()(x)
+    # img = x.numpy().transpose([1,2,0])
+    # plt.figure()
+    # plt.imshow(img)
+    # plt.title(f'y:{y}')
+    # plt.show()
 
     # check_vision_benchmark(benchmark_instance, show_without_transforms=True)
     # check_vision_benchmark(benchmark_novel, show_without_transforms=True)
