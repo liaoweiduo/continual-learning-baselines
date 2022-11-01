@@ -22,13 +22,13 @@ def naive_novel_ssysvqa(override_args=None):
     args = create_default_args({
         'cuda': 0, 'seed': 0,
         'learning_rate': 0.01, 'n_experiences': 1, 'num_train_samples_each_label': 5000, 'train_mb_size': 100,
-        'eval_every': 100, 'eval_mb_size': 50,
+        'eval_every': 50, 'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(root=args.exp_root, exp_name=args.exp_name)
-    args.exp_name = f'Novel_{args.exp_name}'
+    args.exp_name = f'Novel-{args.exp_name}'
 
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
@@ -60,7 +60,7 @@ def naive_novel_ssysvqa(override_args=None):
     wandb_logger = None
     if args.use_wandb:
         wandb_logger = avl.logging.WandBLogger(
-            project_name=args.project_name, run_name=args.exp_name,     # e.g., Novel_ER
+            project_name=args.project_name, run_name=args.exp_name,     # e.g., Novel-ER
             dir=exp_path,
             config=vars(args),
         )
@@ -70,8 +70,8 @@ def naive_novel_ssysvqa(override_args=None):
     # EVALUATION PLUGIN
     # ####################
     evaluation_plugin_novel = EvaluationPlugin(
-        metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
-        metrics.loss_metrics(epoch=True, experience=True, stream=True),
+        metrics.accuracy_metrics(minibatch=True, stream=True),
+        metrics.loss_metrics(minibatch=True, stream=True),
         metrics.forgetting_metrics(experience=True, stream=True),
         # metrics.confusion_matrix_metrics(num_classes=benchmark_novel.n_classes,
         #                                  save_image=True if args.use_wandb else False,
@@ -89,10 +89,12 @@ def naive_novel_ssysvqa(override_args=None):
         torch.optim.Adam(model.parameters(), lr=args.learning_rate),
         CrossEntropyLoss(),
         train_mb_size=args.train_mb_size,
-        train_epochs=args.epochs,
+        train_epochs=1,
         eval_mb_size=args.eval_mb_size,
         device=device,
         evaluator=evaluation_plugin_novel,
+        eval_every=args.eval_every,
+        peval_mode="iteration",
     )
 
     # ####################
@@ -130,7 +132,7 @@ if __name__ == '__main__':
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --model cnn --exp_name CNN-ER --cuda 0
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --model cnn --exp_name CNN-Naive --cuda 1
     
-    python experiments/split_sys_vqa/naive_novel.py --use_wandb --model resnet --exp_name Resnet-Naive --cuda 1
-    python experiments/split_sys_vqa/naive_novel.py --use_wandb --model resnet --exp_name Resnet-Naive --cuda 1
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --model resnet --exp_name Resnet_ER --cuda 2
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --model resnet --exp_name Resnet-Naive --cuda 3
     '''
 
