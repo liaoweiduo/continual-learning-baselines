@@ -17,15 +17,15 @@ from torchvision import transforms
 from avalanche.benchmarks.classic.classic_benchmarks_utils import check_vision_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import nc_benchmark, dataset_benchmark
-from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset
+from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, AvalancheSubset
 from avalanche.benchmarks.utils.avalanche_dataset import AvalancheDatasetType
 
 """
 Default transforms borrowed from MetaShift.
-Image shape: (3, 84, 84). 
+Image shape: (3, 224, 224). 
 Imagenet normalization.
 """
-_image_size = (128, 128)
+_image_size = (224, 224)
 _default_cgqa_train_transform = transforms.Compose(
     [
         transforms.Resize(_image_size),      # allow reshape but not equal scaling
@@ -155,7 +155,7 @@ def SplitSysGQA(
                                                                num_samples_each_label=num_samples_each_label)
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
 
-    if novel_combination:
+    if novel_combination:   # for novel testing
         _benchmark_instance = dataset_benchmark(
             train_datasets=[_train_set for _ in range(n_experiences)],
             test_datasets=[_test_set],
@@ -165,20 +165,53 @@ def SplitSysGQA(
             dataset_type=AvalancheDatasetType.CLASSIFICATION
         )
         _benchmark_instance.n_classes = len(_label_set)
-    else:
+
+    else:   # for training
+        # if return_task_id:
         _benchmark_instance = nc_benchmark(
             train_dataset=_train_set,
             test_dataset=_test_set,
             n_experiences=n_experiences,
             task_labels=return_task_id,
-            seed=seed,
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
+            seed=seed,
             class_ids_from_zero_from_first_exp=not return_task_id,
             class_ids_from_zero_in_each_exp=return_task_id,
             train_transform=train_transform,
             eval_transform=eval_transform,
         )
+        # else:
+        #     _classes_order = list(_map_int_label_to_tuple.keys())
+        #     if shuffle:
+        #         rng = np.random.RandomState(seed=seed)
+        #         rng.shuffle(_classes_order)
+        #
+        #     assert len(_classes_order) % n_experiences == 0
+        #     _n_classes_per_exp = [int(len(_classes_order)/n_experiences) for _ in range(n_experiences)]
+        #     _classes_in_exp = [[] for _ in range(n_experiences)]
+        #     _exp_idx = 0
+        #     for cl in _classes_order:
+        #         if len(_classes_in_exp[_exp_idx]) == _n_classes_per_exp[_exp_idx]:
+        #             _exp_idx += 1
+        #         _classes_in_exp[_exp_idx].append(cl)
+        #
+        #     _train_subsets = [
+        #         AvalancheSubset(_train_set, indices=np.where(np.isin(_train_set.targets, _classes_in_exp[exp_idx]))[0])
+        #         for exp_idx in range(n_experiences)]
+        #     '''For test subset, samples increase when n_classes increases'''
+        #     _test_subsets = [
+        #         AvalancheSubset(_test_set, indices=np.where(np.isin(_test_set.targets, _classes_in_exp[:exp_idx+1]))[0])
+        #         for exp_idx in range(n_experiences)]
+        #     # {list:4}: {AvalancheSubset: 500, AvalancheSubset: 1000, AvalancheSubset:1500, AvalancheSubset:2000}
+        #
+        #     _benchmark_instance = dataset_benchmark(
+        #         train_dataset=_train_subsets,
+        #         test_dataset=_test_subsets,
+        #         train_transform=train_transform,
+        #         eval_transform=eval_transform,
+        #         dataset_type=AvalancheDatasetType.CLASSIFICATION
+        #     )
 
     _benchmark_instance.original_label_set = _label_set
     # {('tree', 'window'), ('roof', 'sky'), ('grass', 'hair'), ('car', 'shirt'), ('sign', 'wall'), ('building', 'wall')}
@@ -452,16 +485,16 @@ if __name__ == "__main__":
 
     # train_set, test_set, label_info = _get_sys_gqa_datasets(
     #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
-    train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
-        '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
+    # train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
+    #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
-    # benchmark_instance = SplitSysGQA(n_experiences=4, return_task_id=True, seed=1234, shuffle=True,
-    #                                  dataset_root='../../datasets')
-
-    # benchmark_novel = SplitSysGQA(n_experiences=4, return_task_id=True, seed=1234, shuffle=True,
-    #                               novel_combination=True, num_samples_each_label=100,
+    benchmark_instance = SplitSysGQA(n_experiences=4, return_task_id=False, seed=1234, shuffle=True,
+                                     dataset_root='../../datasets')
+    #
+    # benchmark_novel = SplitSysGQA(n_experiences=1, return_task_id=False, seed=1234, shuffle=True,
+    #                               novel_combination=True,
     #                               dataset_root='../../datasets')
-
+    #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt
     # dataset = benchmark_instance.train_stream[0].dataset

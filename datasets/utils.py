@@ -99,7 +99,7 @@ if __name__ == '__main__':
         project_name="Split_Sys_VQA",
         run_name="Systematicity_GQA_datasets", dir='../../avalanche-experiments')
 
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Train samples", num_samples_each_label=200)
+    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Train samples")  #, num_samples_each_label=200)
     wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Test samples")
 
     _train_set, _test_set, label_info = _get_sys_gqa_datasets('../../datasets', shuffle=False, novel_combination=True)

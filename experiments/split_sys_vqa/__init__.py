@@ -1,2 +1,5 @@
-from .replay import er_ssysvqa
-from .naive import naive_ssysvqa
+from .replay import *
+from .naive import *
+from .lwf import *
+from .gem import *
+from .naive_novel import *

@@ -161,7 +161,7 @@ class ResNet(nn.Module):
         return 512
 
 
-def resnet18(pretrained=False, pretrained_model_path=None, **kwargs) -> ResNet:
+def resnet18(pretrained=False, pretrained_model_path=None, fix=False, **kwargs) -> ResNet:
     """
         Constructs a ResNet-18 feature extractor.
     """
@@ -180,8 +180,9 @@ def resnet18(pretrained=False, pretrained_model_path=None, **kwargs) -> ResNet:
             feature_extractor.load_state_dict(d)
 
         # Freeze the parameters of the feature extractor
-        for param in feature_extractor.parameters():
-            param.requires_grad = False
+        if fix:
+            for param in feature_extractor.parameters():
+                param.requires_grad = False
     return feature_extractor
 
 
@@ -193,14 +194,25 @@ END: GENERAL RESNET CODE
 class ResNet18(DynamicModule):
     """
         ResNet18 with classifier.
+
     """
-    def __init__(self, num_classes: int = None, pretrained=False, pretrained_model_path=None):
+    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
         super().__init__()
-        self.resnet = resnet18(pretrained, pretrained_model_path)
-        if num_classes is None:
-            self.classifier = IncrementalClassifier(self.resnet.output_size)
-        else:
-            self.classifier = nn.Linear(self.resnet.output_size, num_classes)
+        self.resnet = resnet18()
+        self.classifier = IncrementalClassifier(self.resnet.output_size, initial_out_features=initial_out_features)
+
+        if pretrained:
+            print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
+            ckpt_dict = torch.load(pretrained_model_path)
+            if 'state_dict' in ckpt_dict:
+                self.resnet.load_state_dict(ckpt_dict['state_dict'])
+            else:   # load resnet and classifier
+                self.load_state_dict(ckpt_dict)
+
+            # Freeze the parameters of the feature extractor
+            if fix:
+                for param in self.resnet.parameters():
+                    param.requires_grad = False
 
     def forward(self, x):
         out = self.resnet(x)
@@ -214,9 +226,9 @@ class MTResNet18(MultiTaskModule, DynamicModule):
         It employs multi-head output layer.
     """
 
-    def __init__(self, pretrained=False, pretrained_model_path=None):
+    def __init__(self, pretrained=False, pretrained_model_path=None, fix=False):
         super().__init__()
-        self.resnet = resnet18(pretrained, pretrained_model_path)
+        self.resnet = resnet18(pretrained, pretrained_model_path, fix=fix)
         self.classifier = MultiHeadClassifier(self.resnet.output_size)
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:

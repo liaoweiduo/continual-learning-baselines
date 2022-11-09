@@ -6,7 +6,7 @@ from torch.nn import CrossEntropyLoss
 
 import avalanche as avl
 from avalanche.evaluation import metrics as metrics
-from avalanche.training.supervised import LwF
+from avalanche.training.supervised import GEM
 from avalanche.training.plugins import EvaluationPlugin
 
 from models.resnet import ResNet18, MTResNet18
@@ -15,15 +15,15 @@ from experiments.utils import set_seed, create_default_args, create_experiment_f
 from datasets.cgqa import SplitSysGQA
 
 
-def lwf_ssysvqa_ti(override_args=None):
+def gem_ssysvqa_ti(override_args=None):
     """
-    LwF algorithm on split systematic VQA on task-IL setting.
+    GEM algorithm on split systematic VQA on task-IL setting.
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
         'learning_rate': 0.01, 'n_experiences': 4, 'num_train_samples_each_label': 10000, 'train_mb_size': 100,
         'eval_every': 100, 'eval_mb_size': 50,
-        'lwf_alpha': 10, 'lwf_temperature': 2,
+        'patterns_per_exp': 256, 'mem_strength': 0.5,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
@@ -83,11 +83,11 @@ def lwf_ssysvqa_ti(override_args=None):
     # ####################
     # STRATEGY INSTANCE
     # ####################
-    cl_strategy = LwF(
+    cl_strategy = GEM(
         model,
         torch.optim.Adam(model.parameters(), lr=args.learning_rate),
         CrossEntropyLoss(),
-        alpha=args.lwf_alpha, temperature=args.lwf_temperature,
+        patterns_per_exp=args.patterns_per_exp, memory_strength=args.mem_strength,
         train_mb_size=args.train_mb_size,
         train_epochs=1,
         eval_mb_size=args.eval_mb_size,
@@ -135,15 +135,15 @@ def lwf_ssysvqa_ti(override_args=None):
     return results
 
 
-def lwf_ssysvqa_ci(override_args=None):
+def gem_ssysvqa_ci(override_args=None):
     """
-    LwF algorithm on split systematic VQA on class-IL setting.
+    GEM algorithm on split systematic VQA on class-IL setting.
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
         'learning_rate': 0.01, 'n_experiences': 4, 'epochs': 50, 'train_mb_size': 32,
         'eval_every': 10, 'eval_mb_size': 50,
-        'lwf_alpha': 10, 'lwf_temperature': 2,
+        'patterns_per_exp': 256, 'mem_strength': 0.5,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
@@ -202,11 +202,11 @@ def lwf_ssysvqa_ci(override_args=None):
     # ####################
     # STRATEGY INSTANCE
     # ####################
-    cl_strategy = LwF(
+    cl_strategy = GEM(
         model,
         torch.optim.Adam(model.parameters(), lr=args.learning_rate),
         CrossEntropyLoss(),
-        alpha=args.lwf_alpha, temperature=args.lwf_temperature,
+        patterns_per_exp=args.patterns_per_exp, memory_strength=args.mem_strength,
         train_mb_size=args.train_mb_size,
         train_epochs=args.epochs,
         eval_mb_size=args.eval_mb_size,
@@ -264,9 +264,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.setting == 'task':
-        res = lwf_ssysvqa_ti(vars(args))
+        res = gem_ssysvqa_ti(vars(args))
     elif args.setting == 'class':
-        res = lwf_ssysvqa_ci(vars(args))
+        res = gem_ssysvqa_ci(vars(args))
     else:
         raise Exception("Unimplemented setting.")
 
@@ -274,8 +274,8 @@ if __name__ == '__main__':
     '''
     export PYTHONPATH=${PYTHONPATH}:/liaoweiduo/continual-learning-baselines
     EXPERIMENTS: 
-    python experiments/split_sys_vqa/lwf.py --use_wandb --model resnet --exp_name Resnet-LwF --cuda 1
+    python experiments/split_sys_vqa/gem.py --use_wandb --model resnet --exp_name Resnet-GEM --cuda 0
     
-    python experiments/split_sys_vqa/lwf.py --use_wandb --setting class --exp_name LwF-CL --cuda 0
+    python experiments/split_sys_vqa/gem.py --use_wandb --setting class --exp_name GEM-CL --cuda 0
     '''
 
