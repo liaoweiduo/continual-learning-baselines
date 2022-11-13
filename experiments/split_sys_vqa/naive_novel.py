@@ -104,11 +104,12 @@ def naive_novel_ssysvqa_ti(override_args=None):
     results_novel = []
     for experience in benchmark_novel.train_stream:
         print("Start of experience ", experience.current_experience)
-        cl_strategy_novel.train(experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
+        cl_strategy_novel.train(experience, [benchmark_novel.test_stream], num_workers=8)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results_novel.append(cl_strategy_novel.eval(benchmark_novel.test_stream))
+        results_novel.append(cl_strategy_novel.eval(benchmark_novel.test_stream, num_workers=8))
 
     print("Novel comb results:")
     print(results_novel)
@@ -172,9 +173,9 @@ def naive_novel_ssysvqa_ci(override_args=None):
         metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
         metrics.loss_metrics(epoch=True, experience=True, stream=True),
         metrics.forgetting_metrics(experience=True, stream=True),
-        metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
-                                         save_image=True if args.use_wandb else False,
-                                         stream=True),
+        # metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
+        #                                  save_image=True if args.use_wandb else False,
+        #                                  stream=True),
         benchmark=benchmark,
         loggers=loggers)
 
@@ -201,11 +202,11 @@ def naive_novel_ssysvqa_ci(override_args=None):
     results = []
     for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience, [benchmark.test_stream])
+        cl_strategy.train(experience, [benchmark.test_stream], num_workers=8)
         print("Training completed")
 
-        print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(benchmark.test_stream))
+        # print("Computing accuracy on the whole test set")
+        # results.append(cl_strategy.eval(benchmark.test_stream, num_workers=8))
 
     # ####################
     # STORE CHECKPOINT
@@ -259,9 +260,9 @@ if __name__ == '__main__':
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --model resnet --exp_name Resnet-LwF --cuda 0
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --model resnet --exp_name Resnet-GEM --cuda 1
     
-    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name Naive-CL --cuda 0
-    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name ER-CL --cuda 0
-    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name LwF-CL --cuda 0
-    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name GEM-CL --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name Naive --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name ER --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name LwF --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name GEM --cuda 0
     '''
 

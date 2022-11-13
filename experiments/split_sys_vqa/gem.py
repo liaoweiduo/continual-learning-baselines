@@ -141,9 +141,9 @@ def gem_ssysvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 4, 'epochs': 50, 'train_mb_size': 32,
+        'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 50, 'train_mb_size': 32,
         'eval_every': 10, 'eval_mb_size': 50,
-        'patterns_per_exp': 256, 'mem_strength': 0.5,
+        'patterns_per_exp': 32, 'mem_strength': 0.5,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
@@ -223,11 +223,12 @@ def gem_ssysvqa_ci(override_args=None):
     results = []
     for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
+        cl_strategy.train(experience, num_workers=8)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(benchmark.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream[:experience.current_experience+1], num_workers=8))
 
     # ####################
     # STORE CHECKPOINT
@@ -276,6 +277,6 @@ if __name__ == '__main__':
     EXPERIMENTS: 
     python experiments/split_sys_vqa/gem.py --use_wandb --model resnet --exp_name Resnet-GEM --cuda 0
     
-    python experiments/split_sys_vqa/gem.py --use_wandb --setting class --exp_name GEM-CL --cuda 0
+    python experiments/split_sys_vqa/gem.py --use_wandb --setting class --exp_name GEM --cuda 0
     '''
 

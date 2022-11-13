@@ -141,7 +141,7 @@ def er_ssysvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 4, 'epochs': 50, 'train_mb_size': 32,
+        'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 50, 'train_mb_size': 32,
         'eval_every': 10, 'eval_mb_size': 50,
         'mem_size': 1000,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
@@ -223,11 +223,12 @@ def er_ssysvqa_ci(override_args=None):
     results = []
     for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
+        cl_strategy.train(experience, num_workers=8)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(benchmark.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream[:experience.current_experience+1], num_workers=8))
 
     # ####################
     # STORE CHECKPOINT
@@ -275,5 +276,5 @@ if __name__ == '__main__':
     python experiments/split_sys_vqa/replay.py --use_wandb --model resnet --exp_name Resnet-ER --cuda 1
     python experiments/split_sys_vqa/replay.py --use_wandb --model cnn --exp_name CNN-ER --cuda 2
     
-    python experiments/split_sys_vqa/replay.py --use_wandb --setting class --exp_name ER-CL --cuda 1
+    python experiments/split_sys_vqa/replay.py --use_wandb --setting class --exp_name ER --cuda 1
     '''

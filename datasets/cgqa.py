@@ -223,6 +223,161 @@ def SplitSysGQA(
     return _benchmark_instance
 
 
+def SplitSubGQA(
+        n_experiences: int,
+        *,
+        return_task_id=False,
+        seed: Optional[int] = None,
+        fixed_class_order: Optional[Sequence[int]] = None,
+        shuffle: bool = True,
+        train_transform: Optional[Any] = _default_cgqa_train_transform,
+        eval_transform: Optional[Any] = _default_cgqa_eval_transform,
+        dataset_root: Union[str, Path] = None,
+        novel_combination: Optional[bool] = False,
+        num_samples_each_label: Optional[int] = None,
+):
+    """
+    Creates a CL benchmark using the pre-processed GQA dataset.
+
+    Please first download GQA dataset (Image Files 20.3G) in
+    https://cs.stanford.edu/people/dorarad/gqa/download.html.
+    Then unzip and place the folder under dataset_root/vqa folder.
+    Also, please download our preprocessed json
+    under dataset_root/vqa/sub_gqa_json folder.
+
+    Folder structure:
+    dataset_root \
+        - vqa \
+            - allImages \
+                - images \
+                    - IMAGE_FILES
+            - sub_gqa_json \
+                - attriJson \
+                    - attri_comb_train.json
+                    - attri_comb_test.json
+                    - novel_attri_comb_train.json
+                    - novel_attri_comb_test.json
+
+    The original labels of classes are the objects defined in json. E.g., "sky".
+
+    The returned benchmark will return experiences containing all patterns of a
+    subset of classes, which means that each class is only seen "once".
+    This is one of the most common scenarios in the Continual Learning
+    literature. Common names used in literature to describe this kind of
+    scenario are "Class Incremental", "New Classes", etc. By default,
+    an equal amount of classes will be assigned to each experience.
+
+    This generator doesn't force a choice on the availability of task labels,
+    a choice that is left to the user (see the `return_task_id` parameter for
+    more info on task labels).
+
+    The benchmark instance returned by this method will have two fields,
+    `train_stream` and `test_stream`, which can be iterated to obtain
+    training and test :class:`Experience`. Each Experience contains the
+    `dataset` and the associated task label.
+
+    The benchmark API is quite simple and is uniform across all benchmark
+    generators. It is recommended to check the tutorial of the "benchmark" API,
+    which contains usage examples ranging from "basic" to "advanced".
+
+    :param n_experiences: The number of experiences in the current benchmark.
+    :param return_task_id: If True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
+    :param seed: A valid int used to initialize the random number generator.
+        Can be None.
+    :param fixed_class_order: A list of class IDs used to define the class
+        order. If None, value of ``seed`` will be used to define the class
+        order. If non-None, ``seed`` parameter will be ignored.
+        Defaults to None.
+    :param shuffle: If true, the class order in the incremental experiences is
+        randomly shuffled. Default to True.
+    :param train_transform: The transformation to apply to the training data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations).
+        If no transformation is passed, the default train transformation
+        will be used.
+    :param eval_transform: The transformation to apply to the test data,
+        e.g. a random crop, a normalization or a concatenation of different
+        transformations (see torchvision.transform documentation for a
+        comprehensive list of possible transformations).
+        If no transformation is passed, the default test transformation
+        will be used.
+    :param dataset_root: The root path of the dataset.
+        Defaults to None, which means that the default location for
+        'tinyimagenet' will be used.
+    :param novel_combination: Whether to test on novel combination of objects.
+        Defaults to False, which means to train the model.
+        If it is set to True, n_experiences is overridden to 1,
+        since we want to test the model performance on novel combination,
+        and do not need the CL setting.
+    :param num_samples_each_label: Sample specific number of images
+        for each class for each exp (replace=True) with a build-in seed
+        to support balance training.
+        If is None, all samples are used.
+        Note that total train samples for novel comb are around 100-200.
+
+    :returns: A properly initialized :class:`NCScenario` instance.
+    """
+
+    if dataset_root is None:
+        dataset_root = default_dataset_location("gqa")
+
+    '''Get _train_set, _test_set, _label_info defined in json'''
+    _train_set, _test_set, _label_info = _get_sub_gqa_datasets(dataset_root,
+                                                               shuffle=True, seed=1234,
+                                                               novel_combination=novel_combination,
+                                                               num_samples_each_label=num_samples_each_label)
+    _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
+
+    if novel_combination:   # for novel testing
+        # _benchmark_instance = dataset_benchmark(
+        #     train_datasets=[_train_set for _ in range(n_experiences)],
+        #     test_datasets=[_test_set],
+        #     complete_test_set_only=True,
+        #     train_transform=train_transform,
+        #     eval_transform=eval_transform,
+        #     dataset_type=AvalancheDatasetType.CLASSIFICATION
+        # )
+        # _benchmark_instance.n_classes = len(_label_set)
+
+        _benchmark_instance = nc_benchmark(
+            train_dataset=_train_set,
+            test_dataset=_test_set,
+            n_experiences=n_experiences,
+            task_labels=return_task_id,
+            fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
+            seed=seed,
+            class_ids_from_zero_from_first_exp=not return_task_id,
+            class_ids_from_zero_in_each_exp=return_task_id,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
+
+    else:   # for training
+        # if return_task_id:
+        _benchmark_instance = nc_benchmark(
+            train_dataset=_train_set,
+            test_dataset=_test_set,
+            n_experiences=n_experiences,
+            task_labels=return_task_id,
+            fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
+            seed=seed,
+            class_ids_from_zero_from_first_exp=not return_task_id,
+            class_ids_from_zero_in_each_exp=return_task_id,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
+
+    _benchmark_instance.original_label_set = _label_set
+    _benchmark_instance.original_map_tuple_label_to_int = _map_tuple_label_to_int
+    _benchmark_instance.original_map_int_label_to_tuple = _map_int_label_to_tuple
+
+    return _benchmark_instance
+
+
 def _get_sys_gqa_datasets(
         dataset_root,
         shuffle=True, seed: Optional[int] = None,
@@ -231,9 +386,6 @@ def _get_sys_gqa_datasets(
     """
     Create systematicity GQA dataset, with given json files,
     containing instance tuples with shape (img_name, label, bounding box).
-
-    comb train/test: num samples for each label: {train:720, test: 170}
-    novel comb train/test: num samples for each label: {train:136, test: 34}
 
     If training (novel_combination=False), return the training comb. data,
     else, return only the novel comb. data.
@@ -481,19 +633,143 @@ def _get_sys_gqa_datasets_pre_processed(
     return _train_set, _test_set, (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
 
+def _get_sub_gqa_datasets(
+        dataset_root,
+        shuffle=True, seed: Optional[int] = None,
+        novel_combination=False, num_samples_each_label=None,
+        task_label=None):
+    """
+    Create substitutivity GQA dataset, with given json files,
+    containing instance tuples with shape (img_name, label, bounding box).
+
+    If training (novel_combination=False), return the training comb. data,
+    else, return only the novel comb. data.
+
+    If novel_combination is True, you may need to specify task_label in Task-IL setting,
+    since it is used after several train tasks.
+
+    :param dataset_root: Path to the dataset root folder.
+    :param shuffle: If true, the train sample order in the incremental experiences is
+        randomly shuffled. Default to True.
+    :param seed: A valid int used to initialize the random number generator.
+        Can be None.
+    :param novel_combination: Whether to return novel comb.
+        for evaluating model's compositional generalization performance.
+    :param num_samples_each_label: If specify a certain number of samples for each label,
+        random sampling with replace=True is used to sample for training.
+        For evaluating, still all samples are used.
+    :param task_label: if specify with int number, we will assign the task_label to data.
+    :return data_sets defined by json file.
+    """
+    if novel_combination:
+        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "novel_attri_comb_train.json")
+        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "novel_attri_comb_test.json")
+    else:
+        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "attri_comb_train.json")
+        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "attri_comb_test.json")
+    img_folder_path = os.path.join(dataset_root, "gqa", "allImages", "images")
+
+    '''load image paths with labels and boundingBox'''
+    with open(train_json_path, 'r') as f:
+        train_img_info = json.load(f)
+    with open(test_json_path, 'r') as f:
+        test_img_info = json.load(f)
+    # img_info:
+    # [{'image': '2321003', 'label': ['grass', 'green'], 'boundingBox': [2, 4, 335, 368]},...
+
+    '''preprocess labels to integers'''
+    label_set = sorted(list(set([item['label'][0] for item in test_img_info])))
+    # ['building', 'car', 'chair', 'fence', 'flower', 'grass', 'hair', 'hat', 'helmet', 'jacket', 'pants', 'pole',
+    #  'shirt', 'shoe', 'shorts', 'sign', 'sky', 'table', 'tree', 'wall']
+    map_tuple_label_to_int = dict((item, idx) for idx, item in enumerate(label_set))
+    # {'building': 0, 'car': 1, 'chair': 2, 'fence': 3, 'flower': 4, 'grass': 5, 'hair': 6, 'hat': 7, 'helmet': 8,
+    #  'jacket': 9, 'pants': 10, 'pole': 11, 'shirt': 12, 'shoe': 13, 'shorts': 14, 'sign': 15, 'sky': 16, 'table': 17,
+    #  'tree': 18, 'wall': 19}
+    map_int_label_to_tuple = dict((idx, item) for idx, item in enumerate(label_set))
+    # {0: 'building',...
+
+    for item in train_img_info:
+        item['image'] = f"{item['image']}.jpg"
+        item['label'] = map_tuple_label_to_int[item['label'][0]]
+    for item in test_img_info:
+        item['image'] = f"{item['image']}.jpg"
+        item['label'] = map_tuple_label_to_int[item['label'][0]]
+
+    '''if num_samples_each_label provided, sample images (replace=True) to balance each class for train set'''
+    selected_train_images = []
+    if num_samples_each_label is not None and num_samples_each_label > 0:
+        build_in_seed = 1234
+        build_in_rng = np.random.RandomState(seed=build_in_seed)
+        imgs_each_label = dict()
+        for item in train_img_info:
+            label = item['label']
+            if label in imgs_each_label:
+                imgs_each_label[label].append(item)
+            else:
+                imgs_each_label[label] = [item]
+        for label, imgs in imgs_each_label.items():
+            selected_idxs = build_in_rng.choice(np.arange(len(imgs)), num_samples_each_label, replace=True)
+            for idx in selected_idxs:
+                selected_train_images.append(imgs[idx])
+    else:
+        selected_train_images = train_img_info
+
+    '''for testing, all images are used'''
+    selected_test_images = test_img_info
+
+    '''generate train_list and test_list: list with img tuple (path, label, bounding box)'''
+    selected_train_images: List[Dict[str, Union[str, int, List[int]]]]
+    selected_test_images:  List[Dict[str, Union[str, int, List[int]]]]
+
+    train_list = []
+    for item in selected_train_images:
+        instance_tuple = (item['image'], item['label'], item['boundingBox'])
+        train_list.append(instance_tuple)
+    test_list = []
+    for item in selected_test_images:
+        instance_tuple = (item['image'], item['label'], item['boundingBox'])
+        test_list.append(instance_tuple)
+    # [('2325499C73236.jpg', 0, [2, 4, 335, 368]), ('2369086C73237.jpg', 0, [2, 4, 335, 368]),...
+
+    '''shuffle the train set'''
+    if shuffle:
+        rng = np.random.RandomState(seed=seed)
+        order = np.arange(len(train_list))
+        rng.shuffle(order)
+        train_list = [train_list[idx] for idx in order]
+
+    '''generate train_set and test_set using PathsDataset'''
+    '''generate AvalancheDataset with specified task_labels if provided'''
+    '''TBD: use TensorDataset if pre-loading in memory'''
+    _train_set = PathsDataset(
+        root=img_folder_path,
+        files=train_list,
+        transform=transforms.Resize([224, 224])  # allow reshape but not equal scaling
+    )
+    _test_set = PathsDataset(
+        root=img_folder_path,
+        files=test_list,
+        transform=transforms.Resize([224, 224])
+    )
+    _train_set = AvalancheDataset(_train_set, task_labels=task_label)
+    _test_set = AvalancheDataset(_test_set, task_labels=task_label)
+
+    return _train_set, _test_set, (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
+
+
 if __name__ == "__main__":
 
-    # train_set, test_set, label_info = _get_sys_gqa_datasets(
+    # train_set, test_set, label_info = _get_sub_gqa_datasets(
     #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
-    # train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
+    # train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
     #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
-    benchmark_instance = SplitSysGQA(n_experiences=4, return_task_id=False, seed=1234, shuffle=True,
+    benchmark_instance = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
                                      dataset_root='../../datasets')
-    #
-    # benchmark_novel = SplitSysGQA(n_experiences=1, return_task_id=False, seed=1234, shuffle=True,
-    #                               novel_combination=True,
-    #                               dataset_root='../../datasets')
+
+    benchmark_novel = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+                                  novel_combination=True,
+                                  dataset_root='../../datasets')
     #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt
@@ -510,4 +786,4 @@ if __name__ == "__main__":
     # check_vision_benchmark(benchmark_instance, show_without_transforms=True)
     # check_vision_benchmark(benchmark_novel, show_without_transforms=True)
 
-__all__ = ["SplitSysGQA"]
+__all__ = ["SplitSysGQA", "SplitSubGQA"]

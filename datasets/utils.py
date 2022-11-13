@@ -87,7 +87,7 @@ class WandBDatasetAnalyzer(WandBLogger):
         self.wandb.log({visual_name: train_table})
 
 
-if __name__ == '__main__':
+def log_sys_gqa():
     from cgqa import _get_sys_gqa_datasets
 
     _train_set, _test_set, label_info = _get_sys_gqa_datasets('../../datasets', shuffle=False, novel_combination=False)
@@ -107,6 +107,36 @@ if __name__ == '__main__':
     label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
     # {20: 'building, hair', 1: 'car, sky',...
 
+    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples")
+    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples")
+
+
+def log_sub_gqa():
+    from cgqa import _get_sub_gqa_datasets
+
+    _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=False)
+
+    label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
+
+    wandb_dataset_analyzer = WandBDatasetAnalyzer(
+        project_name="Split_Sub_VQA",
+        run_name="Substitutivity_GQA_datasets", dir='../../avalanche-experiments')
+
+    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Train samples")  #, num_samples_each_label=200)
+    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Test samples")
+
+    _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=True)
+
+    label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
+
+    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples")
+    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples")
+
+
+if __name__ == '__main__':
+    # log_sys_gqa()
+    log_sub_gqa()
+
     # from matplotlib import pyplot as plt
     # x = test_set[1][0]
     # y = test_set[1][1]
@@ -115,6 +145,3 @@ if __name__ == '__main__':
     # plt.imshow(img)
     # plt.title(f'y:{y}')
     # plt.show()
-
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples")
-    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples")
