@@ -39,7 +39,8 @@ class WandBDatasetAnalyzer(WandBLogger):
             visual_name: str,
             num_samples_each_label: Optional[int] = None,
             image_size: Tuple[int, int] = (84, 84),
-            seed=1234
+            seed=1234,
+            **kwargs
     ):
         """
         Use log_dataset to analyze given dataset and log example image for visualization.
@@ -76,11 +77,21 @@ class WandBDatasetAnalyzer(WandBLogger):
             selected_samples[key] = [self.wandb.Image(trans(dataset[idx][0])) for idx in idxs]
 
         '''Construct wandb table'''
-        data = [
-            [label, label_map[label], images, num_samples[label]] for label, images in
-            selected_samples.items()
-        ]
-        columns = ["Label", "Label string", "Images", "Num"]
+        if 'label_attr_map' in kwargs:
+            data = [
+                [label,
+                 label_map[label],
+                 kwargs['label_attr_map'][label],
+                 images, num_samples[label]]
+                for label, images in selected_samples.items()
+            ]
+            columns = ["Label", "Label string", "Test attr", "Images", "Num"]
+        else:
+            data = [
+                [label, label_map[label], images, num_samples[label]] for label, images in
+                selected_samples.items()
+            ]
+            columns = ["Label", "Label string", "Images", "Num"]
         train_table = self.wandb.Table(data=data, columns=columns)
 
         '''Log wandb table'''
@@ -114,23 +125,28 @@ def log_sys_gqa():
 def log_sub_gqa():
     from cgqa import _get_sub_gqa_datasets
 
-    _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=False)
-
-    label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
-
     wandb_dataset_analyzer = WandBDatasetAnalyzer(
         project_name="Split_Sub_VQA",
         run_name="Substitutivity_GQA_datasets", dir='../../avalanche-experiments')
 
+    '''Log training phase'''
+    _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=False)
+
+    label_map = {key: item for key, item in label_info[2].items()}
+
     wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Train samples")  #, num_samples_each_label=200)
     wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Test samples")
 
+    '''Log novel testing phase'''
     _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=True)
 
-    label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
+    label_map = {key: item for key, item in label_info[2].items()}
+    label_attr_map = {key: item for key, item in label_info[3].items()}
 
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples")
-    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples")
+    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples",
+                                       label_attr_map=label_attr_map)
+    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples",
+                                       label_attr_map=label_attr_map)
 
 
 if __name__ == '__main__':

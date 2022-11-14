@@ -328,7 +328,7 @@ def SplitSubGQA(
                                                                shuffle=True, seed=1234,
                                                                novel_combination=novel_combination,
                                                                num_samples_each_label=num_samples_each_label)
-    _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
+    _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple, _map_int_label_to_attr = _label_info
 
     if novel_combination:   # for novel testing
         # _benchmark_instance = dataset_benchmark(
@@ -374,6 +374,7 @@ def SplitSubGQA(
     _benchmark_instance.original_label_set = _label_set
     _benchmark_instance.original_map_tuple_label_to_int = _map_tuple_label_to_int
     _benchmark_instance.original_map_int_label_to_tuple = _map_int_label_to_tuple
+    _benchmark_instance.original_map_int_label_to_attr = _map_int_label_to_attr
 
     return _benchmark_instance
 
@@ -687,6 +688,17 @@ def _get_sub_gqa_datasets(
     #  'tree': 18, 'wall': 19}
     map_int_label_to_tuple = dict((idx, item) for idx, item in enumerate(label_set))
     # {0: 'building',...
+    map_int_label_to_attr = dict()
+    if novel_combination:       # we have test attribute specified for novel testing.
+        tuple_label_attr = sorted(list(set([tuple(item['testComb']) for item in test_img_info])))
+        # [('building', 'brown'), ('car', 'red'), ('chair', 'black'), ('fence', 'black'), ('flower', 'yellow'),
+        #  ('grass', 'brown'), ('hair', 'black'), ('hat', 'blue'), ('helmet', 'white'), ('jacket', 'blue'),
+        #  ('pants', 'white'), ('pole', 'wood'), ('shirt', 'green'), ('shoe', 'black'), ('shorts', 'blue'),
+        #  ('sign', 'blue'), ('sky', 'white'), ('table', 'white'), ('tree', 'brown'), ('wall', 'brown')]
+        map_int_label_to_attr = dict((map_tuple_label_to_int[label], attr) for label, attr in tuple_label_attr)
+        # {0: 'brown', 1: 'red', 2: 'black', 3: 'black', 4: 'yellow', 5: 'brown', 6: 'black', 7: 'blue', 8: 'white',
+        #  9: 'blue', 10: 'white', 11: 'wood', 12: 'green', 13: 'black', 14: 'blue', 15: 'blue', 16: 'white',
+        #  17: 'white', 18: 'brown', 19: 'brown'}
 
     for item in train_img_info:
         item['image'] = f"{item['image']}.jpg"
@@ -723,11 +735,17 @@ def _get_sub_gqa_datasets(
 
     train_list = []
     for item in selected_train_images:
-        instance_tuple = (item['image'], item['label'], item['boundingBox'])
+        if novel_combination:
+            instance_tuple = (item['image'], item['label'], item['boundingbox'])
+        else:
+            instance_tuple = (item['image'], item['label'], item['boundingBox'])
         train_list.append(instance_tuple)
     test_list = []
     for item in selected_test_images:
-        instance_tuple = (item['image'], item['label'], item['boundingBox'])
+        if novel_combination:
+            instance_tuple = (item['image'], item['label'], item['boundingbox'])
+        else:
+            instance_tuple = (item['image'], item['label'], item['boundingBox'])
         test_list.append(instance_tuple)
     # [('2325499C73236.jpg', 0, [2, 4, 335, 368]), ('2369086C73237.jpg', 0, [2, 4, 335, 368]),...
 
@@ -754,22 +772,24 @@ def _get_sub_gqa_datasets(
     _train_set = AvalancheDataset(_train_set, task_labels=task_label)
     _test_set = AvalancheDataset(_test_set, task_labels=task_label)
 
-    return _train_set, _test_set, (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
+    label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple, map_int_label_to_attr)
+
+    return _train_set, _test_set, label_info
 
 
 if __name__ == "__main__":
 
     # train_set, test_set, label_info = _get_sub_gqa_datasets(
     #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
-    # train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
-    #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
+    train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
+        '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
-    benchmark_instance = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-                                     dataset_root='../../datasets')
+    # benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+    #                                  dataset_root='../../datasets')
 
-    benchmark_novel = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-                                  novel_combination=True,
-                                  dataset_root='../../datasets')
+    # benchmark_novel = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+    #                               novel_combination=True,
+    #                               dataset_root='../../datasets')
     #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt
