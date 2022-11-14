@@ -156,18 +156,63 @@ def SplitSysGQA(
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
 
     if novel_combination:   # for novel testing
+        classes_order = list(_map_int_label_to_tuple.keys())    # [20, 21, 22, 23, 24]
+        selected_classes_in_exp = []        # e.g.[[21, 23], [20, 21],...]
+        classes_in_exp = []                 # [[20,21], [20,21],...] if class-IL, [[0,1], [0,1],...] if task-IL
+        class_mappings = []
+        task_labels = []
+        '''Select 2 classes for each exp as a 2-way task'''
+        rng = np.random.RandomState(seed)
+        for exp_idx in range(n_experiences):
+            selected_class_idxs = rng.choice(classes_order, 2, replace=False)
+            selected_classes_in_exp.append(selected_class_idxs)
+            if return_task_id:
+                classes_in_exp.append([0, 1])
+                class_mapping = np.array([None for _ in range(max(selected_class_idxs))])
+                class_mapping[selected_class_idxs] = [0, 1]
+                class_mappings.append(class_mapping)
+                task_labels.append(10)      # all exp are with task_label 10 in task-IL
+            else:
+                classes_in_exp.append([20, 21])
+                class_mapping = np.array([None for _ in range(max(selected_class_idxs)+1)])
+                class_mapping[selected_class_idxs] = [20, 21]
+                class_mappings.append(class_mapping)
+                task_labels.append(0)
+
+        _train_subsets = [
+            AvalancheSubset(_train_set,
+                            indices=np.where(np.isin(_train_set.targets, selected_classes_in_exp[exp_idx]))[0],
+                            class_mapping=class_mappings[exp_idx],
+                            task_labels=task_labels[exp_idx])
+            for exp_idx in range(n_experiences)]
+        _test_subsets = [
+            AvalancheSubset(_test_set,
+                            indices=np.where(np.isin(_test_set.targets, selected_classes_in_exp[exp_idx]))[0],
+                            class_mapping=class_mappings[exp_idx],
+                            task_labels=task_labels[exp_idx])
+            for exp_idx in range(n_experiences)]
+
         _benchmark_instance = dataset_benchmark(
-            train_datasets=[_train_set for _ in range(n_experiences)],
-            test_datasets=[_test_set],
-            complete_test_set_only=True,
+            train_datasets=_train_subsets,
+            test_datasets=_test_subsets,
             train_transform=train_transform,
             eval_transform=eval_transform,
             dataset_type=AvalancheDatasetType.CLASSIFICATION
         )
-        _benchmark_instance.n_classes = len(_label_set)
+
+        _benchmark_instance.original_classes_in_exp = selected_classes_in_exp
+
+        # _benchmark_instance = dataset_benchmark(
+        #     train_datasets=[_train_set for _ in range(n_experiences)],
+        #     test_datasets=[_test_set],
+        #     complete_test_set_only=True,
+        #     train_transform=train_transform,
+        #     eval_transform=eval_transform,
+        #     dataset_type=AvalancheDatasetType.CLASSIFICATION
+        # )
+        # _benchmark_instance.n_classes = len(_label_set)
 
     else:   # for training
-        # if return_task_id:
         _benchmark_instance = nc_benchmark(
             train_dataset=_train_set,
             test_dataset=_test_set,
@@ -181,37 +226,6 @@ def SplitSysGQA(
             train_transform=train_transform,
             eval_transform=eval_transform,
         )
-        # else:
-        #     _classes_order = list(_map_int_label_to_tuple.keys())
-        #     if shuffle:
-        #         rng = np.random.RandomState(seed=seed)
-        #         rng.shuffle(_classes_order)
-        #
-        #     assert len(_classes_order) % n_experiences == 0
-        #     _n_classes_per_exp = [int(len(_classes_order)/n_experiences) for _ in range(n_experiences)]
-        #     _classes_in_exp = [[] for _ in range(n_experiences)]
-        #     _exp_idx = 0
-        #     for cl in _classes_order:
-        #         if len(_classes_in_exp[_exp_idx]) == _n_classes_per_exp[_exp_idx]:
-        #             _exp_idx += 1
-        #         _classes_in_exp[_exp_idx].append(cl)
-        #
-        #     _train_subsets = [
-        #         AvalancheSubset(_train_set, indices=np.where(np.isin(_train_set.targets, _classes_in_exp[exp_idx]))[0])
-        #         for exp_idx in range(n_experiences)]
-        #     '''For test subset, samples increase when n_classes increases'''
-        #     _test_subsets = [
-        #         AvalancheSubset(_test_set, indices=np.where(np.isin(_test_set.targets, _classes_in_exp[:exp_idx+1]))[0])
-        #         for exp_idx in range(n_experiences)]
-        #     # {list:4}: {AvalancheSubset: 500, AvalancheSubset: 1000, AvalancheSubset:1500, AvalancheSubset:2000}
-        #
-        #     _benchmark_instance = dataset_benchmark(
-        #         train_dataset=_train_subsets,
-        #         test_dataset=_test_subsets,
-        #         train_transform=train_transform,
-        #         eval_transform=eval_transform,
-        #         dataset_type=AvalancheDatasetType.CLASSIFICATION
-        #     )
 
     _benchmark_instance.original_label_set = _label_set
     # {('tree', 'window'), ('roof', 'sky'), ('grass', 'hair'), ('car', 'shirt'), ('sign', 'wall'), ('building', 'wall')}
@@ -663,11 +677,11 @@ def _get_sub_gqa_datasets(
     :return data_sets defined by json file.
     """
     if novel_combination:
-        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "novel_attri_comb_train.json")
-        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "novel_attri_comb_test.json")
+        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "novel_attri_comb_train.json")
+        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "novel_attri_comb_test.json")
     else:
-        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "attri_comb_train.json")
-        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "atrriJson", "attri_comb_test.json")
+        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "attri_comb_train.json")
+        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "attri_comb_test.json")
     img_folder_path = os.path.join(dataset_root, "gqa", "allImages", "images")
 
     '''load image paths with labels and boundingBox'''
@@ -779,10 +793,24 @@ def _get_sub_gqa_datasets(
 
 if __name__ == "__main__":
 
+    '''Sys'''
+    # train_set, test_set, label_info = _get_sys_gqa_datasets(
+    #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
+    # train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
+    #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
+
+    benchmark_instance = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+                                     dataset_root='../../datasets')
+
+    benchmark_novel = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+                                  novel_combination=True,
+                                  dataset_root='../../datasets')
+
+    '''Sub'''
     # train_set, test_set, label_info = _get_sub_gqa_datasets(
     #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
-    train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
-        '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
+    # train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
+    #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
     # benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
     #                                  dataset_root='../../datasets')

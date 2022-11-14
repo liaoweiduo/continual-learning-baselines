@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss
 
@@ -224,11 +225,13 @@ def gem_ssysvqa_ci(override_args=None):
     for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
-        cl_strategy.train(experience, num_workers=8)
+        cl_strategy.train(experience,
+                          num_workers=8, pin_memory=False)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(benchmark.test_stream[:experience.current_experience+1], num_workers=8))
+        results.append(cl_strategy.eval(benchmark.test_stream[:experience.current_experience+1],
+                                        num_workers=8, pin_memory=False))
 
     # ####################
     # STORE CHECKPOINT
@@ -243,13 +246,18 @@ def gem_ssysvqa_ci(override_args=None):
 
         wandb_logger: avl.logging.WandBLogger
 
-        artifact = wandb_logger.wandb.Artifact('WeightCheckpoint', type="model")
+        artifact = wandb_logger.wandb.Artifact(f'WeightCheckpoint-{args.exp_name}', type="model")
         artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
         artifact.add_file(model_file, name=artifact_name)
         wandb_logger.wandb.run.log_artifact(artifact)
 
     print("Final results:")
     print(results)
+
+    # ####################
+    # STORE RESULTS
+    # ####################
+    np.save(os.path.join(exp_path, f'results_{args.exp_name}.npy'), results)
 
     return results
 

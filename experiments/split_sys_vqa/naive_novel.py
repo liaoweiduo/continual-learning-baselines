@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss
 
@@ -123,7 +124,7 @@ def naive_novel_ssysvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 1, 'epochs': 50, 'train_mb_size': 32,
+        'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 20, 'train_mb_size': 32,
         'eval_every': 2, 'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
@@ -138,16 +139,11 @@ def naive_novel_ssysvqa_ci(override_args=None):
                           args.cuda >= 0 else "cpu")
 
     # ####################
-    # BENCHMARK & MODEL
+    # BENCHMARK
     # ####################
     benchmark = SplitSysGQA(n_experiences=args.n_experiences, return_task_id=False, seed=1234, shuffle=True,
                             novel_combination=True,
                             dataset_root=args.dataset_root)
-    if args.model == "resnet":
-        model = ResNet18(initial_out_features=20,
-                         pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'))
-    else:
-        raise Exception("Un-recognized model structure.")
 
     # ####################
     # LOGGER
@@ -180,54 +176,60 @@ def naive_novel_ssysvqa_ci(override_args=None):
         loggers=loggers)
 
     # ####################
-    # STRATEGY INSTANCE
-    # ####################
-    cl_strategy = Naive(
-        model,
-        torch.optim.Adam(model.parameters(), lr=args.learning_rate),
-        CrossEntropyLoss(),
-        train_mb_size=args.train_mb_size,
-        train_epochs=args.epochs,
-        eval_mb_size=args.eval_mb_size,
-        device=device,
-        evaluator=evaluation_plugin,
-        eval_every=args.eval_every,
-        peval_mode="epoch",
-    )
-
-    # ####################
     # TRAINING LOOP
     # ####################
     print("Starting experiment...")
     results = []
     for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience, [benchmark.test_stream], num_workers=8)
+        print("Current Classes: ", [
+            benchmark.original_map_int_label_to_tuple[cls_idx]
+            for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
+        ])
+
+        # ####################
+        # MODEL
+        # ####################
+        print("Load trained model.")
+        if args.model == "resnet":
+            model = ResNet18(initial_out_features=20,
+                             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'))
+        else:
+            raise Exception("Un-recognized model structure.")
+
+        # ####################
+        # STRATEGY INSTANCE
+        # ####################
+        cl_strategy = Naive(
+            model,
+            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            CrossEntropyLoss(),
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            evaluator=evaluation_plugin,
+            eval_every=args.eval_every,
+            peval_mode="epoch",
+        )
+
+        cl_strategy.train(experience,
+                          [benchmark.test_stream[experience.current_experience]],
+                          num_workers=8, pin_memory=False)
         print("Training completed")
 
-        # print("Computing accuracy on the whole test set")
-        # results.append(cl_strategy.eval(benchmark.test_stream, num_workers=8))
-
-    # ####################
-    # STORE CHECKPOINT
-    # ####################
-    # if wandb_logger is not None:
-    #     wandb_logger: avl.logging.WandBLogger
-    #     wandb_logger.log_artifacts
-    model_file = os.path.join(checkpoint_path, 'model.pth')
-    print("Store checkpoint in", model_file)
-    torch.save(model.state_dict(), model_file)
-    if wandb_logger is not None:
-
-        wandb_logger: avl.logging.WandBLogger
-
-        artifact = wandb_logger.wandb.Artifact('WeightCheckpoint', type="model")
-        artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
-        artifact.add_file(model_file, name=artifact_name)
-        wandb_logger.wandb.run.log_artifact(artifact)
+        print("Computing accuracy on the whole test set")
+        results.append(cl_strategy.eval(benchmark.test_stream[experience.current_experience],
+                                        num_workers=8, pin_memory=False))
+        print(results[experience.current_experience])
 
     print("Final results:")
     print(results)
+
+    # ####################
+    # STORE RESULTS
+    # ####################
+    np.save(os.path.join(exp_path, f'results_{args.exp_name}.npy'), results)
 
     return results
 
