@@ -225,6 +225,10 @@ def gem_ssysvqa_ci(override_args=None):
     for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
+        print("Current Classes: ", [
+            benchmark.original_map_int_label_to_tuple[cls_idx]
+            for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
+        ])
         cl_strategy.train(experience,
                           num_workers=8, pin_memory=False)
         print("Training completed")
