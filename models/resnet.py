@@ -203,7 +203,7 @@ class ResNet18(DynamicModule):
 
         if pretrained:
             print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
-            ckpt_dict = torch.load(pretrained_model_path)
+            ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
             if 'state_dict' in ckpt_dict:
                 self.resnet.load_state_dict(ckpt_dict['state_dict'])
             else:   # load resnet and classifier

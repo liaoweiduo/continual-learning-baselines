@@ -30,16 +30,19 @@ def create_default_args(args_dict, additional_args=None):
     return args
 
 
-def create_experiment_folder(root='.', exp_name=None):
+def create_experiment_folder(root='.', exp_name=None, project_name=None):
     """
+    generate project folder then
     generate exp folder, with a subfolder: Checkpoints to store model params.
 
+    if project_name is None, use timestmps as folder name.
     if exp_name is None, use timestmps as folder name.
     """
+    if project_name is None:
+        project_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     if exp_name is None:
-        exp_path = os.path.abspath(os.path.join(root, datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
-    else:
-        exp_path = os.path.abspath(os.path.join(root, exp_name))
+        exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    exp_path = os.path.abspath(os.path.join(root, project_name, exp_name))
     if os.path.exists(exp_path):
         print(f"Exist experiment with path: {exp_path}")
     else:

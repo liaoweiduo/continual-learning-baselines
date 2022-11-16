@@ -31,7 +31,8 @@ def gem_ssysvqa_ti(override_args=None):
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root,
-        exp_name=args.exp_name if args.exp_name != "TIME" else None)
+        exp_name=args.exp_name if args.exp_name != "TIME" else None,
+        project_name=args.project_name)
     args.exp_name = exp_path.split(os.sep)[-1]
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
@@ -151,7 +152,8 @@ def gem_ssysvqa_ci(override_args=None):
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root,
-        exp_name=args.exp_name if args.exp_name != "TIME" else None)
+        exp_name=args.exp_name if args.exp_name != "TIME" else None,
+        project_name=args.project_name)
     args.exp_name = exp_path.split(os.sep)[-1]
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
@@ -261,7 +263,14 @@ def gem_ssysvqa_ci(override_args=None):
     # ####################
     # STORE RESULTS
     # ####################
-    np.save(os.path.join(exp_path, f'results_{args.exp_name}.npy'), results)
+    stored_results = []
+    for result in results:
+        re = dict()
+        for key, item in result.items():
+            if 'ConfusionMatrix' not in key:
+                re[key] = item
+        stored_results.append(re)
+    np.save(os.path.join(exp_path, f'results-{args.exp_name}.npy'), stored_results)
 
     return results
 

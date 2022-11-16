@@ -799,12 +799,12 @@ if __name__ == "__main__":
     # train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
     #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
-    benchmark_instance = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-                                     dataset_root='../../datasets')
-
-    benchmark_novel = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-                                  novel_combination=True,
-                                  dataset_root='../../datasets')
+    # benchmark_instance = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+    #                                  dataset_root='../../datasets')
+    #
+    # benchmark_novel = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+    #                               novel_combination=True,
+    #                               dataset_root='../../datasets')
 
     '''Sub'''
     # train_set, test_set, label_info = _get_sub_gqa_datasets(
@@ -812,12 +812,12 @@ if __name__ == "__main__":
     # train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
     #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
-    # benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-    #                                  dataset_root='../../datasets')
+    benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+                                     dataset_root='../../datasets')
 
-    # benchmark_novel = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-    #                               novel_combination=True,
-    #                               dataset_root='../../datasets')
+    benchmark_novel = SplitSubGQA(n_experiences=10, return_task_id=False, seed=4321, shuffle=True,
+                                  novel_combination=True,
+                                  dataset_root='../../datasets')
     #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt

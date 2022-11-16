@@ -28,7 +28,9 @@ def naive_novel_ssysvqa_ti(override_args=None):
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
-    exp_path, checkpoint_path = create_experiment_folder(root=args.exp_root, exp_name=args.exp_name)
+    exp_path, checkpoint_path = create_experiment_folder(
+        root=args.exp_root, exp_name=args.exp_name,
+        project_name=args.project_name)
     args.exp_name = f'Novel-{args.exp_name}'
 
     set_seed(args.seed)
@@ -130,7 +132,9 @@ def naive_novel_ssysvqa_ci(override_args=None):
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
-    exp_path, checkpoint_path = create_experiment_folder(root=args.exp_root, exp_name=args.exp_name)
+    exp_path, checkpoint_path = create_experiment_folder(
+        root=args.exp_root, exp_name=args.exp_name,
+        project_name=args.project_name)
     args.exp_name = f'Novel-{args.exp_name}'
 
     set_seed(args.seed)
@@ -168,10 +172,6 @@ def naive_novel_ssysvqa_ci(override_args=None):
     evaluation_plugin = EvaluationPlugin(
         metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
         metrics.loss_metrics(epoch=True, experience=True, stream=True),
-        metrics.forgetting_metrics(experience=True, stream=True),
-        # metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
-        #                                  save_image=True if args.use_wandb else False,
-        #                                  stream=True),
         benchmark=benchmark,
         loggers=loggers)
 
@@ -209,12 +209,12 @@ def naive_novel_ssysvqa_ci(override_args=None):
             eval_mb_size=args.eval_mb_size,
             device=device,
             evaluator=evaluation_plugin,
-            eval_every=args.eval_every,
-            peval_mode="epoch",
+            # eval_every=args.eval_every,
+            # peval_mode="epoch",
         )
 
         cl_strategy.train(experience,
-                          [benchmark.test_stream[experience.current_experience]],
+                          # [benchmark.test_stream[experience.current_experience]],
                           num_workers=8, pin_memory=False)
         print("Training completed")
 
@@ -229,7 +229,12 @@ def naive_novel_ssysvqa_ci(override_args=None):
     # ####################
     # STORE RESULTS
     # ####################
-    np.save(os.path.join(exp_path, f'results_{args.exp_name}.npy'), results)
+    np.save(os.path.join(exp_path, f'results-{args.exp_name}.npy'), results)
+
+    print('###################################')
+    accs = [result['Top1_Acc_Stream/eval_phase/test_stream/Task000'] for result in results]
+    print('accs:', accs)
+    print(f'Top1_Acc_Stream/eval_phase/test_stream/Task000: {np.mean(accs)} ({np.std(accs)})')
 
     return results
 
