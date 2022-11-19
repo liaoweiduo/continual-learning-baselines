@@ -26,6 +26,7 @@ def er_ssubvqa_ci(override_args=None):
         'eval_every': 10, 'eval_mb_size': 50,
         'mem_size': 1000,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
+        'non_comp': False,
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
@@ -34,6 +35,7 @@ def er_ssubvqa_ci(override_args=None):
         exp_name=args.exp_name if args.exp_name != "TIME" else None,
         project_name=args.project_name)
     args.exp_name = exp_path.split(os.sep)[-1]
+
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
@@ -43,7 +45,7 @@ def er_ssubvqa_ci(override_args=None):
     # BENCHMARK & MODEL
     # ####################
     benchmark = SplitSubGQA(n_experiences=args.n_experiences, return_task_id=False, seed=1234, shuffle=True,
-                            dataset_root=args.dataset_root)
+                            dataset_root=args.dataset_root, non_comp=args.non_comp)
     if args.model == "resnet":
         model = ResNet18(pretrained=args.pretrained, pretrained_model_path=args.pretrained_model_path)
     # elif args.model == "cnn":
@@ -160,7 +162,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", type=str, default='resnet', help="In [resnet, cnn]")
     parser.add_argument("--use_wandb", action='store_true', help='True to use wandb.')
     parser.add_argument("--exp_name", type=str, default='TIME')
-    # parser.add_argument("--setting", type=str, default='task', help="task: Task IL or class: class IL")
+    parser.add_argument("--non_comp", action='store_true', help="non compositional dataset")
     args = parser.parse_args()
 
     res = er_ssubvqa_ci(vars(args))
@@ -169,4 +171,5 @@ if __name__ == '__main__':
     export PYTHONPATH=${PYTHONPATH}:/liaoweiduo/continual-learning-baselines
     EXPERIMENTS: 
     python experiments/split_sub_vqa/replay.py --use_wandb --exp_name ER --cuda 1
+    python experiments/split_sub_vqa/replay.py --use_wandb --non_comp --exp_name nc-ER --cuda 1
     '''

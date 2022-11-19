@@ -252,6 +252,7 @@ def SplitSubGQA(
         novel_combination: Optional[bool] = False,
         num_samples_each_label: Optional[int] = None,
         label_map: Optional[np.ndarray] = None,
+        non_comp: bool = False
 ):
     """
     Creates a CL benchmark using the pre-processed GQA dataset.
@@ -336,6 +337,9 @@ def SplitSubGQA(
     :param label_map: Whether map novel label to one trained
         in continual training phase.
         If it is a ndarray, then label_map[original_label] = related_label
+    :param non_comp: If True, novel testing phase does not hold compo.
+        That is, we just ignore attribute and random shuffle to get 2 phases.
+        Num samples remains just the same.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
@@ -347,7 +351,8 @@ def SplitSubGQA(
     _train_set, _test_set, _label_info = _get_sub_gqa_datasets(dataset_root,
                                                                shuffle=True, seed=1234,
                                                                novel_combination=novel_combination,
-                                                               num_samples_each_label=num_samples_each_label)
+                                                               num_samples_each_label=num_samples_each_label,
+                                                               non_comp=non_comp)
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple, _map_int_label_to_attr = _label_info
 
     if novel_combination:   # for novel testing
@@ -705,7 +710,8 @@ def _get_sub_gqa_datasets(
         dataset_root,
         shuffle=True, seed: Optional[int] = None,
         novel_combination=False, num_samples_each_label=None,
-        task_label=None):
+        task_label=None,
+        non_comp=False):
     """
     Create substitutivity GQA dataset, with given json files,
     containing instance tuples with shape (img_name, label, bounding box).
@@ -727,14 +733,33 @@ def _get_sub_gqa_datasets(
         random sampling with replace=True is used to sample for training.
         For evaluating, still all samples are used.
     :param task_label: if specify with int number, we will assign the task_label to data.
+    :param non_comp: if True, novel testing phase does not hold compo.
+        That is, we just ignore attribute and random shuffle to get 2 phases.
+        Num samples remains just the same.
     :return data_sets defined by json file.
     """
-    if novel_combination:
-        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "novel_attri_comb_train.json")
-        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "novel_attri_comb_test.json")
+    if non_comp:
+        if novel_combination:
+            train_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "no_compo", "shuffleJson", "novel_shuffle_attri_comb_train.json")
+            test_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "no_compo", "shuffleJson", "novel_shuffle_attri_comb_test.json")
+        else:
+            train_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "no_compo", "shuffleJson", "shuffle_attri_comb_train.json")
+            test_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "no_compo", "shuffleJson", "shuffle_attri_comb_test.json")
     else:
-        train_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "attri_comb_train.json")
-        test_json_path = os.path.join(dataset_root, "gqa", "sub_gqa_json", "attriJson", "attri_comb_test.json")
+        if novel_combination:
+            train_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "attriJson", "novel_attri_comb_train.json")
+            test_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "attriJson", "novel_attri_comb_test.json")
+        else:
+            train_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "attriJson", "attri_comb_train.json")
+            test_json_path = os.path.join(
+                dataset_root, "gqa", "sub_gqa_json", "attriJson", "attri_comb_test.json")
     img_folder_path = os.path.join(dataset_root, "gqa", "allImages", "images")
 
     '''load image paths with labels and boundingBox'''
@@ -800,19 +825,16 @@ def _get_sub_gqa_datasets(
     selected_train_images: List[Dict[str, Union[str, int, List[int]]]]
     selected_test_images:  List[Dict[str, Union[str, int, List[int]]]]
 
+
     train_list = []
     for item in selected_train_images:
-        if novel_combination:
-            instance_tuple = (item['image'], item['label'], item['boundingbox'])
-        else:
-            instance_tuple = (item['image'], item['label'], item['boundingBox'])
+        bbn_name = 'boundingbox' if 'boundingbox' in item.keys() else 'boundingBox'
+        instance_tuple = (item['image'], item['label'], item[bbn_name])
         train_list.append(instance_tuple)
     test_list = []
     for item in selected_test_images:
-        if novel_combination:
-            instance_tuple = (item['image'], item['label'], item['boundingbox'])
-        else:
-            instance_tuple = (item['image'], item['label'], item['boundingBox'])
+        bbn_name = 'boundingbox' if 'boundingbox' in item.keys() else 'boundingBox'
+        instance_tuple = (item['image'], item['label'], item[bbn_name])
         test_list.append(instance_tuple)
     # [('2325499C73236.jpg', 0, [2, 4, 335, 368]), ('2369086C73237.jpg', 0, [2, 4, 335, 368]),...
 
@@ -860,21 +882,21 @@ if __name__ == "__main__":
     #                               dataset_root='../../datasets')
 
     '''Sub'''
-    # train_set, test_set, label_info = _get_sub_gqa_datasets(
-    #     '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None)
+    train_set, test_set, label_info = _get_sub_gqa_datasets(
+        '../../datasets', novel_combination=False, num_samples_each_label=None, task_label=None, non_comp=True)
     # train_set_novel, test_set_novel, label_info_novel = _get_sub_gqa_datasets(
     #     '../../datasets', shuffle=False, novel_combination=True)      #, num_samples_each_label=100, task_label=4)
 
     # benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
     #                                  dataset_root='../../datasets')
 
-    train_classes = [16, 15, 17, 14, 1, 9, 0, 12, 6, 7, 5, 13, 2, 18, 11, 3, 8, 4, 10, 19]
-    label_map = np.arange(20)
-    label_map[train_classes] = np.arange(20)
-    benchmark_novel = SplitSubGQA(n_experiences=10, return_task_id=False, seed=4321, shuffle=True,
-                                  novel_combination=True,
-                                  label_map=label_map,
-                                  dataset_root='../../datasets')
+    # train_classes = [16, 15, 17, 14, 1, 9, 0, 12, 6, 7, 5, 13, 2, 18, 11, 3, 8, 4, 10, 19]
+    # label_map = np.arange(20)
+    # label_map[train_classes] = np.arange(20)
+    # benchmark_novel = SplitSubGQA(n_experiences=10, return_task_id=False, seed=4321, shuffle=True,
+    #                               novel_combination=True,
+    #                               label_map=label_map,
+    #                               dataset_root='../../datasets')
     #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt

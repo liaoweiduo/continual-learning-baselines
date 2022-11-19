@@ -25,7 +25,7 @@ def naive_novel_ssubvqa_ci(override_args=None):
         'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 20, 'train_mb_size': 32,
         'eval_every': 2, 'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
-        "freeze": False, "label_map": False, # "only_eval": False,
+        "freeze": False, "label_map": False, "non_comp": False,
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
@@ -58,7 +58,7 @@ def naive_novel_ssubvqa_ci(override_args=None):
     # different seed
     benchmark = SplitSubGQA(n_experiences=args.n_experiences, return_task_id=False, seed=4321, shuffle=True,
                             novel_combination=True, label_map=args.label_map,
-                            dataset_root=args.dataset_root)
+                            dataset_root=args.dataset_root, non_comp=args.non_comp)
 
     # ####################
     # LOGGER
@@ -164,6 +164,7 @@ if __name__ == '__main__':
                         help="whether map novel label to one trained in continual training phase.")
     # parser.add_argument("--only_eval", action='store_true',
     #                     help="whether only do eval and not train.")
+    parser.add_argument("--non_comp", action='store_true', help="non compositional dataset")
     args = parser.parse_args()
 
     res = naive_novel_ssubvqa_ci(vars(args))
@@ -195,5 +196,11 @@ if __name__ == '__main__':
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --label_map --freeze --exp_name ER --cuda 1
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --label_map --freeze --exp_name LwF --cuda 2
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --label_map --freeze --exp_name GEM --cuda 3
+    
+    Non comp test case
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-Naive --cuda 0
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-ER --cuda 1
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-LwF --cuda 2
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-GEM --cuda 3
     '''
 
