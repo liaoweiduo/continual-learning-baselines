@@ -7,8 +7,8 @@ from torch.nn import CrossEntropyLoss
 
 import avalanche as avl
 from avalanche.evaluation import metrics as metrics
-from avalanche.training.supervised import Naive
-from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
+from avalanche.training.supervised import Replay
+from avalanche.training.plugins import EvaluationPlugin
 
 from models.resnet import ResNet18, MTResNet18
 from models.cnn_128 import CNN128, MTCNN128
@@ -16,14 +16,15 @@ from experiments.utils import set_seed, create_default_args, create_experiment_f
 from datasets.cgqa import SplitSubGQA
 
 
-def naive_ssubvqa_ci(override_args=None):
+def er_ssubvqa_ci(override_args=None):
     """
-    Naive algorithm on split substitutivity VQA on class-IL setting.
+    ER algorithm on split substitutivity VQA on class-IL setting.
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
         'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 50, 'train_mb_size': 32,
         'eval_every': 10, 'eval_mb_size': 50,
+        'mem_size': 1000,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
@@ -83,15 +84,15 @@ def naive_ssubvqa_ci(override_args=None):
     # ####################
     # STRATEGY INSTANCE
     # ####################
-    cl_strategy = Naive(
+    cl_strategy = Replay(
         model,
         torch.optim.Adam(model.parameters(), lr=args.learning_rate),
         CrossEntropyLoss(),
+        mem_size=args.mem_size,
         train_mb_size=args.train_mb_size,
         train_epochs=args.epochs,
         eval_mb_size=args.eval_mb_size,
         device=device,
-        # plugins=[EarlyStoppingPlugin(patience=10, val_stream_name='train')],
         evaluator=evaluation_plugin,
         # eval_every=args.eval_every,
         # peval_mode="epoch",
@@ -157,18 +158,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", type=int, default=0, help="Select zero-indexed cuda device. -1 to use CPU.")
     parser.add_argument("--model", type=str, default='resnet', help="In [resnet, cnn]")
-    parser.add_argument("--pretrained", action='store_true', help='Whether to load pretrained resnet and in eval mode.')
     parser.add_argument("--use_wandb", action='store_true', help='True to use wandb.')
     parser.add_argument("--exp_name", type=str, default='TIME')
     # parser.add_argument("--setting", type=str, default='task', help="task: Task IL or class: class IL")
     args = parser.parse_args()
 
-    res = naive_ssubvqa_ci(vars(args))
+    res = er_ssubvqa_ci(vars(args))
 
     '''
     export PYTHONPATH=${PYTHONPATH}:/liaoweiduo/continual-learning-baselines
     EXPERIMENTS: 
-    
-    python experiments/split_sub_vqa/naive.py --use_wandb --exp_name Naive --cuda 0
+    python experiments/split_sub_vqa/replay.py --use_wandb --exp_name ER --cuda 1
     '''
-

@@ -129,6 +129,7 @@ def naive_novel_ssysvqa_ci(override_args=None):
         'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 20, 'train_mb_size': 32,
         'eval_every': 2, 'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
+        "freeze": False,
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
@@ -136,6 +137,8 @@ def naive_novel_ssysvqa_ci(override_args=None):
         root=args.exp_root, exp_name=args.exp_name,
         project_name=args.project_name)
     args.exp_name = f'Novel-{args.exp_name}'
+    if args.freeze:
+        args.exp_name = f'{args.exp_name}-frz'
 
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
@@ -193,7 +196,8 @@ def naive_novel_ssysvqa_ci(override_args=None):
         print("Load trained model.")
         if args.model == "resnet":
             model = ResNet18(initial_out_features=20,
-                             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'))
+                             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
+                             fix=args.freeze)
         else:
             raise Exception("Un-recognized model structure.")
 
@@ -246,6 +250,7 @@ if __name__ == '__main__':
     parser.add_argument("--use_wandb", action='store_true', help='True to use wandb.')
     parser.add_argument("--exp_name", type=str, default='Naive')
     parser.add_argument("--setting", type=str, default='task', help="task: Task IL or class: class IL")
+    parser.add_argument("--freeze", action='store_true', help="whether freeze feature extractor.")
     args = parser.parse_args()
 
     if args.setting == 'task':
@@ -271,5 +276,10 @@ if __name__ == '__main__':
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name ER --cuda 0
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name LwF --cuda 0
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --exp_name GEM --cuda 0
+    
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name Naive --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name ER --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name LwF --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name GEM --cuda 0
     '''
 

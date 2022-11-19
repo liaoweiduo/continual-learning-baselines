@@ -7,8 +7,8 @@ from torch.nn import CrossEntropyLoss
 
 import avalanche as avl
 from avalanche.evaluation import metrics as metrics
-from avalanche.training.supervised import Naive
-from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
+from avalanche.training.supervised import LwF
+from avalanche.training.plugins import EvaluationPlugin
 
 from models.resnet import ResNet18, MTResNet18
 from models.cnn_128 import CNN128, MTCNN128
@@ -16,14 +16,15 @@ from experiments.utils import set_seed, create_default_args, create_experiment_f
 from datasets.cgqa import SplitSubGQA
 
 
-def naive_ssubvqa_ci(override_args=None):
+def lwf_ssubvqa_ci(override_args=None):
     """
-    Naive algorithm on split substitutivity VQA on class-IL setting.
+    LwF algorithm on split substitutivity VQA on class-IL setting.
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
         'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 50, 'train_mb_size': 32,
         'eval_every': 10, 'eval_mb_size': 50,
+        'lwf_alpha': 10, 'lwf_temperature': 2,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
@@ -83,15 +84,15 @@ def naive_ssubvqa_ci(override_args=None):
     # ####################
     # STRATEGY INSTANCE
     # ####################
-    cl_strategy = Naive(
+    cl_strategy = LwF(
         model,
         torch.optim.Adam(model.parameters(), lr=args.learning_rate),
         CrossEntropyLoss(),
+        alpha=args.lwf_alpha, temperature=args.lwf_temperature,
         train_mb_size=args.train_mb_size,
         train_epochs=args.epochs,
         eval_mb_size=args.eval_mb_size,
         device=device,
-        # plugins=[EarlyStoppingPlugin(patience=10, val_stream_name='train')],
         evaluator=evaluation_plugin,
         # eval_every=args.eval_every,
         # peval_mode="epoch",
@@ -163,12 +164,12 @@ if __name__ == '__main__':
     # parser.add_argument("--setting", type=str, default='task', help="task: Task IL or class: class IL")
     args = parser.parse_args()
 
-    res = naive_ssubvqa_ci(vars(args))
+    res = lwf_ssubvqa_ci(vars(args))
+
 
     '''
     export PYTHONPATH=${PYTHONPATH}:/liaoweiduo/continual-learning-baselines
     EXPERIMENTS: 
-    
-    python experiments/split_sub_vqa/naive.py --use_wandb --exp_name Naive --cuda 0
+    python experiments/split_sub_vqa/lwf.py --use_wandb --exp_name LwF --cuda 0
     '''
 
