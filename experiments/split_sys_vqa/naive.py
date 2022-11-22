@@ -145,7 +145,8 @@ def naive_ssysvqa_ci(override_args=None):
         'eval_every': 10, 'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'TIME',
-        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
+        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments',
+        'return_test': True
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root,
@@ -161,6 +162,7 @@ def naive_ssysvqa_ci(override_args=None):
     # BENCHMARK & MODEL
     # ####################
     benchmark = SplitSysGQA(n_experiences=args.n_experiences, return_task_id=False, seed=1234, shuffle=True,
+                            return_test=args.return_test,
                             dataset_root=args.dataset_root)
     if args.model == "resnet":
         model = ResNet18(pretrained=args.pretrained, pretrained_model_path=args.pretrained_model_path)

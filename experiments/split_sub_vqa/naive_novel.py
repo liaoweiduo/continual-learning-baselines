@@ -197,10 +197,16 @@ if __name__ == '__main__':
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --label_map --freeze --exp_name LwF --cuda 2
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --label_map --freeze --exp_name GEM --cuda 3
     
-    Non comp test case
+    Non comp test case 1
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-Naive --cuda 0
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-ER --cuda 1
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-LwF --cuda 2
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --exp_name nc-GEM --cuda 3
+    
+    Non comp test case 2
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-Naive --cuda 0
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-ER --cuda 1
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-LwF --cuda 2
+    python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-GEM --cuda 3
     '''
 

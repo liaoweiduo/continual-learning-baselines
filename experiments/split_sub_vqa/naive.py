@@ -25,9 +25,9 @@ def naive_ssubvqa_ci(override_args=None):
         'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 50, 'train_mb_size': 32,
         'eval_every': 10, 'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
-        'non_comp': False,
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'TIME',
-        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
+        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments',
+        'return_test': True, 'color_attri': False,
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root,
@@ -44,7 +44,8 @@ def naive_ssubvqa_ci(override_args=None):
     # BENCHMARK & MODEL
     # ####################
     benchmark = SplitSubGQA(n_experiences=args.n_experiences, return_task_id=False, seed=1234, shuffle=True,
-                            dataset_root=args.dataset_root, non_comp=args.non_comp)
+                            return_test=args.return_test, color_attri=args.color_attri,
+                            dataset_root=args.dataset_root)
     if args.model == "resnet":
         model = ResNet18(pretrained=args.pretrained, pretrained_model_path=args.pretrained_model_path)
     # elif args.model == "cnn":
