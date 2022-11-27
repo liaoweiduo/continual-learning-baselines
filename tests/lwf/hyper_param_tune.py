@@ -16,12 +16,12 @@ if target in ['sys']:
 
     param_grid = {
         'learning_rate': [0.001, 0.005, 0.01, 0.05, 0.1],
-        'lwf_alpha': [10],
+        'lwf_alpha': [9, 11],
         'lwf_temperature': [2],
     }
     common_args = {
         'return_test': False,
-        'use_wandb': True,
+        'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
     }
 elif target in ['sub']:
@@ -34,7 +34,7 @@ elif target in ['sub']:
     }
     common_args = {
         'return_test': False,
-        'use_wandb': True,
+        'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
     }
 elif target in ['sub_color']:
@@ -42,12 +42,12 @@ elif target in ['sub_color']:
 
     param_grid = {
         'learning_rate': [0.001, 0.005, 0.01, 0.05, 0.1],
-        'lwf_alpha': [10],
+        'lwf_alpha': [9, 11],
         'lwf_temperature': [2],
     }
     common_args = {
         'return_test': False,
-        'use_wandb': True,
+        'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
         'color_attri': True,
     }

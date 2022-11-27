@@ -20,7 +20,7 @@ if target in ['sys']:
     }
     common_args = {
         'return_test': False,
-        'use_wandb': True,
+        'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
     }
 elif target in ['sub']:
@@ -32,7 +32,7 @@ elif target in ['sub']:
     }
     common_args = {
         'return_test': False,
-        'use_wandb': True,
+        'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
     }
 elif target in ['sub_color']:
@@ -44,7 +44,7 @@ elif target in ['sub_color']:
     }
     common_args = {
         'return_test': False,
-        'use_wandb': True,
+        'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
         'color_attri': True,
     }

@@ -1,5 +1,9 @@
 import os
 import argparse
+import copy
+import sys
+import time
+sys.path.append('.')
 
 import numpy as np
 import torch
@@ -126,17 +130,23 @@ def naive_novel_ssysvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 20, 'train_mb_size': 32,
-        'eval_every': 2, 'eval_mb_size': 50,
+        'learning_rate': 0.01, 'n_experiences': 600, 'epochs': 20, 'train_mb_size': 10,
+        'eval_mb_size': 100,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         "freeze": False,
+        "mode": "novel_test", "num_ways_each_task": 2, "num_samples_each_label": 5,
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root, exp_name=args.exp_name,
         project_name=args.project_name)
-    args.exp_name = f'Novel-{args.exp_name}'
+    if args.mode == 'novel_test':
+        args.exp_name = f'Novel-{args.exp_name}'
+    elif args.mode == "non_novel_test":
+        args.exp_name = f'Non-novel-{args.exp_name}'
+    else:
+        raise Exception(f'Un-implemented mode: {args.mode}.')
     if args.freeze:
         args.exp_name = f'{args.exp_name}-frz'
 
@@ -149,7 +159,7 @@ def naive_novel_ssysvqa_ci(override_args=None):
     # BENCHMARK
     # ####################
     benchmark = SplitSysGQA(n_experiences=args.n_experiences, return_task_id=False, seed=1234, shuffle=True,
-                            novel_combination=True,
+                            mode=args.mode, num_ways_each_task=2, num_samples_each_label=5,
                             dataset_root=args.dataset_root)
 
     # ####################
@@ -179,12 +189,24 @@ def naive_novel_ssysvqa_ci(override_args=None):
         loggers=loggers)
 
     # ####################
+    # MODEL
+    # ####################
+    print("Load trained model.")
+    if args.model == "resnet":
+        origin_model = ResNet18(initial_out_features=20,
+                                pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
+                                fix=args.freeze)
+    else:
+        raise Exception("Un-recognized model structure.")
+
+    # ####################
     # TRAINING LOOP
     # ####################
-    print("Starting experiment...")
+    print("Starting testing experiment...")
     results = []
     for experience in benchmark.train_stream:
-        print("Start of experience ", experience.current_experience)
+        print("Start of testing experience ", experience.current_experience)
+        print("Current Classes: ", experience.classes_in_this_experience)
         print("Current Classes: ", [
             benchmark.original_map_int_label_to_tuple[cls_idx]
             for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
@@ -193,13 +215,7 @@ def naive_novel_ssysvqa_ci(override_args=None):
         # ####################
         # MODEL
         # ####################
-        print("Load trained model.")
-        if args.model == "resnet":
-            model = ResNet18(initial_out_features=20,
-                             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
-                             fix=args.freeze)
-        else:
-            raise Exception("Un-recognized model structure.")
+        model = copy.deepcopy(origin_model)
 
         # ####################
         # STRATEGY INSTANCE
@@ -213,19 +229,15 @@ def naive_novel_ssysvqa_ci(override_args=None):
             eval_mb_size=args.eval_mb_size,
             device=device,
             evaluator=evaluation_plugin,
-            # eval_every=args.eval_every,
-            # peval_mode="epoch",
         )
 
-        cl_strategy.train(experience,
-                          # [benchmark.test_stream[experience.current_experience]],
-                          num_workers=8, pin_memory=False)
+        cl_strategy.train(experience, num_workers=8, pin_memory=False)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
         results.append(cl_strategy.eval(benchmark.test_stream[experience.current_experience],
                                         num_workers=8, pin_memory=False))
-        print(results[experience.current_experience])
+        # print(results[experience.current_experience])
 
     print("Final results:")
     print(results)
@@ -248,9 +260,10 @@ if __name__ == '__main__':
     parser.add_argument("--cuda", type=int, default=0, help="Select zero-indexed cuda device. -1 to use CPU.")
     parser.add_argument("--model", type=str, default='resnet', help="In [resnet, cnn]")
     parser.add_argument("--use_wandb", action='store_true', help='True to use wandb.')
-    parser.add_argument("--exp_name", type=str, default='Naive')
-    parser.add_argument("--setting", type=str, default='task', help="task: Task IL or class: class IL")
+    parser.add_argument("--exp_name", type=str, default='Naive-lr0_005')
+    parser.add_argument("--setting", type=str, default='class', help="task: Task IL or class: class IL")
     parser.add_argument("--freeze", action='store_true', help="whether freeze feature extractor.")
+    parser.add_argument("--mode", type=str, default='novel_test', help="choice: [novel_test, non_novel_test]")
     args = parser.parse_args()
 
     if args.setting == 'task':
@@ -281,5 +294,9 @@ if __name__ == '__main__':
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name ER --cuda 0
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name LwF --cuda 0
     python experiments/split_sys_vqa/naive_novel.py --use_wandb --setting class --freeze --exp_name GEM --cuda 0
+    
+    novel_test and non_novel_test
+    python experiments/split_sys_vqa/naive_novel.py --setting class --mode novel_test --exp_name Naive-lr0_005 --cuda 0
+    python experiments/split_sys_vqa/naive_novel.py --setting class --mode non_novel_test --exp_name Naive-lr0_005 --cuda 0
     '''
 

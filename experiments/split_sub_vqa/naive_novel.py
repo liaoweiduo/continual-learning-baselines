@@ -1,5 +1,9 @@
 import os
 import argparse
+import copy
+import sys
+import time
+sys.path.append('.')
 
 import numpy as np
 import torch
@@ -22,17 +26,24 @@ def naive_novel_ssubvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 10, 'epochs': 20, 'train_mb_size': 32,
-        'eval_every': 2, 'eval_mb_size': 50,
+        'learning_rate': 0.01, 'n_experiences': 600, 'epochs': 20, 'train_mb_size': 5,
+        'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         "freeze": False, "label_map": False, "non_comp": False,
+        "mode": "novel_test", "num_ways_each_task": 2, "num_samples_each_label": 5,
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'Naive',
-        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
+        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments',
+        'color_attri': False,
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root, exp_name=args.exp_name,
         project_name=args.project_name)
-    args.exp_name = f'Novel-{args.exp_name}'
+    if args.mode == 'novel_test':
+        args.exp_name = f'Novel-{args.exp_name}'
+    elif args.mode == "non_novel_test":
+        args.exp_name = f'Non-novel-{args.exp_name}'
+    else:
+        raise Exception(f'Un-implemented mode: {args.mode}.')
     if args.freeze:
         args.exp_name = f'{args.exp_name}-frz'
     if args.label_map:
@@ -57,8 +68,8 @@ def naive_novel_ssubvqa_ci(override_args=None):
     # ####################
     # different seed
     benchmark = SplitSubGQA(n_experiences=args.n_experiences, return_task_id=False, seed=4321, shuffle=True,
-                            novel_combination=True, label_map=args.label_map,
-                            dataset_root=args.dataset_root, non_comp=args.non_comp)
+                            mode=args.mode, num_ways_each_task=2, num_samples_each_label=5,
+                            dataset_root=args.dataset_root, color_attri=args.color_attri)
 
     # ####################
     # LOGGER
@@ -87,12 +98,23 @@ def naive_novel_ssubvqa_ci(override_args=None):
         loggers=loggers)
 
     # ####################
+    # MODEL
+    # ####################
+    print("Load trained model.")
+    if args.model == "resnet":
+        origin_model = ResNet18(initial_out_features=20,
+                                pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
+                                fix=args.freeze)
+    else:
+        raise Exception("Un-recognized model structure.")
+
+    # ####################
     # TRAINING LOOP
     # ####################
-    print("Starting experiment...")
+    print("Starting testing experiment...")
     results = []
     for experience in benchmark.train_stream:
-        print("Start of experience ", experience.current_experience)
+        print("Start of testing experience ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
         print("Current Classes: ", [
             benchmark.original_map_int_label_to_tuple[cls_idx]
@@ -102,13 +124,7 @@ def naive_novel_ssubvqa_ci(override_args=None):
         # ####################
         # MODEL
         # ####################
-        print("Load trained model.")
-        if args.model == "resnet":
-            model = ResNet18(initial_out_features=20,
-                             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
-                             fix=args.freeze)
-        else:
-            raise Exception("Un-recognized model structure.")
+        model = copy.deepcopy(origin_model)
 
         # ####################
         # STRATEGY INSTANCE
@@ -122,13 +138,9 @@ def naive_novel_ssubvqa_ci(override_args=None):
             eval_mb_size=args.eval_mb_size,
             device=device,
             evaluator=evaluation_plugin,
-            # eval_every=args.eval_every,
-            # peval_mode="epoch",
         )
 
-        cl_strategy.train(experience,
-                          # [benchmark.test_stream[experience.current_experience]],
-                          num_workers=8, pin_memory=False)
+        cl_strategy.train(experience, num_workers=8, pin_memory=False)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
@@ -165,6 +177,8 @@ if __name__ == '__main__':
     # parser.add_argument("--only_eval", action='store_true',
     #                     help="whether only do eval and not train.")
     parser.add_argument("--non_comp", action='store_true', help="non compositional dataset")
+    parser.add_argument("--mode", type=str, default='novel_test', help="choice: [novel_test, non_novel_test]")
+    parser.add_argument("--color_attri", action='store_true', help="novel test on color dataset")
     args = parser.parse_args()
 
     res = naive_novel_ssubvqa_ci(vars(args))
@@ -208,5 +222,9 @@ if __name__ == '__main__':
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-ER --cuda 1
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-LwF --cuda 2
     python experiments/split_sub_vqa/naive_novel.py --use_wandb --non_comp --freeze --exp_name nc-GEM --cuda 3
+    
+    novel_test and non_novel_test
+    python experiments/split_sub_vqa/naive_novel.py --mode novel_test --color_attri --exp_name color-Naive --cuda 0
+    python experiments/split_sub_vqa/naive_novel.py --mode non_novel_test --color_attri --exp_name color-Naive --cuda 0
     '''
 

@@ -117,7 +117,7 @@ def SplitSysGQA(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to True.
+        randomly shuffled. Default to True. Only activated in train mode.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -165,20 +165,18 @@ def SplitSysGQA(
     # For other mode, we need to generate several few-shot tasks, and here when we get dataset, we still load all image.
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
 
-    if mode in ['novel_test', 'non_novel_test']:   # for novel testing
-
-        num_ways_each_task
-        num_samples_each_label
-
+    if mode in ['novel_test', 'non_novel_test']:
+        '''for novel testing, generating few-shot tasks.'''
         classes_order = list(_map_int_label_to_tuple.keys())    # [20, 21, 22, 23, 24]
         selected_classes_in_exp = []        # e.g.[[21, 23], [20, 21],...]
         classes_in_exp = []                 # [[20,21], [20,21],...] if class-IL, [[0,1], [0,1],...] if task-IL
         class_mappings = []
         task_labels = []
-        '''Select 2 classes for each exp as a 2-way task'''
+        '''Select num_ways_each_task classes for each exp as a num_ways_each_task-way task'''
         rng = np.random.RandomState(seed)
+        _train_subsets = []
         for exp_idx in range(n_experiences):
-            selected_class_idxs = rng.choice(classes_order, 2, replace=False)
+            selected_class_idxs = rng.choice(classes_order, num_ways_each_task, replace=False)
             selected_classes_in_exp.append(selected_class_idxs)
             if return_task_id:
                 classes_in_exp.append([0, 1])
@@ -193,12 +191,20 @@ def SplitSysGQA(
                 class_mappings.append(class_mapping)
                 task_labels.append(0)
 
-        _train_subsets = [
-            AvalancheSubset(_train_set,
-                            indices=np.where(np.isin(_train_set.targets, selected_classes_in_exp[exp_idx]))[0],
-                            class_mapping=class_mappings[exp_idx],
-                            task_labels=task_labels[exp_idx])
-            for exp_idx in range(n_experiences)]
+            '''select num_samples_each_label*num_ways_each_task images for each exp'''
+            t = np.array(_train_set.targets)
+            indices = []
+            for cls_idx in selected_class_idxs:
+                indices.append(rng.choice(np.arange(len(t))[t == int(cls_idx)], num_samples_each_label, replace=False))
+            indices = np.concatenate(indices)
+            _train_subsets.append(
+                AvalancheSubset(
+                    _train_set,
+                    indices=indices,
+                    class_mapping=class_mappings[exp_idx],
+                    task_labels=task_labels[exp_idx])
+            )
+
         _test_subsets = [
             AvalancheSubset(_test_set,
                             indices=np.where(np.isin(_test_set.targets, selected_classes_in_exp[exp_idx]))[0],
@@ -218,17 +224,8 @@ def SplitSysGQA(
         _benchmark_instance.classes_in_exp = classes_in_exp
         _benchmark_instance.class_mappings = class_mappings
 
-        # _benchmark_instance = dataset_benchmark(
-        #     train_datasets=[_train_set for _ in range(n_experiences)],
-        #     test_datasets=[_test_set],
-        #     complete_test_set_only=True,
-        #     train_transform=train_transform,
-        #     eval_transform=eval_transform,
-        #     dataset_type=AvalancheDatasetType.CLASSIFICATION
-        # )
-        # _benchmark_instance.n_classes = len(_label_set)
-
-    elif mode == 'train':   # for training
+    elif mode == 'train':
+        '''for training'''
         _benchmark_instance = nc_benchmark(
             train_dataset=_train_set,
             test_dataset=_test_set,
@@ -380,49 +377,46 @@ def SplitSubGQA(
 
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple, _map_int_label_to_attr = _label_info
 
-    if mode in ['novel_test', 'non_novel_test']:   # for novel testing
-
-        num_samples_each_label
-        num_ways_each_task
-
+    if mode in ['novel_test', 'non_novel_test']:
+        '''for novel testing, generating few-shot tasks.'''
         classes_order = list(_map_int_label_to_tuple.keys())    # [0,1,...,19]
-        selected_classes_in_exp = []
-        # seed 4321: [[15, 12], [1, 14], [10, 8], [3, 13], [0, 6], [4, 19], [9, 5], [16, 7], [11, 17], [18, 2]]
-        classes_in_exp = []
-        # [[20,21], [20,21],...] if class-IL, [[0,1], [0,1],...] if task-IL
+        selected_classes_in_exp = []        # e.g.[[1, 3], [0, 1],...]
+        classes_in_exp = []                 # [[20,21], [20,21],...] if class-IL, [[0,1], [0,1],...] if task-IL
         class_mappings = []
         task_labels = []
-        '''Select 2 classes for each exp as a 2-way task'''
-        if shuffle:
-            rng = np.random.RandomState(seed)
-            rng.shuffle(classes_order)
+        '''Select num_ways_each_task classes for each exp as a num_ways_each_task-way task'''
+        rng = np.random.RandomState(seed)
+        _train_subsets = []
         for exp_idx in range(n_experiences):
-            selected_class_idxs = classes_order[exp_idx*2:(exp_idx+1)*2]
-            # rng.choice(classes_order, 2, replace=False)
+            selected_class_idxs = rng.choice(classes_order, num_ways_each_task, replace=False)
             selected_classes_in_exp.append(selected_class_idxs)
-            if return_task_id:      # no label map used, since it is new task
+            if return_task_id:
                 classes_in_exp.append([0, 1])
-                class_mapping = np.array([None for _ in range(max(selected_class_idxs)+1)])
+                class_mapping = np.array([None for _ in range(max(selected_class_idxs))])
                 class_mapping[selected_class_idxs] = [0, 1]
                 class_mappings.append(class_mapping)
                 task_labels.append(10)      # all exp are with task_label 10 in task-IL
             else:
-                if label_map is not None:
-                    class_mapping = label_map
-                    classes_in_exp.append(class_mapping[selected_class_idxs])
-                else:
-                    classes_in_exp.append([20, 21])
-                    class_mapping = np.array([None for _ in range(max(selected_class_idxs)+1)])
-                    class_mapping[selected_class_idxs] = [20, 21]
+                classes_in_exp.append([20, 21])
+                class_mapping = np.array([None for _ in range(max(selected_class_idxs)+1)])
+                class_mapping[selected_class_idxs] = [20, 21]
                 class_mappings.append(class_mapping)
                 task_labels.append(0)
 
-        _train_subsets = [
-            AvalancheSubset(_train_set,
-                            indices=np.where(np.isin(_train_set.targets, selected_classes_in_exp[exp_idx]))[0],
-                            class_mapping=class_mappings[exp_idx],
-                            task_labels=task_labels[exp_idx])
-            for exp_idx in range(n_experiences)]
+            '''select num_samples_each_label*num_ways_each_task images for each exp'''
+            t = np.array(_train_set.targets)
+            indices = []
+            for cls_idx in selected_class_idxs:
+                indices.append(rng.choice(np.arange(len(t))[t == int(cls_idx)], num_samples_each_label, replace=False))
+            indices = np.concatenate(indices)
+            _train_subsets.append(
+                AvalancheSubset(
+                    _train_set,
+                    indices=indices,
+                    class_mapping=class_mappings[exp_idx],
+                    task_labels=task_labels[exp_idx])
+            )
+
         _test_subsets = [
             AvalancheSubset(_test_set,
                             indices=np.where(np.isin(_test_set.targets, selected_classes_in_exp[exp_idx]))[0],
@@ -441,20 +435,6 @@ def SplitSubGQA(
         _benchmark_instance.original_classes_in_exp = selected_classes_in_exp
         _benchmark_instance.classes_in_exp = classes_in_exp
         _benchmark_instance.class_mappings = class_mappings
-
-        # _benchmark_instance = nc_benchmark(
-        #     train_dataset=_train_set,
-        #     test_dataset=_test_set,
-        #     n_experiences=n_experiences,
-        #     task_labels=return_task_id,
-        #     fixed_class_order=fixed_class_order,
-        #     shuffle=shuffle,
-        #     seed=seed,
-        #     class_ids_from_zero_from_first_exp=False,
-        #     class_ids_from_zero_in_each_exp=return_task_id,
-        #     train_transform=train_transform,
-        #     eval_transform=eval_transform,
-        # )
 
     else:   # for training
         # if return_task_id:
@@ -928,11 +908,11 @@ def _get_sub_gqa_datasets(
 if __name__ == "__main__":
 
     '''Sys'''
-    train_set, test_set, label_info = _get_sys_gqa_datasets(
-        '../../datasets', shuffle=False, mode='train',
-        num_samples_each_label=None,
-        return_test=False,
-        task_label=None)
+    # train_set, test_set, label_info = _get_sys_gqa_datasets(
+    #     '../../datasets', shuffle=False, mode='train',
+    #     num_samples_each_label=None,
+    #     return_test=False,
+    #     task_label=None)
     # train_set_novel, test_set_novel, label_info_novel = _get_sys_gqa_datasets(
     #     '../../datasets', shuffle=False, mode='novel_test')
     # train_set_non_novel, test_set_non_novel, label_non_info_novel = _get_sys_gqa_datasets(
@@ -941,13 +921,13 @@ if __name__ == "__main__":
     # benchmark_instance = SplitSysGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
     #                                  mode='train',
     #                                  dataset_root='../../datasets')
-
+    #
     # benchmark_novel = SplitSysGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
-    #                               mode='novel_test',
+    #                               mode='novel_test', num_ways_each_task=2, num_samples_each_label=5,
     #                               dataset_root='../../datasets')
     # benchmark_non_novel = SplitSysGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
-    #                               mode='non_novel_test',
-    #                               dataset_root='../../datasets')
+    #                                   mode='non_novel_test', num_ways_each_task=2, num_samples_each_label=5,
+    #                                   dataset_root='../../datasets')
 
     '''Sub'''
     # train_set, test_set, label_info = _get_sub_gqa_datasets(
@@ -957,8 +937,8 @@ if __name__ == "__main__":
     # train_set_non_novel, test_set_non_novel, label_non_info_novel = _get_sub_gqa_datasets(
     #     '../../datasets', shuffle=False, mode='non_novel_test')
 
-    # benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-    #                                  dataset_root='../../datasets')
+    benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+                                     dataset_root='../../datasets', color_attri=True)
 
     # train_classes = [16, 15, 17, 14, 1, 9, 0, 12, 6, 7, 5, 13, 2, 18, 11, 3, 8, 4, 10, 19]
     # label_map = np.arange(20)
@@ -967,10 +947,12 @@ if __name__ == "__main__":
     #                               mode='novel_test',
     #                               label_map=label_map,
     #                               dataset_root='../../datasets')
-    #
-    # benchmark_non_novel = SplitSubGQA(n_experiences=10, return_task_id=False, seed=4321, shuffle=True,
-    #                               mode='non_novel_test',
-    #                               dataset_root='../../datasets')
+    benchmark_novel = SplitSubGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
+                                  mode='novel_test', num_ways_each_task=2, num_samples_each_label=5,
+                                  dataset_root='../../datasets', color_attri=True)
+    benchmark_non_novel = SplitSubGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
+                                      mode='non_novel_test', num_ways_each_task=2, num_samples_each_label=5,
+                                      dataset_root='../../datasets', color_attri=True)
     #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt
