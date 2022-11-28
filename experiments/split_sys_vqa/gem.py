@@ -149,7 +149,8 @@ def gem_ssysvqa_ci(override_args=None):
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'TIME',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments',
-        'return_test': True
+        'return_test': True,
+        'interactive_logger': True,
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root,
@@ -179,7 +180,10 @@ def gem_ssysvqa_ci(override_args=None):
     # ####################
     interactive_logger = avl.logging.InteractiveLogger()
     text_logger = avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-    loggers = [interactive_logger, text_logger]
+    if args.interactive_logger:
+        loggers = [interactive_logger, text_logger]
+    else:
+        loggers = [text_logger]
     wandb_logger = None
     if args.use_wandb:
         wandb_logger = avl.logging.WandBLogger(

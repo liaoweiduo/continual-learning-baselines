@@ -22,6 +22,7 @@ if target in ['sys']:
         'return_test': False,
         'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
+        'interactive_logger': False,
     }
 elif target in ['sub']:
     exp_name_template = 'GEM-lr{learning_rate}-p{patterns_per_exp}-m{mem_strength}'
@@ -35,6 +36,7 @@ elif target in ['sub']:
         'return_test': False,
         'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
+        'interactive_logger': False,
     }
 elif target in ['sub_color']:
     exp_name_template = 'color-GEM-lr{learning_rate}-p{patterns_per_exp}-m{mem_strength}'
@@ -49,6 +51,7 @@ elif target in ['sub_color']:
         'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
         'color_attri': True,
+        'interactive_logger': False,
     }
 else:
     raise Exception("Not within options!")

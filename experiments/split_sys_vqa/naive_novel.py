@@ -136,7 +136,8 @@ def naive_novel_ssysvqa_ci(override_args=None):
         "freeze": False,
         "mode": "novel_test", "num_ways_each_task": 2, "num_samples_each_label": 5,
         'use_wandb': False, 'project_name': 'Split_Sys_VQA', 'exp_name': 'Naive',
-        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments'
+        'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments',
+        'interactive_logger': True,
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root, exp_name=args.exp_name,
@@ -167,7 +168,10 @@ def naive_novel_ssysvqa_ci(override_args=None):
     # ####################
     interactive_logger = avl.logging.InteractiveLogger()
     text_logger = avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-    loggers = [interactive_logger, text_logger]
+    if args.interactive_logger:
+        loggers = [interactive_logger, text_logger]
+    else:
+        loggers = [text_logger]
     wandb_logger = None
     if args.use_wandb:
         wandb_logger = avl.logging.WandBLogger(

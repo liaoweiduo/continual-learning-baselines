@@ -8,7 +8,7 @@ from experiments.split_sys_vqa.replay import er_ssysvqa_ci
 from experiments.split_sub_vqa.replay import er_ssubvqa_ci
 
 
-target = 'sub_color'      # optional: [sys, sub_color, sub]
+target = 'sys'      # optional: [sys, sub_color, sub]
 
 # param name should be consistent with key.
 if target in ['sys']:
@@ -16,12 +16,13 @@ if target in ['sys']:
 
     param_grid = {
         'learning_rate': [0.001, 0.01, 0.1],
-        'mem_size': [100, 500, 1000],
+        'mem_size': [5000],
     }
     common_args = {
         'return_test': False,
         'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
+        'interactive_logger': False,
     }
 elif target in ['sub']:
     exp_name_template = 'ER-lr{learning_rate}-m{mem_size}'
@@ -34,6 +35,7 @@ elif target in ['sub']:
         'return_test': False,
         'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
+        'interactive_logger': False,
     }
 elif target in ['sub_color']:
     exp_name_template = 'color-ER-lr{learning_rate}-m{mem_size}'
@@ -47,6 +49,7 @@ elif target in ['sub_color']:
         'use_wandb': False,
         'cuda': 0,  # controlled use CUDA_VISIBLE_DEVICES=0
         'color_attri': True,
+        'interactive_logger': False,
     }
 else:
     raise Exception("Not within options!")

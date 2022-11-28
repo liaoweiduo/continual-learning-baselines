@@ -26,7 +26,7 @@ def naive_novel_ssubvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 600, 'epochs': 20, 'train_mb_size': 5,
+        'learning_rate': 0.01, 'n_experiences': 600, 'epochs': 20, 'train_mb_size': 10,
         'eval_mb_size': 50,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         "freeze": False, "label_map": False, "non_comp": False,
@@ -34,6 +34,7 @@ def naive_novel_ssubvqa_ci(override_args=None):
         'use_wandb': False, 'project_name': 'Split_Sub_VQA', 'exp_name': 'Naive',
         'dataset_root': '../datasets', 'exp_root': '../avalanche-experiments',
         'color_attri': False,
+        'interactive_logger': True,
     }, override_args)
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root, exp_name=args.exp_name,
@@ -76,7 +77,10 @@ def naive_novel_ssubvqa_ci(override_args=None):
     # ####################
     interactive_logger = avl.logging.InteractiveLogger()
     text_logger = avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-    loggers = [interactive_logger, text_logger]
+    if args.interactive_logger:
+        loggers = [interactive_logger, text_logger]
+    else:
+        loggers = [text_logger]
     wandb_logger = None
     if args.use_wandb:
         wandb_logger = avl.logging.WandBLogger(
@@ -146,7 +150,7 @@ def naive_novel_ssubvqa_ci(override_args=None):
         print("Computing accuracy on the whole test set")
         results.append(cl_strategy.eval(benchmark.test_stream[experience.current_experience],
                                         num_workers=8, pin_memory=False))
-        print(results[experience.current_experience])
+        # print(results[experience.current_experience])
 
     print("Final results:")
     print(results)

@@ -166,7 +166,7 @@ def SplitSysGQA(
     _label_set, _map_tuple_label_to_int, _map_int_label_to_tuple = _label_info
 
     if mode in ['novel_test', 'non_novel_test']:
-        '''for novel testing, generating few-shot tasks.'''
+        '''generating few-shot tasks.'''
         classes_order = list(_map_int_label_to_tuple.keys())    # [20, 21, 22, 23, 24]
         selected_classes_in_exp = []        # e.g.[[21, 23], [20, 21],...]
         classes_in_exp = []                 # [[20,21], [20,21],...] if class-IL, [[0,1], [0,1],...] if task-IL
@@ -922,9 +922,9 @@ if __name__ == "__main__":
     #                                  mode='train',
     #                                  dataset_root='../../datasets')
     #
-    # benchmark_novel = SplitSysGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
-    #                               mode='novel_test', num_ways_each_task=2, num_samples_each_label=5,
-    #                               dataset_root='../../datasets')
+    benchmark_novel = SplitSysGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
+                                  mode='novel_test', num_ways_each_task=2, num_samples_each_label=5,
+                                  dataset_root='../../datasets')
     # benchmark_non_novel = SplitSysGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
     #                                   mode='non_novel_test', num_ways_each_task=2, num_samples_each_label=5,
     #                                   dataset_root='../../datasets')
@@ -937,8 +937,8 @@ if __name__ == "__main__":
     # train_set_non_novel, test_set_non_novel, label_non_info_novel = _get_sub_gqa_datasets(
     #     '../../datasets', shuffle=False, mode='non_novel_test')
 
-    benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
-                                     dataset_root='../../datasets', color_attri=True)
+    # benchmark_instance = SplitSubGQA(n_experiences=10, return_task_id=False, seed=1234, shuffle=True,
+    #                                  dataset_root='../../datasets', color_attri=True)
 
     # train_classes = [16, 15, 17, 14, 1, 9, 0, 12, 6, 7, 5, 13, 2, 18, 11, 3, 8, 4, 10, 19]
     # label_map = np.arange(20)
@@ -947,12 +947,12 @@ if __name__ == "__main__":
     #                               mode='novel_test',
     #                               label_map=label_map,
     #                               dataset_root='../../datasets')
-    benchmark_novel = SplitSubGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
-                                  mode='novel_test', num_ways_each_task=2, num_samples_each_label=5,
-                                  dataset_root='../../datasets', color_attri=True)
-    benchmark_non_novel = SplitSubGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
-                                      mode='non_novel_test', num_ways_each_task=2, num_samples_each_label=5,
-                                      dataset_root='../../datasets', color_attri=True)
+    # benchmark_novel = SplitSubGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
+    #                               mode='novel_test', num_ways_each_task=2, num_samples_each_label=5,
+    #                               dataset_root='../../datasets', color_attri=True)
+    # benchmark_non_novel = SplitSubGQA(n_experiences=600, return_task_id=False, seed=1234, shuffle=True,
+    #                                   mode='non_novel_test', num_ways_each_task=2, num_samples_each_label=5,
+    #                                   dataset_root='../../datasets', color_attri=True)
     #
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt
