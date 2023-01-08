@@ -151,6 +151,8 @@ def naive_novel_ssubvqa_ci(override_args=None):
         results.append(cl_strategy.eval(benchmark.test_stream[experience.current_experience],
                                         num_workers=8, pin_memory=False))
         # print(results[experience.current_experience])
+        print('Top1_Acc_Stream/eval_phase/test_stream/Task000: ',
+              results[experience.current_experience]['Top1_Acc_Stream/eval_phase/test_stream/Task000'])
 
     print("Final results:")
     print(results)

@@ -3,8 +3,11 @@ from datetime import datetime
 
 from types import SimpleNamespace
 import torch
+from torch.nn import CrossEntropyLoss
 import numpy as np
 import random
+
+from avalanche.training.plugins import EarlyStoppingPlugin
 
 
 def set_seed(seed):
@@ -52,3 +55,84 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
         os.makedirs(os.path.join(exp_path, "Checkpoints"))
     checkpoint_path = os.path.join(exp_path, "Checkpoints")
     return exp_path, checkpoint_path
+
+
+def get_strategy(name, model, device, evaluator, args, early_stop=True):
+    if early_stop:
+        plugins = [EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream')]
+        eval_every = args.eval_every
+    else:
+        plugins = None
+        eval_every = -1
+
+    if name == 'naive':
+        from avalanche.training.supervised import Naive
+        return Naive(
+            model,
+            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            CrossEntropyLoss(),
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+    )
+    elif name == 'gem':
+        from avalanche.training.supervised import GEM
+        return GEM(
+            model,
+            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            CrossEntropyLoss(),
+            patterns_per_exp=args.gem_patterns_per_exp, memory_strength=args.gem_mem_strength,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
+    elif name == 'lwf':
+        from avalanche.training.supervised import LwF
+        return LwF(
+            model,
+            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            CrossEntropyLoss(),
+            alpha=args.lwf_alpha, temperature=args.lwf_temperature,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
+    elif name == 'er':
+        from avalanche.training.supervised import Replay
+        return Replay(
+            model,
+            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            CrossEntropyLoss(),
+            mem_size=args.er_mem_size,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
+    elif name == 'ewc':
+        from avalanche.training.supervised import EWC
+        return EWC(
+            model,
+            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            CrossEntropyLoss(),
+            ewc_lambda=args.ewc_lambda,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
+    else:
+        raise Exception(f"Un-implemented strategy: {name}.")

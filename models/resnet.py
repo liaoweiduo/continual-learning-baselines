@@ -226,10 +226,10 @@ class MTResNet18(MultiTaskModule, DynamicModule):
         It employs multi-head output layer.
     """
 
-    def __init__(self, pretrained=False, pretrained_model_path=None, fix=False):
+    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
         super().__init__()
         self.resnet = resnet18(pretrained, pretrained_model_path, fix=fix)
-        self.classifier = MultiHeadClassifier(self.resnet.output_size)
+        self.classifier = MultiHeadClassifier(self.resnet.output_size, initial_out_features=initial_out_features)
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
         out = self.resnet(x)
@@ -237,7 +237,16 @@ class MTResNet18(MultiTaskModule, DynamicModule):
         return self.classifier(out, task_label)
 
 
-__all__ = ['ResNet18', 'MTResNet18']
+def get_resnet(
+        multi_head: bool = False,
+        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+    if multi_head:
+        return MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+    else:
+        return ResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+
+
+__all__ = ['ResNet18', 'MTResNet18', 'get_resnet']
 
 
 if __name__ == '__main__':

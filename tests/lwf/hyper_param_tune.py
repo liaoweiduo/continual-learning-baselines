@@ -8,16 +8,16 @@ from experiments.split_sys_vqa.lwf import lwf_ssysvqa_ci
 from experiments.split_sub_vqa.lwf import lwf_ssubvqa_ci
 
 
-target = 'sub_color'      # optional: [sys, sub_color, sub]
+target = 'sys'      # optional: [sys, sub_color, sub]
 
 # param name should be consistent with key.
 if target in ['sys']:
     exp_name_template = 'LwF-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
 
     param_grid = {
-        'learning_rate': [0.001, 0.005, 0.01, 0.05, 0.1],
-        'lwf_alpha': [9, 11],
-        'lwf_temperature': [2],
+        'learning_rate': [0.005],
+        'lwf_alpha': [5, 10, 15, 20, 25],
+        'lwf_temperature': [1, 2, 3, 4, 5],
     }
     common_args = {
         'return_test': False,

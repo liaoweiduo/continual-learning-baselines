@@ -130,7 +130,7 @@ def naive_novel_ssysvqa_ci(override_args=None):
     """
     args = create_default_args({
         'cuda': 0, 'seed': 0,
-        'learning_rate': 0.01, 'n_experiences': 600, 'epochs': 20, 'train_mb_size': 10,
+        'learning_rate': 0.01, 'n_experiences': 300, 'epochs': 20, 'train_mb_size': 10,
         'eval_mb_size': 100,
         'model': 'resnet', 'pretrained': False, "pretrained_model_path": "../pretrained/pretrained_resnet.pt.tar",
         "freeze": False,
@@ -150,6 +150,7 @@ def naive_novel_ssysvqa_ci(override_args=None):
         raise Exception(f'Un-implemented mode: {args.mode}.')
     if args.freeze:
         args.exp_name = f'{args.exp_name}-frz'
+    print(f'exp_name: {args.exp_name}')
 
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
@@ -242,6 +243,8 @@ def naive_novel_ssysvqa_ci(override_args=None):
         results.append(cl_strategy.eval(benchmark.test_stream[experience.current_experience],
                                         num_workers=8, pin_memory=False))
         # print(results[experience.current_experience])
+        print('Top1_Acc_Stream/eval_phase/test_stream/Task000: ',
+              results[experience.current_experience]['Top1_Acc_Stream/eval_phase/test_stream/Task000'])
 
     print("Final results:")
     print(results)
@@ -268,6 +271,7 @@ if __name__ == '__main__':
     parser.add_argument("--setting", type=str, default='class', help="task: Task IL or class: class IL")
     parser.add_argument("--freeze", action='store_true', help="whether freeze feature extractor.")
     parser.add_argument("--mode", type=str, default='novel_test', help="choice: [novel_test, non_novel_test]")
+    parser.add_argument("--epochs", type=int, default=20, help="Epochs.")
     args = parser.parse_args()
 
     if args.setting == 'task':

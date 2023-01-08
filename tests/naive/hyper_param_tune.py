@@ -1,5 +1,8 @@
 import sys
 import time
+
+import wandb
+
 sys.path.append('.')
 # sys.path.append('/liaoweiduo/continual-learning-baselines')
 import copy
@@ -7,8 +10,14 @@ import copy
 from experiments.split_sys_vqa.naive import naive_ssysvqa_ci
 from experiments.split_sub_vqa.naive import naive_ssubvqa_ci
 
+TBD
+return_task_id=True,
+
 
 target = 'sub_color'      # optional: [sys, sub_color, sub]
+
+
+
 
 # param name should be consistent with key.
 if target in ['sys']:
@@ -93,6 +102,8 @@ for param in params:
         res = naive_ssubvqa_ci(param)
     else:
         raise Exception("Not within options!")
+
+    wandb.finish()
 
 print(f'{time.asctime(time.localtime(time.time()))}: Complete tuning hyper parameters for {exp_name_template}.')
 print('************************')
