@@ -2,7 +2,7 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 17-10-2022                                                             #
+# Date: 18-1-2023                                                              #
 # Author(s): Weiduo Liao                                                       #
 # E-mail: liaowd@mail.sustech.edu.cn                                           #
 ################################################################################
@@ -22,12 +22,10 @@ from avalanche.benchmarks.utils.avalanche_dataset import AvalancheDatasetType
 
 """ README
 
-[PREPROCESS INSTRUCTIONS]
-Please first download our preprocessed CGQA dataset in 
-https://drive.google.com/file/d/1DatpJn55mqq5_kxHZKoYdNSRHlBLzjJL/view 
+[PREPROCESS INSTRUCTIONS] 
+Please first download our preprocessed CPIN dataset in 
+https://drive.google.com/file/d/1JrgA6ZRm8vrPRCPnr2bOSRblRU7zYVQK/view
 
-# Please first download GQA dataset (Image Files 20.3G) in
-# https://cs.stanford.edu/people/dorarad/gqa/download.html.
 Then unzip and place the folder under dataset_root/gqa folder.
 
 Folder structure:
@@ -35,7 +33,7 @@ Folder structure:
     -/ train/val/test
         -/ comb_name (sort and ',')
 -/ fewshot
-    -/ sys/pro/sub/non/noc
+    -/ sys/pro/non/noc
         -/ comb_name (sort and ',')
 -/ statistics.json
     - same dict structure as folder (sub with attr)
@@ -86,14 +84,19 @@ def continual_training_benchmark(
         memory_size: int = 0,
 ):
     """
-    Creates a CL benchmark using the pre-processed GQA dataset.
+    Creates a CL benchmark using the pre-processed PIN dataset.
 
     List of 20 objects:
-        ['plate','shirt','building','sign','grass','car','table','chair','jacket','shoe',
-        'flower','pants','helmet','bench','pole','leaves','wall','door','fence','hat']
-
-    List of 100 combinations:
-
+        [ 'Bovidae Foot', 'Bovidae Head', 'Bovidae Body', 'Canidae Head',
+        'Canidae Foot', 'Canidae Body', 'Lacertilia Head', 'Lacertilia Body',
+        'Lacertilia Foot', 'Primates Head', 'Primates Hand', 'Primates Body',
+        'Primates Foot', 'Felidae Head', 'Felidae Body', 'Felidae Foot',
+        'Mustelidae Head', 'Mustelidae Body', 'Mustelidae Foot',
+        'Testudines Foot', 'Testudines Body', 'Testudines Head',
+        'Ursidae Head', 'Ursidae Body', 'Ursidae Foot', 'Car Side Mirror',
+        'Car Tier', 'Car Body', 'Fish Head',  'Fish Fin', 'Fish Body',
+        'Snake Head', 'Snake Body', 'Bird Head', 'Bird Body', 'Bird Wing',
+        'Bird Foot']
 
     :param n_experiences: The number of experiences in the current benchmark.
     :param return_task_id: If True, a progressive task id is returned for every
@@ -128,10 +131,10 @@ def continual_training_benchmark(
         with train_stream, val_stream, test_stream.
     """
     if dataset_root is None:
-        dataset_root = default_dataset_location("gqa")
+        dataset_root = default_dataset_location("pin")
 
     '''load datasets'''
-    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual')
+    datasets, label_info = _get_pin_datasets(dataset_root, mode='continual')
     train_set, val_set, test_set = datasets['train'], datasets['val'], datasets['test']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 
@@ -245,7 +248,7 @@ def fewshot_testing_benchmark(
         dataset_root: Union[str, Path] = None,
 ):
     """
-    Creates a CL benchmark using the pre-processed GQA dataset.
+    Creates a CL benchmark using the pre-processed PIN dataset.
 
     For fewshot testing, you need to specify the specific testing mode.
 
@@ -284,10 +287,10 @@ def fewshot_testing_benchmark(
     :returns: A properly initialized instance: `GenericCLScenario`.
     """
     if dataset_root is None:
-        dataset_root = default_dataset_location("gqa")
+        dataset_root = default_dataset_location("pin")
 
     '''load datasets'''
-    datasets, label_info = _get_gqa_datasets(dataset_root, mode=mode)
+    datasets, label_info = _get_pin_datasets(dataset_root, mode=mode)
     dataset = datasets['dataset']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 
@@ -376,7 +379,7 @@ def fewshot_testing_benchmark(
     return benchmark_instance
 
 
-def _get_gqa_datasets(
+def _get_pin_datasets(
         dataset_root,
         shuffle=False, seed: Optional[int] = None,
         mode='continual',
@@ -385,7 +388,7 @@ def _get_gqa_datasets(
         preprocessed=True,
 ):
     """
-    Create GQA dataset, with given json files,
+    Create PIN dataset, with given json files,
     containing instance tuples with shape (img_name, label).
 
     You may need to specify label_offset if relative label do not start from 0.
@@ -396,7 +399,7 @@ def _get_gqa_datasets(
         randomly shuffled. Default to False.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
-    :param mode: Option [continual, sys, pro, sub, non, noc].
+    :param mode: Option [continual, sys, pro, non, noc].
     :param num_samples_each_label: If specify a certain number of samples for each label,
         random sampling (build-in seed:1234,
         and replace=True if num_samples_each_label > num_samples, else False)
@@ -410,7 +413,7 @@ def _get_gqa_datasets(
 
     :return data_sets defined by json file and label information.
     """
-    img_folder_path = os.path.join(dataset_root, "gqa", "GQA")
+    img_folder_path = os.path.join(dataset_root, "PIN", "PIN")
 
     def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
         for item in img_info:
@@ -428,9 +431,9 @@ def _get_gqa_datasets(
         return img_tuples
 
     if mode == 'continual':
-        train_json_path = os.path.join(dataset_root, "gqa", "gqa", "continual", "train.json")
-        val_json_path = os.path.join(dataset_root, "gqa", "gqa", "continual", "val.json")
-        test_json_path = os.path.join(dataset_root, "gqa", "gqa", "continual", "test.json")
+        train_json_path = os.path.join(dataset_root, "PIN", "PIN", "continual", "train.json")
+        val_json_path = os.path.join(dataset_root, "PIN", "PIN", "continual", "val.json")
+        test_json_path = os.path.join(dataset_root, "PIN", "PIN", "continual", "test.json")
 
         with open(train_json_path, 'r') as f:
             train_img_info = json.load(f)
@@ -512,10 +515,10 @@ def _get_gqa_datasets(
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
-    elif mode in ['sys', 'pro', 'sub', 'non', 'noc']:
-        json_name = {'sys': 'sys_fewshot.json', 'pro': 'pro_fewshot.json', 'sub': 'sub_fewshot.json',
+    elif mode in ['sys', 'pro', 'non', 'noc']:      # no sub
+        json_name = {'sys': 'sys_fewshot.json', 'pro': 'pro_fewshot.json',      # 'sub': 'sub_fewshot.json',
                      'non': 'non_novel_fewshot.json', 'noc': 'non_comp_fewshot.json'}[mode]
-        json_path = os.path.join(dataset_root, "gqa", "gqa", "fewshot", json_name)
+        json_path = os.path.join(dataset_root, "PIN", "PIN", "fewshot", json_name)
         with open(json_path, 'r') as f:
             img_info = json.load(f)
         label_set = sorted(list(set([tuple(sorted(item['comb'])) for item in img_info])))

@@ -150,11 +150,11 @@ def continual_train(override_args=None):
 if __name__ == "__main__":
 
     '''Naive'''
-    # results = continual_train({
-    #     'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
-    #     'exp_name': 'Naive-cls', 'strategy': 'naive',
-    #     'learning_rate': 0.001,
-    # })
+    results = continual_train({
+        'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
+        'exp_name': 'Naive-cls', 'strategy': 'naive',
+        'learning_rate': 0.001,
+    })
 
     '''ER'''
     # results = continual_train({
@@ -164,11 +164,11 @@ if __name__ == "__main__":
     # })
 
     '''GEM'''
-    results = continual_train({
-        'use_wandb': False, 'return_task_id': True, 'use_interactive_logger': True,
-        'exp_name': 'GEM-tsk', 'strategy': 'gem',
-        'learning_rate': 0.005, 'gem_patterns_per_exp': 256, 'gem_mem_strength': 0.3,
-    })
+    # results = continual_train({
+    #     'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
+    #     'exp_name': 'GEM-cls', 'strategy': 'gem',
+    #     'learning_rate': 0.001, 'gem_patterns_per_exp': 128, 'gem_mem_strength': 0.3,
+    # })
 
     '''LwF'''
     # results = continual_train({

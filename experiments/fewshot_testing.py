@@ -163,6 +163,15 @@ if __name__ == "__main__":
     #         'learning_rate': 0.01,
     #     })
 
+    '''GEM'''
+    for dataset_mode in dataset_modes:
+        fewshot_test({
+            'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
+            'test_freeze_feature_extractor': True,
+            'exp_name': 'GEM-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
+            'learning_rate': 0.01, 'gem_patterns_per_exp': 256, 'gem_mem_strength': 0.3,
+        })
+
     '''LwF'''
     # for dataset_mode in dataset_modes:
     #     fewshot_test({
@@ -173,13 +182,13 @@ if __name__ == "__main__":
     #     })
 
     '''EWC'''
-    for dataset_mode in dataset_modes:
-        fewshot_test({
-            'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
-            'test_freeze_feature_extractor': False,
-            'exp_name': 'EWC-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
-            'learning_rate': 0.01, 'ewc_lambda': 1,
-        })
+    # for dataset_mode in dataset_modes:
+    #     fewshot_test({
+    #         'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
+    #         'test_freeze_feature_extractor': False,
+    #         'exp_name': 'EWC-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
+    #         'learning_rate': 0.01, 'ewc_lambda': 1,
+    #     })
 
-# CUDA_VISIBLE_DEVICES=2 python experiments/fewshot_testing.py > ../avalanche-experiments/CGQA/EWC-cls/fewshot_testing-naive.out 2>&1
+# CUDA_VISIBLE_DEVICES=2 python experiments/fewshot_testing.py > ../avalanche-experiments/CGQA/GEM-cls/fewshot_testing-naive-frz.out 2>&1
 
