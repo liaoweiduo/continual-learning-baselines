@@ -4,8 +4,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Train prototypical networks')
 
 # data args
-parser.add_argument('--dataset', type=str, default='cgqa', choices=['cgqa'], metavar='DATASET',
-                    help='Compositional GQA dataset: cgqa.')
+parser.add_argument('--dataset', type=str, default='cgqa', choices=['cgqa', 'cpin'], metavar='DATASET',
+                    help='Compositional GQA dataset: cgqa, Compositional PIN dataset: cpin.')
 parser.add_argument('--dataset_mode', type=str, default='continual', metavar='DATASET_MODE',
                     choices=['continual', 'sys', 'pro', 'sub', 'non', 'noc'],
                     help='For cgqa, mode indicates the benchmark mode.')
@@ -14,7 +14,7 @@ parser.add_argument('--return_task_id', action='store_true',
 
 # model args
 parser.add_argument('--model_backbone', type=str, default='resnet18', metavar='MODEL_BACKBONE',
-                    choices=['resnet18'],
+                    choices=['resnet18', 'vit'],
                     help='Backbone of the feature extractor.')
 parser.add_argument('--model_pretrained', action='store_true', help="Using pretrained model for learning or not.")
 parser.add_argument('--cuda', type=int, default=0, metavar='CUDA',
@@ -109,10 +109,42 @@ parser.add_argument('--exp_name', type=str, metavar='EXP_NAME',
 parser.add_argument('--use_interactive_logger', action='store_true',
                     help="Using interactive_logger.")
 
+parser.add_argument('-f', type=str, default="")    # use for jupyter import args
+
 default_args = vars(parser.parse_args())
 
 FIXED_CLASS_ORDER = {
-    'continual': None,
+    'continual':
+        [[40, 35, 81, 61, 98, 68, 85, 27, 39, 42],
+         [33, 59, 63, 94, 56, 87, 96,  1, 71, 82],
+         [ 9, 51, 29, 88, 75, 74, 62, 66, 79, 48],
+         [ 4, 64, 10, 93, 57, 72, 36,  7, 54, 77],
+         [21, 18, 70, 86, 22,  6, 44,  8, 41, 16],
+         [45, 20, 25, 55, 78, 31, 92,  5, 84, 32],
+         [52, 13, 91, 17, 28, 46, 60, 14, 65, 12],
+         [19,  2,  3,  0, 11, 67, 97, 34, 37, 95],
+         [50, 99, 73, 80, 69, 58, 90, 89, 43, 30],
+         [26, 23, 49, 15, 24, 76, 53, 38, 83, 47]],
+    # [[('fence', 'flower'), ('door', 'grass'), ('leaves', 'shirt'), ('grass', 'table'), ('shoe', 'shorts'),
+    #   ('hat', 'table'), ('leaves', 'wall'), ('chair', 'grass'), ('door', 'shoe'), ('fence', 'helmet')],
+    #  [('chair', 'sign'), ('grass', 'shorts'), ('hat', 'plate'), ('pole', 'shirt'), ('grass', 'pants'),
+    #   ('pants', 'shoe'), ('pole', 'wall'), ('bench', 'chair'), ('helmet', 'plate'), ('leaves', 'shoe')],
+    #  [('bench', 'shorts'), ('flower', 'pole'), ('chair', 'helmet'), ('pants', 'shorts'), ('helmet', 'shorts'),
+    #   ('helmet', 'shoe'), ('hat', 'jacket'), ('hat', 'shorts'), ('jacket', 'shoe'), ('fence', 'wall')],
+    #  [('bench', 'helmet'), ('hat', 'shirt'), ('bench', 'sign'), ('plate', 'wall'), ('grass', 'plate'),
+    #   ('helmet', 'pole'), ('door', 'leaves'), ('bench', 'pants'), ('grass', 'jacket'), ('jacket', 'pole')],
+    #  [('car', 'jacket'), ('building', 'plate'), ('helmet', 'leaves'), ('pants', 'shirt'), ('car', 'leaves'),
+    #   ('bench', 'leaves'), ('fence', 'pants'), ('bench', 'shirt'), ('fence', 'grass'), ('building', 'jacket')],
+    #  [('fence', 'plate'), ('car', 'helmet'), ('car', 'shorts'), ('grass', 'leaves'), ('jacket', 'shirt'),
+    #   ('chair', 'shirt'), ('plate', 'sign'), ('bench', 'jacket'), ('leaves', 'sign'), ('chair', 'shoe')],
+    #  [('flower', 'shirt'), ('building', 'chair'), ('plate', 'shorts'), ('building', 'leaves'), ('chair', 'hat'),
+    #   ('fence', 'pole'), ('grass', 'sign'), ('building', 'grass'), ('hat', 'shoe'), ('bench', 'wall')],
+    #  [('car', 'flower'), ('bench', 'door'), ('bench', 'hat'), ('bench', 'building'), ('bench', 'table'),
+    #   ('hat', 'sign'), ('shirt', 'wall'), ('door', 'fence'), ('door', 'plate'), ('pole', 'table')],
+    #  [('flower', 'pants'), ('shoe', 'sign'), ('helmet', 'shirt'), ('leaves', 'plate'), ('hat', 'wall'),
+    #   ('grass', 'shoe'), ('plate', 'shirt'), ('pants', 'wall'), ('fence', 'leaves'), ('chair', 'pole')],
+    #  [('car', 'sign'), ('car', 'pants'), ('flower', 'helmet'), ('building', 'hat'), ('car', 'shirt'),
+    #   ('helmet', 'sign'), ('flower', 'wall'), ('door', 'pole'), ('leaves', 'shorts'), ('fence', 'shorts')]]
     'sys': None,
     'pro': None,
     'sub': None,

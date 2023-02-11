@@ -258,3 +258,13 @@ if __name__ == '__main__':
     # print(features.shape)   # whatever input shape, the output is [1, 512]
 
     model = MTResNet18()
+
+    from models import get_parameter_number
+
+    d = get_parameter_number(model)
+    print(d)
+    print(f'Total number of parameters: {d["Total"] / 1024 / 1024:.2f}MB, '
+          f'memory size: {d["Total"] * 4 / 1024 / 1024:.2f}MB')
+    print(f'Total number of trainable parameters: {d["Trainable"] / 1024 / 1024:.2f}MB, '
+          f'memory size: {d["Trainable"] * 4 / 1024 / 1024:.2f}MB')
+

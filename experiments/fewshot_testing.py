@@ -16,7 +16,6 @@ from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
 
 from models.resnet import get_resnet
 from experiments.utils import set_seed, create_default_args, create_experiment_folder, get_strategy
-from datasets.cgqa import fewshot_testing_benchmark
 
 from experiments.config import default_args, FIXED_CLASS_ORDER
 
@@ -47,6 +46,12 @@ def fewshot_test(override_args=None):
     shuffle = True if args.train_class_order == 'shuffle' else False
     fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
     task_offset = 10 if args.return_task_id else 1
+    if args.dataset == 'cgqa':
+        from datasets.cgqa import fewshot_testing_benchmark, _image_size
+    elif args.dataset == 'cpin':
+        from datasets.cpin import fewshot_testing_benchmark, _image_size
+    else:
+        raise Exception(f'Un-implemented dataset: {args.dataset}.')
     benchmark = fewshot_testing_benchmark(
         n_experiences=args.test_n_experiences, mode=args.dataset_mode,
         n_way=args.test_n_way, n_shot=args.test_n_shot, n_val=args.test_n_val, n_query=args.test_n_query,
@@ -59,6 +64,12 @@ def fewshot_test(override_args=None):
             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
             fix=args.test_freeze_feature_extractor,
         )
+    elif args.model_backbone == "vit":
+        from models.vit import get_vit
+        model = get_vit(
+            image_size=_image_size[0],
+            multi_head=args.return_task_id,
+            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path)
     else:
         raise Exception(f"Un-recognized model structure {args.model_backbone}.")
 
@@ -144,39 +155,40 @@ def fewshot_test(override_args=None):
 
 
 if __name__ == "__main__":
-    dataset_modes = ['sys', 'pro', 'sub', 'non', 'noc']
+    # dataset_modes = ['sys', 'pro', 'sub', 'non', 'noc']         # cgqa
+    dataset_modes = ['sys', 'pro', 'non', 'noc']         # cpin
     '''Naive'''
-    # for dataset_mode in dataset_modes:
-    #     fewshot_test({
-    #         'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
-    #         'test_freeze_feature_extractor': True,
-    #         'exp_name': 'Naive-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
-    #         'learning_rate': 0.01,
-    #     })
+    for dataset_mode in dataset_modes:
+        fewshot_test({
+            'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
+            'test_freeze_feature_extractor': True, 'dataset': 'cpin',
+            'exp_name': 'Naive-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
+            'learning_rate': 0.01,
+        })
 
     '''ER'''
     # for dataset_mode in dataset_modes:
     #     fewshot_test({
-    #         'use_wandb': False, 'return_task_id': True, 'use_interactive_logger': False,
-    #         'test_freeze_feature_extractor': False,
-    #         'exp_name': 'ER-tsk', 'strategy': 'naive', 'dataset_mode': dataset_mode,
+    #         'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
+    #         'test_freeze_feature_extractor': True, 'dataset': 'cpin',
+    #         'exp_name': 'ER-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
     #         'learning_rate': 0.01,
     #     })
 
     '''GEM'''
-    for dataset_mode in dataset_modes:
-        fewshot_test({
-            'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
-            'test_freeze_feature_extractor': True,
-            'exp_name': 'GEM-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
-            'learning_rate': 0.01, 'gem_patterns_per_exp': 256, 'gem_mem_strength': 0.3,
-        })
+    # for dataset_mode in dataset_modes:
+    #     fewshot_test({
+    #         'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
+    #         'test_freeze_feature_extractor': True, 'dataset': 'cpin',
+    #         'exp_name': 'GEM-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
+    #         'learning_rate': 0.01, 'gem_patterns_per_exp': 256, 'gem_mem_strength': 0.3,
+    #     })
 
     '''LwF'''
     # for dataset_mode in dataset_modes:
     #     fewshot_test({
-    #         'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
-    #         'test_freeze_feature_extractor': True,
+    #         'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
+    #         'test_freeze_feature_extractor': True, 'dataset': 'cpin',
     #         'exp_name': 'LwF-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
     #         'learning_rate': 0.01, 'lwf_alpha': 1, 'lwf_temperature': 2,
     #     })
@@ -184,11 +196,14 @@ if __name__ == "__main__":
     '''EWC'''
     # for dataset_mode in dataset_modes:
     #     fewshot_test({
-    #         'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': False,
-    #         'test_freeze_feature_extractor': False,
+    #         'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
+    #         'test_freeze_feature_extractor': True, 'dataset': 'cpin',
     #         'exp_name': 'EWC-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
     #         'learning_rate': 0.01, 'ewc_lambda': 1,
     #     })
 
 # CUDA_VISIBLE_DEVICES=2 python experiments/fewshot_testing.py > ../avalanche-experiments/CGQA/GEM-cls/fewshot_testing-naive-frz.out 2>&1
+
+# CUDA_VISIBLE_DEVICES=0 python experiments/fewshot_testing.py > ../avalanche-experiments/CPIN/Naive-tsk/fewshot_testing-naive-frz.out 2>&1
+
 

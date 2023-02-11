@@ -13,9 +13,8 @@ import avalanche as avl
 from avalanche.evaluation import metrics as metrics
 from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
 
-from models.resnet import get_resnet
 from experiments.utils import set_seed, create_default_args, create_experiment_folder, get_strategy
-from datasets.cgqa import continual_training_benchmark
+from tests.utils import get_average_metric
 
 from experiments.config import default_args, FIXED_CLASS_ORDER
 
@@ -40,12 +39,25 @@ def continual_train(override_args=None):
     # ####################
     shuffle = True if args.train_class_order == 'shuffle' else False
     fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
+    if args.dataset == 'cgqa':
+        from datasets.cgqa import continual_training_benchmark, _image_size
+    elif args.dataset == 'cpin':
+        from datasets.cpin import continual_training_benchmark, _image_size
+    else:
+        raise Exception(f'Un-implemented dataset: {args.dataset}.')
     benchmark = continual_training_benchmark(
         n_experiences=args.n_experiences, return_task_id=args.return_task_id,
         seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
         dataset_root=args.dataset_root)
     if args.model_backbone == "resnet18":
+        from models.resnet import get_resnet
         model = get_resnet(
+            multi_head=args.return_task_id,
+            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path)
+    elif args.model_backbone == "vit":
+        from models.vit import get_vit
+        model = get_vit(
+            image_size=_image_size[0],
             multi_head=args.return_task_id,
             pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path)
     else:
@@ -129,8 +141,12 @@ def continual_train(override_args=None):
         artifact.add_file(model_file, name=artifact_name)
         wandb_logger.wandb.run.log_artifact(artifact)
 
-    print("Final results:")
-    print(results)
+    # print("Final results:")
+    # print(results)
+
+    '''print needed info'''
+    print('Average test acc:', get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream'))
+    # average test accuracy for all tasks
 
     # ####################
     # STORE RESULTS
@@ -149,39 +165,85 @@ def continual_train(override_args=None):
 
 if __name__ == "__main__":
 
-    '''Naive'''
-    results = continual_train({
-        'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
-        'exp_name': 'Naive-cls', 'strategy': 'naive',
-        'learning_rate': 0.001,
-    })
-
-    '''ER'''
+    '''Naive: cls'''
     # results = continual_train({
-    #     'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
+    #     'exp_name': 'Naive-cls', 'strategy': 'naive',
+    #     'learning_rate': 0.001,
+    # })
+
+    '''Naive: tsk'''
+    # results = continual_train({
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
+    #     'exp_name': 'Naive-tsk', 'strategy': 'naive',
+    #     'learning_rate': 0.01,
+    # })
+
+    '''ER: cls'''
+    # results = continual_train({
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
     #     'exp_name': 'ER-cls', 'strategy': 'er',
     #     'learning_rate': 0.001,
     # })
 
-    '''GEM'''
+    '''ER: tsk'''
     # results = continual_train({
-    #     'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
+    #     'exp_name': 'ER-tsk', 'strategy': 'er',
+    #     'learning_rate': 0.001,
+    # })
+
+    '''GEM: cls'''
+    # results = continual_train({
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
     #     'exp_name': 'GEM-cls', 'strategy': 'gem',
     #     'learning_rate': 0.001, 'gem_patterns_per_exp': 128, 'gem_mem_strength': 0.3,
     # })
 
-    '''LwF'''
+    '''GEM: tsk'''
     # results = continual_train({
-    #     'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
+    #     'exp_name': 'GEM-tsk', 'strategy': 'gem',
+    #     'learning_rate': 0.005, 'gem_patterns_per_exp': 256, 'gem_mem_strength': 0.3,
+    # })
+
+    '''LwF: cls'''
+    # results = continual_train({
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
     #     'exp_name': 'LwF-cls', 'strategy': 'lwf',
     #     'learning_rate': 0.01, 'lwf_alpha': 1, 'lwf_temperature': 2,
     # })
 
-    '''EWC'''
+    '''LwF: tsk'''
     # results = continual_train({
-    #     'use_wandb': False, 'return_task_id': False, 'use_interactive_logger': True,
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
+    #     'exp_name': 'LwF-tsk', 'strategy': 'lwf',
+    #     'learning_rate': 0.005, 'lwf_alpha': 1, 'lwf_temperature': 2,
+    # })
+
+    '''EWC: cls'''
+    # results = continual_train({
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
     #     'exp_name': 'EWC-cls', 'strategy': 'ewc',
     #     'learning_rate': 0.005, 'ewc_lambda': 1,
     # })
 
-    # CUDA_VISIBLE_DEVICES=0 python experiments/continual_training.py
+    '''EWC: tsk'''
+    # results = continual_train({
+    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
+    #     'dataset': 'cpin',
+    #     'exp_name': 'EWC-tsk', 'strategy': 'ewc',
+    #     'learning_rate': 0.01, 'ewc_lambda': 1,
+    # })
+
+    results = continual_train()
+    # CUDA_VISIBLE_DEVICES=4 python experiments/continual_training.py

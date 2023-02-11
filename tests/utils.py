@@ -2,6 +2,9 @@ from pathlib import Path
 import inspect
 from pandas import read_csv
 import os
+from datetime import datetime
+import json
+
 import tests
 
 
@@ -44,3 +47,88 @@ def get_average_metric(metric_dict: dict, metric_name: str = 'Top1_Acc_Stream'):
         if k.startswith(metric_name):
             avg_stream_acc.append(v)
     return sum(avg_stream_acc) / float(len(avg_stream_acc))
+
+
+def return_time():
+    return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+
+def template_exp_sh(target, path, name, params, cuda=0):
+    """
+    Generate sh file from 1 params dict
+    :param target: experiments/continual_training.py or experiments/fewshot_testing.py
+    :param path: store the sh, 'tests/tasks/TASK_NAME'
+    :param name: sh file name, '1'
+    :param params: a dict of params
+    :param cuda: device used
+    """
+    '''Make dir'''
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    '''Params to str'''
+    param_str = ' '.join([f'--{key} {value}' for key, value in params.items() if type(value) is not bool]) + ' '
+    param_str += ' '.join([f'--{key}' for key, value in params.items() if value is True])       # True
+
+    template_str = \
+        f"#!/bin/bash \n" \
+        f"\n" \
+        f"export WANDB_MODE=offline \n" \
+        f"CUDA_VISIBLE_DEVICES={cuda} python {target} {param_str} \\\n" \
+        f"> ../avalanche-experiments/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1 \n"
+
+    '''Write to file'''
+    with open(os.path.join(path, f'{name}.sh'), 'w') as f:
+        f.write(template_str)
+
+
+def template_tencent(name_list, cmd_path, path):
+    """
+    Generate jsons for file_list and 1 sh contains all taiji_client start -scfg config.json
+    :param name_list: a list of file: [0, 1, 2, ...]
+    :param cmd_path: path start from project_root to the sh file
+    :param path:  store the sh and json, 'tests/tasks/TASK_NAME'
+    """
+    '''Make dir'''
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    task_str = \
+        f"#!/bin/bash \n" \
+        f"\n"
+
+    '''Generate json'''
+    for idx, name in enumerate(name_list):
+        config = {
+            "Token": "bv3uQFYl4YCVLkWfEcfLsQ",
+            "business_flag": "AILab_MLC_CQ",
+            "start_cmd": f"sh {cmd_path}/{name}.sh",
+            "model_local_file_path": "/apdcephfs/private_yunqiaoyang/private_weiduoliao/continual-learning-baselines/",
+            "host_num": 1,
+            "host_gpu_num": 1,
+            "GPUName": "V100",
+            "is_elasticity": True,
+            "mount_ceph_business_flag": "DrugAI_CQ",
+            "image_full_name": "mirrors.tencent.com/yunqiao_cv/lwd:avalanche0"
+        }
+        with open(os.path.join(path, f'{name}.json'), 'w') as f:
+            json.dump(config, f, indent=4)
+
+        task_str += f"taiji_client start -scfg {name}.json\n"
+
+    '''Generate task.sh'''
+    with open(os.path.join(path, 'task.sh'), 'w') as f:
+        f.write(task_str)
+
+
+if __name__ == '__main__':
+    # template_exp_sh('experiments/continual_training.py',
+    #                 f'tasks/{return_time()}',
+    #                 '1',
+    #                 {'a': True, 'b': False, 'c': 1, 'd': 1.0, 'project_name': 'CGQA', 'exp_name': 'exp'})
+
+    template_tencent(
+        [0, 1, 2],
+        f'tests/tasks',
+        f'tasks/{return_time()}'
+    )

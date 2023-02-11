@@ -21,25 +21,6 @@ from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, Avalanche
 from avalanche.benchmarks.utils.avalanche_dataset import AvalancheDatasetType
 
 """ README
-
-[PREPROCESS INSTRUCTIONS]
-Please first download our preprocessed CGQA dataset in 
-https://drive.google.com/file/d/1DatpJn55mqq5_kxHZKoYdNSRHlBLzjJL/view 
-
-# Please first download GQA dataset (Image Files 20.3G) in
-# https://cs.stanford.edu/people/dorarad/gqa/download.html.
-Then unzip and place the folder under dataset_root/gqa folder.
-
-Folder structure:
--/ continual
-    -/ train/val/test
-        -/ comb_name (sort and ',')
--/ fewshot
-    -/ sys/pro/sub/non/noc
-        -/ comb_name (sort and ',')
--/ statistics.json
-    - same dict structure as folder (sub with attr)
-    
 The original labels of classes are the sorted combination of all existing
 objects defined in json. E.g., "apple,banana".
 """
@@ -47,10 +28,9 @@ objects defined in json. E.g., "apple,banana".
 
 """
 Default transforms borrowed from MetaShift.
-Image shape: (3, 98, 98). 
 Imagenet normalization.
 """
-_image_size = (98, 98)
+_image_size = (128, 128)
 _default_cgqa_train_transform = transforms.Compose(
     [
         transforms.Resize(_image_size),  # allow reshape but not equal scaling
@@ -87,13 +67,6 @@ def continual_training_benchmark(
 ):
     """
     Creates a CL benchmark using the pre-processed GQA dataset.
-
-    List of 20 objects:
-        ['plate','shirt','building','sign','grass','car','table','chair','jacket','shoe',
-        'flower','pants','helmet','bench','pole','leaves','wall','door','fence','hat']
-
-    List of 100 combinations:
-
 
     :param n_experiences: The number of experiences in the current benchmark.
     :param return_task_id: If True, a progressive task id is returned for every
@@ -330,8 +303,10 @@ def fewshot_testing_benchmark(
             val_indices.append(indices[n_shot:n_shot+n_val])
             query_indices.append(indices[n_shot+n_val:])
         shot_indices = np.concatenate(shot_indices)
-        val_indices = np.concatenate(val_indices)
-        query_indices = np.concatenate(query_indices)
+        if n_val > 0:
+            val_indices = np.concatenate(val_indices)
+        if n_query > 0:
+            query_indices = np.concatenate(query_indices)
         train_subsets.append(
             AvalancheSubset(
                 dataset,
@@ -396,7 +371,7 @@ def _get_gqa_datasets(
         randomly shuffled. Default to False.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
-    :param mode: Option [continual, sys, pro, sub, non, noc].
+    :param mode: Option [continual, sys, pro, sub, non, noc, nons, syss].
     :param num_samples_each_label: If specify a certain number of samples for each label,
         random sampling (build-in seed:1234,
         and replace=True if num_samples_each_label > num_samples, else False)
@@ -410,7 +385,7 @@ def _get_gqa_datasets(
 
     :return data_sets defined by json file and label information.
     """
-    img_folder_path = os.path.join(dataset_root, "gqa", "GQA")
+    img_folder_path = os.path.join(dataset_root, "gqa", "GQA_100")
 
     def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
         for item in img_info:
@@ -428,9 +403,9 @@ def _get_gqa_datasets(
         return img_tuples
 
     if mode == 'continual':
-        train_json_path = os.path.join(dataset_root, "gqa", "gqa", "continual", "train.json")
-        val_json_path = os.path.join(dataset_root, "gqa", "gqa", "continual", "val.json")
-        test_json_path = os.path.join(dataset_root, "gqa", "gqa", "continual", "test.json")
+        train_json_path = os.path.join(img_folder_path, "continual", "train", "train.json")
+        val_json_path = os.path.join(img_folder_path, "continual", "val", "val.json")
+        test_json_path = os.path.join(img_folder_path, "continual", "test", "test.json")
 
         with open(train_json_path, 'r') as f:
             train_img_info = json.load(f)
@@ -493,29 +468,41 @@ def _get_gqa_datasets(
 
         '''generate train_set and test_set using PathsDataset'''
         '''TBD: use TensorDataset if pre-loading in memory'''
-        train_set = AvalancheDataset(PathsDataset(
+        train_set = PathsDataset(
             root=img_folder_path,
             files=train_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})  # allow reshape but not equal scaling
-        val_set = AvalancheDataset(PathsDataset(
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        val_set = PathsDataset(
             root=img_folder_path,
             files=val_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})
-        test_set = AvalancheDataset(PathsDataset(
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        test_set = PathsDataset(
             root=img_folder_path,
             files=test_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        # train_set = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=train_list,
+        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
+        #     transform_groups={'val': (None, None)})
+        # val_set = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=val_list,
+        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
+        #     transform_groups={'val': (None, None)})
+        # test_set = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=test_list,
+        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
+        #     transform_groups={'val': (None, None)})
 
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
-    elif mode in ['sys', 'pro', 'sub', 'non', 'noc']:
-        json_name = {'sys': 'sys_fewshot.json', 'pro': 'pro_fewshot.json', 'sub': 'sub_fewshot.json',
-                     'non': 'non_novel_fewshot.json', 'noc': 'non_comp_fewshot.json'}[mode]
-        json_path = os.path.join(dataset_root, "gqa", "gqa", "fewshot", json_name)
+    elif mode in ['sys', 'pro', 'sub', 'non', 'noc', 'nons', 'syss']:
+        json_name = {'sys': 'sys/sys_fewshot.json', 'pro': 'pro/pro_fewshot.json', 'sub': 'sub/sub_fewshot.json',
+                     'non': 'non_novel/non_novel_fewshot.json', 'noc': 'non_comp/non_comp_fewshot.json'}[mode]
+        json_path = os.path.join(img_folder_path, "fewshot", json_name)
         with open(json_path, 'r') as f:
             img_info = json.load(f)
         label_set = sorted(list(set([tuple(sorted(item['comb'])) for item in img_info])))
@@ -523,11 +510,15 @@ def _get_gqa_datasets(
         map_int_label_to_tuple = dict((idx + label_offset, item) for idx, item in enumerate(label_set))
         preprocess_label_to_integer(img_info, map_tuple_label_to_int)
         img_list = formulate_img_tuples(img_info)
-        dataset = AvalancheDataset(PathsDataset(
+        dataset = PathsDataset(
             root=img_folder_path,
             files=img_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        # dataset = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=img_list,
+        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
+        #     transform_groups={'val': (None, None)})
 
         datasets = {'dataset': dataset}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
@@ -549,17 +540,45 @@ if __name__ == "__main__":
     #     n_experiences=10, return_task_id=True,
     #     seed=1234, shuffle=True,
     #     dataset_root='../../datasets',
-    #     memory_size=1000,
+    #     memory_size=0,
     # )
+    #
+    # '''obtain fixed class order'''
+    # class_exp = _benchmark_instance.original_classes_in_exp
+    # maps = _benchmark_instance.label_info[2]
+    # str_class_exp = []
+    # for classes in class_exp:
+    #     str_class_exp.append([maps[c] for c in classes])
     # fixed_class_order:
+    # [[('fence', 'flower'), ('door', 'grass'), ('leaves', 'shirt'), ('grass', 'table'), ('shoe', 'shorts'),
+    #   ('hat', 'table'), ('leaves', 'wall'), ('chair', 'grass'), ('door', 'shoe'), ('fence', 'helmet')],
+    #  [('chair', 'sign'), ('grass', 'shorts'), ('hat', 'plate'), ('pole', 'shirt'), ('grass', 'pants'),
+    #   ('pants', 'shoe'), ('pole', 'wall'), ('bench', 'chair'), ('helmet', 'plate'), ('leaves', 'shoe')],
+    #  [('bench', 'shorts'), ('flower', 'pole'), ('chair', 'helmet'), ('pants', 'shorts'), ('helmet', 'shorts'),
+    #   ('helmet', 'shoe'), ('hat', 'jacket'), ('hat', 'shorts'), ('jacket', 'shoe'), ('fence', 'wall')],
+    #  [('bench', 'helmet'), ('hat', 'shirt'), ('bench', 'sign'), ('plate', 'wall'), ('grass', 'plate'),
+    #   ('helmet', 'pole'), ('door', 'leaves'), ('bench', 'pants'), ('grass', 'jacket'), ('jacket', 'pole')],
+    #  [('car', 'jacket'), ('building', 'plate'), ('helmet', 'leaves'), ('pants', 'shirt'), ('car', 'leaves'),
+    #   ('bench', 'leaves'), ('fence', 'pants'), ('bench', 'shirt'), ('fence', 'grass'), ('building', 'jacket')],
+    #  [('fence', 'plate'), ('car', 'helmet'), ('car', 'shorts'), ('grass', 'leaves'), ('jacket', 'shirt'),
+    #   ('chair', 'shirt'), ('plate', 'sign'), ('bench', 'jacket'), ('leaves', 'sign'), ('chair', 'shoe')],
+    #  [('flower', 'shirt'), ('building', 'chair'), ('plate', 'shorts'), ('building', 'leaves'), ('chair', 'hat'),
+    #   ('fence', 'pole'), ('grass', 'sign'), ('building', 'grass'), ('hat', 'shoe'), ('bench', 'wall')],
+    #  [('car', 'flower'), ('bench', 'door'), ('bench', 'hat'), ('bench', 'building'), ('bench', 'table'),
+    #   ('hat', 'sign'), ('shirt', 'wall'), ('door', 'fence'), ('door', 'plate'), ('pole', 'table')],
+    #  [('flower', 'pants'), ('shoe', 'sign'), ('helmet', 'shirt'), ('leaves', 'plate'), ('hat', 'wall'),
+    #   ('grass', 'shoe'), ('plate', 'shirt'), ('pants', 'wall'), ('fence', 'leaves'), ('chair', 'pole')],
+    #  [('car', 'sign'), ('car', 'pants'), ('flower', 'helmet'), ('building', 'hat'), ('car', 'shirt'),
+    #   ('helmet', 'sign'), ('flower', 'wall'), ('door', 'pole'), ('leaves', 'shorts'), ('fence', 'shorts')]]
 
     '''Sys'''
-    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
-    _benchmark_instance = fewshot_testing_benchmark(
-        n_experiences=600, n_way=10, n_shot=10, n_query=10, mode='sys',
-        task_offset=10,
-        seed=1234, dataset_root='../../datasets',
-    )
+    _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
+
+    # _benchmark_instance = fewshot_testing_benchmark(
+    #     n_experiences=600, n_way=10, n_shot=10, n_query=10, mode='sys',
+    #     task_offset=10,
+    #     seed=1234, dataset_root='../../datasets',
+    # )
 
     '''Sub'''
 
@@ -577,5 +596,4 @@ if __name__ == "__main__":
     # plt.title(f'y:{y}')
     # plt.show()
 
-    # check_vision_benchmark(benchmark_instance, show_without_transforms=True)
-    # check_vision_benchmark(benchmark_novel, show_without_transforms=True)
+    # check_vision_benchmark(_benchmark_instance, show_without_transforms=True)

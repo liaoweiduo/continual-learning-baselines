@@ -45,10 +45,9 @@ objects defined in json. E.g., "apple,banana".
 
 """
 Default transforms borrowed from MetaShift.
-Image shape: (3, 98, 98). 
 Imagenet normalization.
 """
-_image_size = (98, 98)
+_image_size = (128, 128)
 _default_cgqa_train_transform = transforms.Compose(
     [
         transforms.Resize(_image_size),  # allow reshape but not equal scaling
@@ -417,10 +416,21 @@ def _get_pin_datasets(
 
     def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
         for item in img_info:
-            item['image'] = f"{item['newImageName']}.jpg"
-            item['label'] = mapping_tuple_label_to_int[tuple(sorted(item['comb']))]
-            for obj in item['objects']:
-                obj['image'] = f"{obj['imageName']}.jpg"
+            item['image'] = item['newFileName']
+            item['comb'] = item['label']
+            item['label'] = mapping_tuple_label_to_int[tuple(sorted(item['label']))]
+
+    def split_img_info(img_info):
+        split_img_info = {'train': [], 'val': [], 'test': []}
+        for item in img_info:
+            image_path = item['image']
+            # "continual/train/1.jpg"
+            split = image_path.split('/')[1]    # train/val/test
+            assert (split in ['train', 'val', 'test']
+                    ), f'wrong split: {split} for image: {image_path}.'
+            split_img_info[split].append(item)
+
+        return split_img_info['train'], split_img_info['val'], split_img_info['test']
 
     def formulate_img_tuples(images):
         """generate train_list and test_list: list with img tuple (path, label)"""
@@ -431,34 +441,26 @@ def _get_pin_datasets(
         return img_tuples
 
     if mode == 'continual':
-        train_json_path = os.path.join(dataset_root, "PIN", "PIN", "continual", "train.json")
-        val_json_path = os.path.join(dataset_root, "PIN", "PIN", "continual", "val.json")
-        test_json_path = os.path.join(dataset_root, "PIN", "PIN", "continual", "test.json")
+        json_path = os.path.join(img_folder_path, "continual.json")
 
-        with open(train_json_path, 'r') as f:
-            train_img_info = json.load(f)
-        with open(val_json_path, 'r') as f:
-            val_img_info = json.load(f)
-        with open(test_json_path, 'r') as f:
-            test_img_info = json.load(f)
+        with open(json_path, 'r') as f:
+            img_info = json.load(f)
         # img_info:
-        # [{'newImageName': 'continual/val/59767',
-        #   'comb': ['hat', 'leaves'],
-        #   'objects': [{'imageName': '2416370', 'objName': 'hat',
-        #                'attributes': ['red'], 'boundingBox': [52, 289, 34, 45]},...]
-        #   'position': [4, 1]},...]
+        # [{"label": ["Lacertilia Body", "Fish Body", "Primates Head", "Lacertilia Head", "Bovidae Body"],
+        #   "newFileName": "fewshot/non/119001.jpg",
+        #   "objects": [...]
+        #   "position": [1, 4, 0, 2, 5],...]
 
         '''preprocess labels to integers'''
-        label_set = sorted(list(set([tuple(sorted(item['comb'])) for item in val_img_info])))
+        label_set = sorted(list(set([tuple(sorted(item['label'])) for item in img_info])))
         # [('building', 'sign'), ...]
         map_tuple_label_to_int = dict((item, idx + label_offset) for idx, item in enumerate(label_set))
         # {('building', 'sign'): 0, ('building', 'sky'): 1, ...}
         map_int_label_to_tuple = dict((idx + label_offset, item) for idx, item in enumerate(label_set))
         # {0: ('building', 'sign'), 1: ('building', 'sky'),...}
 
-        preprocess_label_to_integer(train_img_info, map_tuple_label_to_int)
-        preprocess_label_to_integer(val_img_info, map_tuple_label_to_int)
-        preprocess_label_to_integer(test_img_info, map_tuple_label_to_int)
+        preprocess_label_to_integer(img_info, map_tuple_label_to_int)
+        train_img_info, val_img_info, test_img_info = split_img_info(img_info)
 
         '''if num_samples_each_label provided, sample images to balance each class for train set'''
         selected_train_images = []
@@ -517,11 +519,11 @@ def _get_pin_datasets(
 
     elif mode in ['sys', 'pro', 'non', 'noc']:      # no sub
         json_name = {'sys': 'sys_fewshot.json', 'pro': 'pro_fewshot.json',      # 'sub': 'sub_fewshot.json',
-                     'non': 'non_novel_fewshot.json', 'noc': 'non_comp_fewshot.json'}[mode]
-        json_path = os.path.join(dataset_root, "PIN", "PIN", "fewshot", json_name)
+                     'non': 'non_fewshot.json', 'noc': 'noc_fewshot.json'}[mode]
+        json_path = os.path.join(img_folder_path, json_name)
         with open(json_path, 'r') as f:
             img_info = json.load(f)
-        label_set = sorted(list(set([tuple(sorted(item['comb'])) for item in img_info])))
+        label_set = sorted(list(set([tuple(sorted(item['label'])) for item in img_info])))
         map_tuple_label_to_int = dict((item, idx + label_offset) for idx, item in enumerate(label_set))
         map_int_label_to_tuple = dict((idx + label_offset, item) for idx, item in enumerate(label_set))
         preprocess_label_to_integer(img_info, map_tuple_label_to_int)
@@ -546,23 +548,23 @@ __all__ = ["continual_training_benchmark", "fewshot_testing_benchmark"]
 
 if __name__ == "__main__":
     '''Continual'''
-    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='continual')
+    # _dataset, _label_info = _get_pin_datasets('../../datasets', mode='continual', num_samples_each_label=10)
 
     # _benchmark_instance = continual_training_benchmark(
     #     n_experiences=10, return_task_id=True,
     #     seed=1234, shuffle=True,
     #     dataset_root='../../datasets',
-    #     memory_size=1000,
+    #     # memory_size=1000,
     # )
     # fixed_class_order:
 
     '''Sys'''
-    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
-    _benchmark_instance = fewshot_testing_benchmark(
-        n_experiences=600, n_way=10, n_shot=10, n_query=10, mode='sys',
-        task_offset=10,
-        seed=1234, dataset_root='../../datasets',
-    )
+    _dataset, _label_info = _get_pin_datasets('../../datasets', mode='sys', num_samples_each_label=10)
+    # _benchmark_instance = fewshot_testing_benchmark(
+    #     n_experiences=5, n_way=10, n_shot=10, n_query=10, mode='noc',
+    #     task_offset=10,
+    #     seed=1234, dataset_root='../../datasets',
+    # )
 
     '''Sub'''
 
@@ -580,5 +582,4 @@ if __name__ == "__main__":
     # plt.title(f'y:{y}')
     # plt.show()
 
-    # check_vision_benchmark(benchmark_instance, show_without_transforms=True)
-    # check_vision_benchmark(benchmark_novel, show_without_transforms=True)
+    # check_vision_benchmark(_benchmark_instance, show_without_transforms=True)
