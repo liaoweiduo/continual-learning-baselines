@@ -53,13 +53,14 @@ def return_time():
     return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
-def template_exp_sh(target, path, name, params, cuda=0):
+def template_exp_sh(target, path, name, params, out_path='../avalanche-experiments', cuda=0):
     """
     Generate sh file from 1 params dict
     :param target: experiments/continual_training.py or experiments/fewshot_testing.py
     :param path: store the sh, 'tests/tasks/TASK_NAME'
     :param name: sh file name, '1'
     :param params: a dict of params
+    :param out_path: path to the root of std out file.
     :param cuda: device used
     """
     '''Make dir'''
@@ -75,7 +76,7 @@ def template_exp_sh(target, path, name, params, cuda=0):
         f"\n" \
         f"export WANDB_MODE=offline \n" \
         f"CUDA_VISIBLE_DEVICES={cuda} python {target} {param_str} \\\n" \
-        f"> ../avalanche-experiments/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1 \n"
+        f"> {out_path}/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1 \n"
 
     '''Write to file'''
     with open(os.path.join(path, f'{name}.sh'), 'w') as f:
@@ -109,7 +110,7 @@ def template_tencent(name_list, cmd_path, path):
             "GPUName": "V100",
             "is_elasticity": True,
             "mount_ceph_business_flag": "DrugAI_CQ",
-            "image_full_name": "mirrors.tencent.com/yunqiao_cv/lwd:avalanche0"
+            "image_full_name": "mirrors.tencent.com/yunqiao_cv/liaoweiduo:avalanche0"
         }
         with open(os.path.join(path, f'{name}.json'), 'w') as f:
             json.dump(config, f, indent=4)
