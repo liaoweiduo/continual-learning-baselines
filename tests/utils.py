@@ -72,7 +72,7 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
     param_str += ' '.join([f'--{key}' for key, value in params.items() if value is True])       # True
 
     template_str = \
-        f"#!/bin/sh \n" \
+        f"#!/bin/bash \n" \
         f"export WANDB_MODE=offline \n" \
         f"CUDA_VISIBLE_DEVICES={cuda} python {target} {param_str} \\\n" \
         f"> {out_path}/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1"
@@ -93,7 +93,7 @@ def template_tencent(name_list, cmd_path, path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    task_str = f"#!/bin/sh"
+    task_str = f"#!/bin/bash"
 
     '''Generate json'''
     for idx, name in enumerate(name_list):
@@ -102,7 +102,7 @@ def template_tencent(name_list, cmd_path, path):
         config = {
             "Token": "bv3uQFYl4YCVLkWfEcfLsQ",
             "business_flag": "AILab_MLC_CQ",
-            "start_cmd": f"sh {cmd_path}/{name}.sh",
+            "start_cmd": f"bash {cmd_path}/{name}.sh",
             "model_local_file_path": "/apdcephfs/private_yunqiaoyang/private_weiduoliao/continual-learning-baselines/",
             "host_num": 1,
             "host_gpu_num": 1,
