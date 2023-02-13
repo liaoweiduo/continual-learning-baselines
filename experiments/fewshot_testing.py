@@ -1,8 +1,8 @@
 import sys
-# sys.path.append('.')
-sys.path.append('/liaoweiduo/continual-learning-baselines')
-
 import os
+sys.path.append(os.path.abspath('.'))
+# sys.path.append('/liaoweiduo/continual-learning-baselines')
+
 import copy
 import argparse
 

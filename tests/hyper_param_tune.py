@@ -53,7 +53,7 @@ dataset = 'cgqa'
 dataset_root = '/apdcephfs/share_1364275/lwd/datasets'
 exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
 task_root = '/apdcephfs/share_1364275/lwd/tasks'
-code_root = '/apdcephfs/private_yunqiaoyang/private_weiduoliao/continual-learning-baselines/'
+# code_root = '/apdcephfs/private_yunqiaoyang/private_weiduoliao/continual-learning-baselines/'
 common_args = {
     'use_wandb': use_wandb,
     'use_interactive_logger': use_interactive_logger,
@@ -269,7 +269,6 @@ for iter, param in enumerate(params):
         path=f'../../avalanche-experiments/tasks/{task_name}',
         name=iter,
         params=param,
-        root_path=code_root,
         out_path=f"{exp_root}/{param['project_name']}/{param['exp_name']}/train.out",
     )
     names.append(iter)

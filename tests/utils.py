@@ -53,7 +53,7 @@ def return_time():
     return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
-def template_exp_sh(target, path, name, params, root_path='.', out_path='../avalanche-experiments/out/task.out', cuda=0):
+def template_exp_sh(target, path, name, params, root_path='./', out_path='../avalanche-experiments/out/task.out', cuda=0):
     """
     Generate sh file from 1 params dict
     :param target: experiments/continual_training.py or experiments/fewshot_testing.py
