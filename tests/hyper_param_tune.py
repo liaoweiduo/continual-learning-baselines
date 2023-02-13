@@ -52,6 +52,7 @@ project_name = 'CGQA'
 dataset = 'cgqa'
 dataset_root = '/apdcephfs/share_1364275/lwd/datasets'
 exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
+task_root = '/apdcephfs/share_1364275/lwd/tasks'
 common_args = {
     'use_wandb': use_wandb,
     'use_interactive_logger': use_interactive_logger,
@@ -274,5 +275,5 @@ for iter, param in enumerate(params):
 '''Generate json and sh for Tencent servers'''
 template_tencent(
     name_list=names,
-    cmd_path=f'../tasks/{task_name}',
+    cmd_path=f'{task_root}/{task_name}',
     path=f'../../avalanche-experiments/tasks/{task_name}')

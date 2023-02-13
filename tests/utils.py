@@ -72,11 +72,10 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
     param_str += ' '.join([f'--{key}' for key, value in params.items() if value is True])       # True
 
     template_str = \
-        f"#!/bin/bash \n" \
-        f"\n" \
+        f"#!/bin/sh \n" \
         f"export WANDB_MODE=offline \n" \
         f"CUDA_VISIBLE_DEVICES={cuda} python {target} {param_str} \\\n" \
-        f"> {out_path}/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1 \n"
+        f"> {out_path}/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1"
 
     '''Write to file'''
     with open(os.path.join(path, f'{name}.sh'), 'w') as f:
@@ -94,12 +93,12 @@ def template_tencent(name_list, cmd_path, path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    task_str = \
-        f"#!/bin/bash \n" \
-        f"\n"
+    task_str = f"#!/bin/sh"
 
     '''Generate json'''
     for idx, name in enumerate(name_list):
+        task_str += f"\ntaiji_client start -scfg {name}.json"
+
         config = {
             "Token": "bv3uQFYl4YCVLkWfEcfLsQ",
             "business_flag": "AILab_MLC_CQ",
@@ -114,8 +113,6 @@ def template_tencent(name_list, cmd_path, path):
         }
         with open(os.path.join(path, f'{name}.json'), 'w') as f:
             json.dump(config, f, indent=4)
-
-        task_str += f"taiji_client start -scfg {name}.json\n"
 
     '''Generate task.sh'''
     with open(os.path.join(path, 'task.sh'), 'w') as f:
