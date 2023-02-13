@@ -53,13 +53,14 @@ def return_time():
     return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
-def template_exp_sh(target, path, name, params, out_path='../avalanche-experiments', cuda=0):
+def template_exp_sh(target, path, name, params, root_path='.', out_path='../avalanche-experiments/out/task.out', cuda=0):
     """
     Generate sh file from 1 params dict
     :param target: experiments/continual_training.py or experiments/fewshot_testing.py
     :param path: store the sh, 'tests/tasks/TASK_NAME'
     :param name: sh file name, '1'
     :param params: a dict of params
+    :param root_path: path to the project root, for pythonpath envir
     :param out_path: path to the root of std out file.
     :param cuda: device used
     """
@@ -68,14 +69,15 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
         os.makedirs(path)
 
     '''Params to str'''
-    param_str = ' '.join([f'--{key} {value}' for key, value in params.items() if type(value) is not bool]) + ' '
-    param_str += ' '.join([f'--{key}' for key, value in params.items() if value is True])       # True
+    param_str = ' '.join([f"--{key} {value}" for key, value in params.items() if type(value) is not bool]) + ' '
+    param_str += ' '.join([f"--{key}" for key, value in params.items() if value is True])       # True
 
     template_str = \
-        f"#!/bin/bash \n" \
-        f"export WANDB_MODE=offline \n" \
+        f"#!/bin/sh\n" \
+        f"export WANDB_MODE=offline\n" \
+        "export PYTHONPATH=${PYTHONPATH}:" + f"{root_path}\n" \
         f"CUDA_VISIBLE_DEVICES={cuda} python {target} {param_str} \\\n" \
-        f"> {out_path}/{params['project_name']}/{params['exp_name']}/{params['exp_name']}.out 2>&1"
+        f"> {out_path} 2>&1"
 
     '''Write to file'''
     with open(os.path.join(path, f'{name}.sh'), 'w') as f:
@@ -93,7 +95,7 @@ def template_tencent(name_list, cmd_path, path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    task_str = f"#!/bin/bash"
+    task_str = f"#!/bin/sh"
 
     '''Generate json'''
     for idx, name in enumerate(name_list):
@@ -102,7 +104,7 @@ def template_tencent(name_list, cmd_path, path):
         config = {
             "Token": "bv3uQFYl4YCVLkWfEcfLsQ",
             "business_flag": "AILab_MLC_CQ",
-            "start_cmd": f"bash {cmd_path}/{name}.sh",
+            "start_cmd": f"sh {cmd_path}/{name}.sh",
             "model_local_file_path": "/apdcephfs/private_yunqiaoyang/private_weiduoliao/continual-learning-baselines/",
             "host_num": 1,
             "host_gpu_num": 1,
