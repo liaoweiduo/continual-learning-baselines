@@ -103,7 +103,7 @@ def fewshot_test(override_args=None):
     ]
     evaluation_plugin = EvaluationPlugin(
         *metrics_list,
-        benchmark=benchmark,
+        # benchmark=benchmark,
         loggers=loggers)
 
     # ####################

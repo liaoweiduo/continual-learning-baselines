@@ -100,7 +100,7 @@ def continual_train(override_args=None):
         ])
     evaluation_plugin = EvaluationPlugin(
         *metrics_list,
-        benchmark=benchmark,
+        # benchmark=benchmark,
         loggers=loggers)
 
     # ####################

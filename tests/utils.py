@@ -88,7 +88,7 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
         f" > {out_path} 2>&1"
 
     '''Write to file'''
-    with open(os.path.join(path, f'{name}.sh'), 'w') as f:
+    with open(os.path.join(path, f'{name}.sh'), 'w', newline='') as f:
         f.write(template_str)
 
 
@@ -125,7 +125,7 @@ def template_tencent(name_list, cmd_path, path):
             json.dump(config, f, indent=4)
 
     '''Generate task.sh'''
-    with open(os.path.join(path, 'task.sh'), 'w') as f:
+    with open(os.path.join(path, 'task.sh'), 'w', newline='') as f:
         f.write(task_str)
 
 
