@@ -1,5 +1,11 @@
 import sys
-sys.path.append('/liaoweiduo/continual-learning-baselines')
+import os
+python_path = os.path.join(os.path.abspath('.').split('continual-learning-baselines')[0],
+                           'continual-learning-baselines')
+# python_path = '/liaoweiduo/continual-learning-baselines'
+sys.path.append(python_path)
+print(f'Add python path: {python_path}')
+
 
 import time
 import wandb
@@ -52,7 +58,7 @@ project_name = 'CGQA'
 dataset = 'cgqa'
 dataset_root = '/apdcephfs/share_1364275/lwd/datasets'
 exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
-task_root = '/apdcephfs/share_1364275/lwd/tasks'
+task_root = 'tests/tasks'        # path for sh
 # code_root = '/apdcephfs/private_yunqiaoyang/private_weiduoliao/continual-learning-baselines/'
 common_args = {
     'use_wandb': use_wandb,
@@ -266,7 +272,7 @@ for iter, param in enumerate(params):
     print(f'Generate sh with params: {param}.')
     template_exp_sh(
         target='experiments/continual_training.py',
-        path=f'../../avalanche-experiments/tasks/{task_name}',
+        path=f'../avalanche-experiments/tasks/{task_name}',
         name=iter,
         params=param,
         out_path=f"{exp_root}/{param['project_name']}/{param['exp_name']}/train.out",
@@ -277,4 +283,4 @@ for iter, param in enumerate(params):
 template_tencent(
     name_list=names,
     cmd_path=f'{task_root}/{task_name}',
-    path=f'../../avalanche-experiments/tasks/{task_name}')
+    path=f'../avalanche-experiments/tasks/{task_name}')

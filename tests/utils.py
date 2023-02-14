@@ -53,14 +53,13 @@ def return_time():
     return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
-def template_exp_sh(target, path, name, params, root_path='./', out_path='../avalanche-experiments/out/task.out', cuda=0):
+def template_exp_sh(target, path, name, params, out_path='../avalanche-experiments/out/task.out', cuda=0):
     """
     Generate sh file from 1 params dict
     :param target: experiments/continual_training.py or experiments/fewshot_testing.py
     :param path: store the sh, 'tests/tasks/TASK_NAME'
     :param name: sh file name, '1'
     :param params: a dict of params
-    :param root_path: path to the project root, for pythonpath envir
     :param out_path: path to the root of std out file.
     :param cuda: device used
     """
@@ -69,15 +68,24 @@ def template_exp_sh(target, path, name, params, root_path='./', out_path='../ava
         os.makedirs(path)
 
     '''Params to str'''
-    param_str = ' '.join([f"--{key} {value}" for key, value in params.items() if type(value) is not bool]) + ' '
-    param_str += ' '.join([f"--{key}" for key, value in params.items() if value is True])       # True
+    param_str = ''
+    for key, value in params.items():
+        if type(value) is not bool:
+            param_str += f" --{key} '{value}'"
+        elif value is True:
+            param_str += f" --{key}"
+    # param_str = ' '.join([f"--{key} {value}" for key, value in params.items() if type(value) is not bool])
+    # param_str_ = ' '.join([f"--{key}" for key, value in params.items() if value is True])       # True
+    # param_str = ' '.join([param_str, param_str_])
 
     template_str = \
         f"#!/bin/sh\n" \
         f"export WANDB_MODE=offline\n" \
-        "export PYTHONPATH=${PYTHONPATH}:" + f"{root_path}\n" \
-        f"CUDA_VISIBLE_DEVICES={cuda} python {target} {param_str} \\\n" \
-        f"> {out_path} 2>&1"
+        "abs_path=`pwd`\n"\
+        "echo abs_path:$abs_path\n"\
+        "export PYTHONPATH=${PYTHONPATH}:${abs_path}\n" \
+        f"CUDA_VISIBLE_DEVICES={cuda} python3 {target}{param_str}" \
+        f" > {out_path} 2>&1"
 
     '''Write to file'''
     with open(os.path.join(path, f'{name}.sh'), 'w') as f:

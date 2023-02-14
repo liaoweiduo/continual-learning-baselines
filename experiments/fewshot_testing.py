@@ -1,7 +1,10 @@
 import sys
 import os
-sys.path.append(os.path.abspath('.'))
-# sys.path.append('/liaoweiduo/continual-learning-baselines')
+python_path = os.path.join(os.path.abspath('.').split('continual-learning-baselines')[0],
+                           'continual-learning-baselines')
+# python_path = '/liaoweiduo/continual-learning-baselines'
+sys.path.append(python_path)
+print(f'Add python path: {python_path}')
 
 import copy
 import argparse
