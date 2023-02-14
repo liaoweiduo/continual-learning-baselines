@@ -18,7 +18,6 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import check_vision_b
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import nc_benchmark, dataset_benchmark
 from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, AvalancheSubset
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheDatasetType
 
 """ README
 The original labels of classes are the sorted combination of all existing
@@ -190,7 +189,6 @@ def continual_training_benchmark(
         train_transform=train_transform,
         eval_transform=eval_transform,
         other_streams_transforms={'val': (eval_transform, None)},
-        dataset_type=AvalancheDatasetType.CLASSIFICATION
     )
 
     benchmark_instance.original_classes_in_exp = original_classes_in_exp
@@ -339,7 +337,6 @@ def fewshot_testing_benchmark(
         train_transform=train_transform,
         eval_transform=eval_transform,
         other_streams_transforms={'val': (eval_transform, None)},
-        dataset_type=AvalancheDatasetType.CLASSIFICATION
     )
 
     benchmark_instance.original_classes_in_exp = np.array(selected_classes_in_exp)

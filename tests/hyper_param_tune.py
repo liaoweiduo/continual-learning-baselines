@@ -275,7 +275,7 @@ for iter, param in enumerate(params):
         path=f'../avalanche-experiments/tasks/{task_name}',
         name=iter,
         params=param,
-        out_path=f"{exp_root}/{param['project_name']}/{param['exp_name']}/train.out",
+        out_path=f"{exp_root}/out/{task_name}-{param['project_name']}-{param['exp_name']}.out",
     )
     names.append(iter)
 
