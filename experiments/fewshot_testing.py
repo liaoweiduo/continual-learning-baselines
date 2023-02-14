@@ -154,6 +154,10 @@ def fewshot_test(override_args=None):
     print(f'Top1_Acc_Stream/eval_phase/test_stream: '
           f'{np.mean(accs)*100:.2f}% +- {1.96 * (np.std(accs)/np.sqrt(args.test_n_experiences)) * 100:.2f}%)')
 
+    # finish wandb
+    if args.use_wandb:
+        wandb_logger.wandb.finish()
+
     return results
 
 

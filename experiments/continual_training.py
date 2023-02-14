@@ -84,6 +84,8 @@ def continual_train(override_args=None):
         )
         loggers.append(wandb_logger)
 
+        wandb_logger.wandb.watch(model)
+
     # ####################
     # EVALUATION PLUGIN
     # ####################
@@ -162,6 +164,10 @@ def continual_train(override_args=None):
                 re[key] = item
         stored_results.append(re)
     np.save(os.path.join(exp_path, f'results-{args.exp_name}.npy'), stored_results)
+
+    # finish wandb
+    if args.use_wandb:
+        wandb_logger.wandb.finish()
 
     return results
 

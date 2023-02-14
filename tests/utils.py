@@ -59,7 +59,7 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
     :param target: experiments/continual_training.py or experiments/fewshot_testing.py
     :param path: store the sh, 'tests/tasks/TASK_NAME'
     :param name: sh file name, '1'
-    :param params: a dict of params
+    :param params: a list of param dict
     :param out_path: path to the root of std out file.
     :param cuda: device used
     """
@@ -67,25 +67,28 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
     if not os.path.exists(path):
         os.makedirs(path)
 
-    '''Params to str'''
-    param_str = ''
-    for key, value in params.items():
-        if type(value) is not bool:
-            param_str += f" --{key} '{value}'"
-        elif value is True:
-            param_str += f" --{key}"
-    # param_str = ' '.join([f"--{key} {value}" for key, value in params.items() if type(value) is not bool])
-    # param_str_ = ' '.join([f"--{key}" for key, value in params.items() if value is True])       # True
-    # param_str = ' '.join([param_str, param_str_])
-
     template_str = \
         f"#!/bin/sh\n" \
         f"export WANDB_MODE=offline\n" \
         "abs_path=`pwd`\n"\
         "echo abs_path:$abs_path\n"\
-        "export PYTHONPATH=${PYTHONPATH}:${abs_path}\n" \
-        f"CUDA_VISIBLE_DEVICES={cuda} python3 {target}{param_str}" \
-        f" > {out_path} 2>&1"
+        "export PYTHONPATH=${PYTHONPATH}:${abs_path}\n"
+
+    for param_idx, param in enumerate(params):
+        '''Param to str'''
+        param_str = ''
+        for key, value in param.items():
+            if type(value) is not bool:
+                param_str += f" --{key} '{value}'"
+            elif value is True:
+                param_str += f" --{key}"
+        # param_str = ' '.join([f"--{key} {value}" for key, value in params.items() if type(value) is not bool])
+        # param_str_ = ' '.join([f"--{key}" for key, value in params.items() if value is True])       # True
+        # param_str = ' '.join([param_str, param_str_])
+
+        template_str += \
+            f"CUDA_VISIBLE_DEVICES={cuda} python3 {target}{param_str}" \
+            f" >> {out_path} 2>&1\n"
 
     '''Write to file'''
     with open(os.path.join(path, f'{name}.sh'), 'w', newline='') as f:
