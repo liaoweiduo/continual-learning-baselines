@@ -45,9 +45,9 @@ parser.add_argument('--er_mem_size', type=int, default=1000, metavar='ER',
                     help='Memory buffer size to store past tasks.')
 
 # lwf args
-parser.add_argument('--lwf_alpha', type=int, default=1, metavar='LWF',
+parser.add_argument('--lwf_alpha', type=float, default=1, metavar='LWF',
                     help='.')
-parser.add_argument('--lwf_temperature', type=int, default=2, metavar='LWF',
+parser.add_argument('--lwf_temperature', type=float, default=2, metavar='LWF',
                     help='.')
 
 # gem args
@@ -57,7 +57,7 @@ parser.add_argument('--gem_mem_strength', type=float, default=0.5, metavar='GEM'
                     help='.')
 
 # ewc args
-parser.add_argument('--ewc_lambda', type=int, default=1, metavar='EWC',
+parser.add_argument('--ewc_lambda', type=float, default=1, metavar='EWC',
                     help='.')
 parser.add_argument('--ewc_mode', type=str, default='separate', metavar='EWC',
                     help='.')

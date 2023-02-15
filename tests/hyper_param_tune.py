@@ -59,7 +59,7 @@ dataset = 'cgqa'
 dataset_root = '/apdcephfs/share_1364275/lwd/datasets'
 exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
 task_root = 'tests/tasks'        # path for sh
-num_runs_1sh = 40       # num of runs in 1 sh file
+num_runs_1sh = 1       # num of runs in 1 sh file
 common_args = {
     'use_wandb': use_wandb,
     'use_interactive_logger': use_interactive_logger,
@@ -129,102 +129,102 @@ param_grid = {
 }
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
-# gem
-return_task_id = False
-strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
-param_grid = {
-    'learning_rate': [0.0001, 0.001, 0.01, 0.1],
-    'gem_patterns_per_exp': [32, 64, 128, 256],
-    'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-
-return_task_id = True
-strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
-param_grid = {
-    'learning_rate': [0.0001, 0.001, 0.01, 0.1],
-    'gem_patterns_per_exp': [32, 64, 128, 256],
-    'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-
-# lwf
-return_task_id = False
-strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
-param_grid = {
-    'learning_rate': [0.001, 0.005, 0.01, 0.05],
-    'lwf_alpha': [0.1, 0.5, 1, 5, 10],
-    'lwf_temperature': [0.1, 0.5, 1, 2],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-
-return_task_id = True
-strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
-param_grid = {
-    'learning_rate': [0.001, 0.005, 0.01, 0.05],
-    'lwf_alpha': [0.1, 0.5, 1, 5, 10],
-    'lwf_temperature': [0.1, 0.5, 1, 2],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-
-# ewc
-return_task_id = False
-strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-lambda{ewc_lambda}'
-param_grid = {
-    'learning_rate': [0.001, 0.005, 0.01, 0.05],
-    'ewc_lambda': [0.1, 0.5, 1, 1.5, 2],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-
-return_task_id = True
-strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-lambda{ewc_lambda}'
-param_grid = {
-    'learning_rate': [0.001, 0.005, 0.01, 0.05],
-    'ewc_lambda': [0.1, 0.5, 1, 1.5, 2],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
+# # gem
+# return_task_id = False
+# strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+# param_grid = {
+#     'learning_rate': [0.0001, 0.001, 0.01, 0.1],
+#     'gem_patterns_per_exp': [32, 64, 128, 256],
+#     'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+# param_grid = {
+#     'learning_rate': [0.0001, 0.001, 0.01, 0.1],
+#     'gem_patterns_per_exp': [32, 64, 128, 256],
+#     'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# # lwf
+# return_task_id = False
+# strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
+# param_grid = {
+#     'learning_rate': [0.001, 0.005, 0.01, 0.05],
+#     'lwf_alpha': [0.1, 0.5, 1, 5, 10],
+#     'lwf_temperature': [0.1, 0.5, 1, 2],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
+# param_grid = {
+#     'learning_rate': [0.001, 0.005, 0.01, 0.05],
+#     'lwf_alpha': [0.1, 0.5, 1, 5, 10],
+#     'lwf_temperature': [0.1, 0.5, 1, 2],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# # ewc
+# return_task_id = False
+# strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-lambda{ewc_lambda}'
+# param_grid = {
+#     'learning_rate': [0.001, 0.005, 0.01, 0.05],
+#     'ewc_lambda': [0.1, 0.5, 1, 1.5, 2],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-lambda{ewc_lambda}'
+# param_grid = {
+#     'learning_rate': [0.001, 0.005, 0.01, 0.05],
+#     'ewc_lambda': [0.1, 0.5, 1, 1.5, 2],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 
 '''Run experiments in sequence'''
