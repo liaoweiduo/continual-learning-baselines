@@ -176,82 +176,11 @@ if __name__ == "__main__":
 
     '''Naive: cls'''
     # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
+    #     'use_wandb': False, 'project_name': 'CGQA',
+    #     'return_task_id': False, 'use_interactive_logger': True,
+    #     'dataset': 'cgqa',
     #     'exp_name': 'Naive-cls', 'strategy': 'naive',
     #     'learning_rate': 0.001,
-    # })
-
-    '''Naive: tsk'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'Naive-tsk', 'strategy': 'naive',
-    #     'learning_rate': 0.01,
-    # })
-
-    '''ER: cls'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'ER-cls', 'strategy': 'er',
-    #     'learning_rate': 0.001,
-    # })
-
-    '''ER: tsk'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'ER-tsk', 'strategy': 'er',
-    #     'learning_rate': 0.001,
-    # })
-
-    '''GEM: cls'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'GEM-cls', 'strategy': 'gem',
-    #     'learning_rate': 0.001, 'gem_patterns_per_exp': 128, 'gem_mem_strength': 0.3,
-    # })
-
-    '''GEM: tsk'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'GEM-tsk', 'strategy': 'gem',
-    #     'learning_rate': 0.005, 'gem_patterns_per_exp': 256, 'gem_mem_strength': 0.3,
-    # })
-
-    '''LwF: cls'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'LwF-cls', 'strategy': 'lwf',
-    #     'learning_rate': 0.01, 'lwf_alpha': 1, 'lwf_temperature': 2,
-    # })
-
-    '''LwF: tsk'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'LwF-tsk', 'strategy': 'lwf',
-    #     'learning_rate': 0.005, 'lwf_alpha': 1, 'lwf_temperature': 2,
-    # })
-
-    '''EWC: cls'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'EWC-cls', 'strategy': 'ewc',
-    #     'learning_rate': 0.005, 'ewc_lambda': 1,
-    # })
-
-    '''EWC: tsk'''
-    # results = continual_train({
-    #     'use_wandb': True, 'project_name': 'CPIN', 'return_task_id': True, 'use_interactive_logger': True,
-    #     'dataset': 'cpin',
-    #     'exp_name': 'EWC-tsk', 'strategy': 'ewc',
-    #     'learning_rate': 0.01, 'ewc_lambda': 1,
     # })
 
     results = continual_train()

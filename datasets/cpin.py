@@ -20,23 +20,6 @@ from avalanche.benchmarks.generators import nc_benchmark, dataset_benchmark
 from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, AvalancheSubset
 
 """ README
-
-[PREPROCESS INSTRUCTIONS] 
-Please first download our preprocessed CPIN dataset in 
-https://drive.google.com/file/d/1JrgA6ZRm8vrPRCPnr2bOSRblRU7zYVQK/view
-
-Then unzip and place the folder under dataset_root/gqa folder.
-
-Folder structure:
--/ continual
-    -/ train/val/test
-        -/ comb_name (sort and ',')
--/ fewshot
-    -/ sys/pro/non/noc
-        -/ comb_name (sort and ',')
--/ statistics.json
-    - same dict structure as folder (sub with attr)
-    
 The original labels of classes are the sorted combination of all existing
 objects defined in json. E.g., "apple,banana".
 """
@@ -495,21 +478,33 @@ def _get_pin_datasets(
 
         '''generate train_set and test_set using PathsDataset'''
         '''TBD: use TensorDataset if pre-loading in memory'''
-        train_set = AvalancheDataset(PathsDataset(
+        train_set = PathsDataset(
             root=img_folder_path,
             files=train_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})  # allow reshape but not equal scaling
-        val_set = AvalancheDataset(PathsDataset(
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        val_set = PathsDataset(
             root=img_folder_path,
             files=val_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})
-        test_set = AvalancheDataset(PathsDataset(
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        test_set = PathsDataset(
             root=img_folder_path,
             files=test_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        # train_set = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=train_list,
+        #     transform=transforms.Resize(_image_size)),
+        #     transform_groups={'val': (None, None)})  # allow reshape but not equal scaling
+        # val_set = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=val_list,
+        #     transform=transforms.Resize(_image_size)),
+        #     transform_groups={'val': (None, None)})
+        # test_set = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=test_list,
+        #     transform=transforms.Resize(_image_size)),
+        #     transform_groups={'val': (None, None)})
 
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
@@ -525,11 +520,15 @@ def _get_pin_datasets(
         map_int_label_to_tuple = dict((idx + label_offset, item) for idx, item in enumerate(label_set))
         preprocess_label_to_integer(img_info, map_tuple_label_to_int)
         img_list = formulate_img_tuples(img_info)
-        dataset = AvalancheDataset(PathsDataset(
+        dataset = PathsDataset(
             root=img_folder_path,
             files=img_list,
-            transform=transforms.Resize(_image_size)),
-            transform_groups={'val': (None, None)})
+            transform=transforms.Compose([transforms.Resize(_image_size)]))
+        # dataset = AvalancheDataset(PathsDataset(
+        #     root=img_folder_path,
+        #     files=img_list,
+        #     transform=transforms.Resize(_image_size)),
+        #     transform_groups={'val': (None, None)})
 
         datasets = {'dataset': dataset}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
@@ -545,7 +544,8 @@ __all__ = ["continual_training_benchmark", "fewshot_testing_benchmark"]
 
 if __name__ == "__main__":
     '''Continual'''
-    # _dataset, _label_info = _get_pin_datasets('../../datasets', mode='continual', num_samples_each_label=10)
+    # _dataset, _label_info = _get_pin_datasets('../../datasets', mode='continual')
+    # s = set(np.concatenate([list(item) for item in _label_info[0]]))
 
     # _benchmark_instance = continual_training_benchmark(
     #     n_experiences=10, return_task_id=True,
@@ -556,7 +556,9 @@ if __name__ == "__main__":
     # fixed_class_order:
 
     '''Sys'''
-    _dataset, _label_info = _get_pin_datasets('../../datasets', mode='sys', num_samples_each_label=10)
+    _dataset, _label_info = _get_pin_datasets('../../datasets', mode='noc')
+    s = set(np.concatenate([list(item) for item in _label_info[0]]))
+
     # _benchmark_instance = fewshot_testing_benchmark(
     #     n_experiences=5, n_way=10, n_shot=10, n_query=10, mode='noc',
     #     task_offset=10,
