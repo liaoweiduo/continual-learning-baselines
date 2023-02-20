@@ -41,6 +41,10 @@ from avalanche.models import BaseModel, MultiHeadClassifier, IncrementalClassifi
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
+'''
+Modification: change all nn.LayerNorm -> nn.BatchNorm1d or nn.BatchNorm2d? 
+'''
+
 # helpers
 
 def pair(t):
@@ -101,19 +105,25 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
 
+class T_block(nn.Module):
+    def __init__(self, dim, heads, dim_head, mlp_dim, dropout = 0.):
+        super().__init__()
+        self.attn = PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout))
+        self.ff = PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
+    def forward(self, x):
+        x = self.attn(x) + x
+        x = self.ff(x) + x
+        return x
+
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
-            ]))
+            self.layers.append(T_block(dim, heads, dim_head, mlp_dim, dropout))
     def forward(self, x):
-        for attn, ff in self.layers:
-            x = attn(x) + x
-            x = ff(x) + x
+        for blk in self.layers:
+            x = blk(x)
         return x
 
 class ViT(nn.Module):
@@ -137,8 +147,10 @@ class ViT(nn.Module):
 
         self.to_patch_embedding = nn.Sequential(
             Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
+            # nn.BatchNorm1d(num_patches),
             nn.LayerNorm(patch_dim),
             nn.Linear(patch_dim, dim),
+            # nn.BatchNorm1d(num_patches),
             nn.LayerNorm(dim),
         )
 
@@ -153,6 +165,7 @@ class ViT(nn.Module):
 
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
+            # nn.BatchNorm1d(dim),
             # nn.Linear(dim, num_classes)
         )
 
@@ -181,19 +194,20 @@ class DViT(DynamicModule):
     """
     ViT with classifier
     """
-    def __init__(self, image_size=128, initial_out_features: int = 2,
+    def __init__(self, image_size=128,
+                 patch_size=16, dim=1024, depth=9, heads=16, mlp_dim=2048, dropout=0.1, emb_dropout=0.1,
+                 initial_out_features: int = 2,
                  pretrained=False, pretrained_model_path=None, fix=False):
         super().__init__()
         self.vit = ViT(
             image_size=image_size,
-            patch_size=16,
-            # num_classes=2,
-            dim=512,   # org: 1024
-            depth=5,        # org: 6
-            heads=8,        # org: 16
-            mlp_dim=1024,       # org: 2048
-            dropout=0.1,
-            emb_dropout=0.1
+            patch_size=patch_size,
+            dim=dim,
+            depth=depth,
+            heads=heads,
+            mlp_dim=mlp_dim,
+            dropout=dropout,
+            emb_dropout=emb_dropout
         )
         self.classifier = IncrementalClassifier(self.vit.output_size, initial_out_features=initial_out_features)
 
@@ -221,19 +235,20 @@ class MTViT(MultiTaskModule, DynamicModule):
     MultiTask ViT
     It employs multi-head output layer
     """
-    def __init__(self, image_size=128, initial_out_features: int = 2,
+    def __init__(self, image_size=128,
+                 patch_size=16, dim=1024, depth=9, heads=16, mlp_dim=2048, dropout=0.1, emb_dropout=0.1,
+                 initial_out_features: int = 2,
                  pretrained=False, pretrained_model_path=None, fix=False):
         super().__init__()
         self.vit = ViT(
             image_size=image_size,
-            patch_size=16,
-            # num_classes=2,
-            dim=512,   # org: 1024
-            depth=5,        # org: 6
-            heads=8,        # org: 16
-            mlp_dim=1024,       # org: 2048
-            dropout=0.1,
-            emb_dropout=0.1
+            patch_size=patch_size,
+            dim=dim,
+            depth=depth,
+            heads=heads,
+            mlp_dim=mlp_dim,
+            dropout=dropout,
+            emb_dropout=emb_dropout
         )
         self.classifier = MultiHeadClassifier(self.vit.output_size, initial_out_features=initial_out_features)
 
@@ -259,11 +274,19 @@ class MTViT(MultiTaskModule, DynamicModule):
 def get_vit(
         image_size=128,
         multi_head: bool = False,
-        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False,
+        patch_size=16, dim=1024, depth=9, heads=16, mlp_dim=2048, dropout=0.1, emb_dropout=0.1
+):
     if multi_head:
-        return MTViT(image_size, initial_out_features, pretrained, pretrained_model_path, fix)
+        return MTViT(image_size, patch_size=patch_size, dim=dim, depth=depth, heads=heads, mlp_dim=mlp_dim,
+                     dropout=dropout, emb_dropout=emb_dropout,
+                     initial_out_features=initial_out_features,
+                     pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix)
     else:
-        return DViT(image_size, initial_out_features, pretrained, pretrained_model_path, fix)
+        return DViT(image_size, patch_size=patch_size, dim=dim, depth=depth, heads=heads, mlp_dim=mlp_dim,
+                    dropout=dropout, emb_dropout=emb_dropout,
+                    initial_out_features=initial_out_features,
+                    pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix)
 
 
 __all__ = ['DViT', 'MTViT', 'get_vit']
@@ -275,18 +298,29 @@ if __name__ == '__main__':
 
     # from vit_pytorch import ViT
     v = ViT(
-        image_size=128,
-        patch_size=16,
+        image_size=128,     # org: 256
+        patch_size=16,      # org: 32
         # num_classes=2,
-        dim=512,   # org: 1024
+        dim=512,   # org: 1024  512: same as resnet-18
         depth=5,        # org: 6
-        heads=8,        # org: 16
-        mlp_dim=1024,       # org: 2048
+        heads=16,        # org: 16
+        mlp_dim=512,       # org: 2048
         dropout=0.1,
         emb_dropout=0.1
     )
-    # img = torch.randn(1, 3, 256, 256)
-    # preds = v(img)  # (1, 1000)
+    # v = ViT(      # same param size (10MB) as resnet-18
+    #     image_size=128,     # org: 256
+    #     patch_size=16,      # org: 32
+    #     # num_classes=2,
+    #     dim=512,   # org: 1024  512: same as resnet-18
+    #     depth=5,        # org: 6
+    #     heads=8,        # org: 16
+    #     mlp_dim=1024,       # org: 2048
+    #     dropout=0.1,
+    #     emb_dropout=0.1
+    # )
+    img = torch.randn(1, 3, 128, 128)
+    preds = v(img)  # (1, 1000)
 
     d = get_parameter_number(v)
     print(d)

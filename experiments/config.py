@@ -11,6 +11,8 @@ parser.add_argument('--dataset_mode', type=str, default='continual', metavar='DA
                     help='For cgqa, mode indicates the benchmark mode.')
 parser.add_argument('--return_task_id', action='store_true',
                     help='Incremental setting: True for task-IL or False for class-IL.')
+parser.add_argument('--image_size', type=int, default=128, metavar='IMAGE_SIZE',
+                    help='Image height and width.')
 
 # model args
 parser.add_argument('--model_backbone', type=str, default='resnet18', metavar='MODEL_BACKBONE',
@@ -21,6 +23,13 @@ parser.add_argument('--cuda', type=int, default=0, metavar='CUDA',
                     help='The cuda device id, default to 0 '
                          'and specified with envir["CUDA_VISIBLE_DEVICES"].'
                          '-1 for using `cpu`.')
+parser.add_argument('--vit_patch_size', type=int, default=16, metavar='VIT', help='')
+parser.add_argument('--vit_dim', type=int, default=1024, metavar='VIT', help='')
+parser.add_argument('--vit_depth', type=int, default=9, metavar='VIT', help='')
+parser.add_argument('--vit_heads', type=int, default=16, metavar='VIT', help='')
+parser.add_argument('--vit_mlp_dim', type=int, default=2048, metavar='VIT', help='')
+parser.add_argument('--vit_dropout', type=float, default=0.1, metavar='VIT', help='')
+parser.add_argument('--vit_emb_dropout', type=float, default=0.1, metavar='VIT', help='')
 
 # train args
 parser.add_argument('--train_mb_size', type=int, default=100, metavar='BS',

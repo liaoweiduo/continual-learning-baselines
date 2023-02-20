@@ -61,6 +61,7 @@ exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
 task_root = 'tests/tasks'        # path for sh
 num_runs_1sh = 2       # num of runs in 1 sh file
 common_args = {
+    'model_backbone': 'vit',
     'use_wandb': use_wandb,
     'use_interactive_logger': use_interactive_logger,
     'project_name': project_name,
@@ -71,6 +72,69 @@ common_args = {
 
 params = []
 
+# tune vit structure
+return_task_id = False
+strategy = 'naive'
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'learning_rate': 0.00001,
+    'vit_patch_size': 8,
+})
+exp_name_template = '{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}-ps{vit_patch_size}' + \
+                    '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}-md{vit_mlp_dim}'
+param_grid = {
+    'vit_dim': [512, 1024, 2048],
+    'vit_depth': [5, 7, 9],
+    'vit_heads': [8, 16, 32],
+    'vit_mlp_dim': [512, 1024, 2048]
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+# return_task_id = False
+# strategy = 'naive'
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'learning_rate': 0.00001,
+#     'vit_patch_size': 16,
+# })
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-ps{vit_patch_size}' + \
+#                     '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}-md{vit_mlp_dim}'
+# param_grid = {
+#     'vit_dim': [512, 1024, 2048],
+#     'vit_depth': [5, 7, 9],
+#     'vit_heads': [8, 16, 32],
+#     'vit_mlp_dim': [512, 1024, 2048]
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = False
+# strategy = 'naive'
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'learning_rate': 0.00001,
+#     'vit_patch_size': 32,
+# })
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-ps{vit_patch_size}' + \
+#                     '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}-md{vit_mlp_dim}'
+# param_grid = {
+#     'vit_dim': [512, 1024, 2048],
+#     'vit_depth': [5, 7, 9],
+#     'vit_heads': [8, 16, 32],
+#     'vit_mlp_dim': [512, 1024, 2048]
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+
+
 # # naive
 # return_task_id = False
 # strategy = 'naive'   # optional: [naive, er, gem, lwf, ewc]
@@ -78,11 +142,12 @@ params = []
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}'
 # param_grid = {
-#     'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],
+#     'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],       # cgqa resnet
+#     'learning_rate': [0.00001, 0.0001, 0.001],       # cgqa vit
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 #
@@ -92,7 +157,7 @@ params = []
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}'
 # param_grid = {
@@ -107,7 +172,7 @@ params = []
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}'
 # param_grid = {
@@ -121,7 +186,7 @@ params = []
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}'
 # param_grid = {
@@ -129,30 +194,14 @@ params = []
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 
-# gem
-return_task_id = False
-strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
-common_args.update({
-    'return_task_id': return_task_id,
-    'strategy': strategy,
-})
-exp_name_template = strategy + '-' + \
-                    ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
-param_grid = {
-    'learning_rate': [0.0001, 0.001, 0.01, 0.1],
-    'gem_patterns_per_exp': [32, 64, 128, 256],
-    'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
-}
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-#
-# return_task_id = True
+# # gem
+# return_task_id = False
 # strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
 # common_args.update({
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
 # param_grid = {
@@ -161,7 +210,23 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 #     'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
-#
+
+# return_task_id = True
+# strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+# })
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+# param_grid = {
+#     'learning_rate': [0.0001, 0.001, 0.01, 0.1],
+#     'gem_patterns_per_exp': [32, 64, 128, 256],
+#     'gem_mem_strength': [0.1, 0.2, 0.3, 0.4, 0.5],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+
 # # lwf
 # return_task_id = False
 # strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
@@ -169,7 +234,7 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
 # param_grid = {
@@ -178,14 +243,14 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 #     'lwf_temperature': [0.1, 0.5, 1, 2],
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
-#
+
 # return_task_id = True
 # strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
 # common_args.update({
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
 # param_grid = {
@@ -202,7 +267,7 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}-lambda{ewc_lambda}'
 # param_grid = {
@@ -217,7 +282,7 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 # })
-# exp_name_template = strategy + '-' + \
+# exp_name_template = '{model_backbone}-' + strategy + '-' + \
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-lr{learning_rate}-lambda{ewc_lambda}'
 # param_grid = {
@@ -225,6 +290,7 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 #     'ewc_lambda': [0.1, 0.5, 1, 1.5, 2],
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
+
 
 
 '''Run experiments in sequence'''

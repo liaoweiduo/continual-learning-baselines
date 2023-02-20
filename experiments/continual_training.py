@@ -62,7 +62,10 @@ def continual_train(override_args=None):
         model = get_vit(
             image_size=_image_size[0],
             multi_head=args.return_task_id,
-            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path)
+            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path,
+            patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
+            mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
+        )
     else:
         raise Exception(f"Un-recognized model structure {args.model_backbone}.")
 
