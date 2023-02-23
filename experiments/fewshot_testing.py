@@ -50,13 +50,13 @@ def fewshot_test(override_args=None):
     fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
     task_offset = 10 if args.return_task_id else 1
     if args.dataset == 'cgqa':
-        from datasets.cgqa import fewshot_testing_benchmark, _image_size
+        from datasets.cgqa import fewshot_testing_benchmark
     elif args.dataset == 'cpin':
-        from datasets.cpin import fewshot_testing_benchmark, _image_size
+        from datasets.cpin import fewshot_testing_benchmark
     else:
         raise Exception(f'Un-implemented dataset: {args.dataset}.')
     benchmark = fewshot_testing_benchmark(
-        n_experiences=args.test_n_experiences, mode=args.dataset_mode,
+        n_experiences=args.test_n_experiences, image_size=(args.image_size, args.image_size), mode=args.dataset_mode,
         n_way=args.test_n_way, n_shot=args.test_n_shot, n_val=args.test_n_val, n_query=args.test_n_query,
         task_offset=task_offset,
         seed=args.seed, fixed_class_order=fixed_class_order,
@@ -70,7 +70,7 @@ def fewshot_test(override_args=None):
     elif args.model_backbone == "vit":
         from models.vit import get_vit
         origin_model = get_vit(
-            image_size=_image_size[0],
+            image_size=args.image_size,
             multi_head=args.return_task_id,
             pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path,
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,

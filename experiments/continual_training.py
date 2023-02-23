@@ -43,13 +43,14 @@ def continual_train(override_args=None):
     shuffle = True if args.train_class_order == 'shuffle' else False
     fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
     if args.dataset == 'cgqa':
-        from datasets.cgqa import continual_training_benchmark, _image_size
+        from datasets.cgqa import continual_training_benchmark
     elif args.dataset == 'cpin':
-        from datasets.cpin import continual_training_benchmark, _image_size
+        from datasets.cpin import continual_training_benchmark
     else:
         raise Exception(f'Un-implemented dataset: {args.dataset}.')
     benchmark = continual_training_benchmark(
-        n_experiences=args.n_experiences, return_task_id=args.return_task_id,
+        n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
+        return_task_id=args.return_task_id,
         seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
         dataset_root=args.dataset_root)
     if args.model_backbone == "resnet18":
@@ -60,7 +61,7 @@ def continual_train(override_args=None):
     elif args.model_backbone == "vit":
         from models.vit import get_vit
         model = get_vit(
-            image_size=_image_size[0],
+            image_size=args.image_size,
             multi_head=args.return_task_id,
             pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path,
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,

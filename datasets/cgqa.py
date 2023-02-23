@@ -25,42 +25,16 @@ objects defined in json. E.g., "apple,banana".
 """
 
 
-"""
-Default transforms borrowed from MetaShift.
-Imagenet normalization.
-"""
-_image_size = (128, 128)
-_default_cgqa_train_transform = transforms.Compose(
-    [
-        transforms.Resize(_image_size),  # allow reshape but not equal scaling
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        ),
-    ]
-)
-
-_default_cgqa_eval_transform = transforms.Compose(
-    [
-        transforms.Resize(_image_size),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        ),
-    ]
-)
-
-
 def continual_training_benchmark(
         n_experiences: int,
         *,
+        image_size=(128, 128),
         return_task_id=False,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
         shuffle: bool = True,
-        train_transform: Optional[Any] = _default_cgqa_train_transform,
-        eval_transform: Optional[Any] = _default_cgqa_eval_transform,
+        train_transform: Optional[Any] = None,
+        eval_transform: Optional[Any] = None,
         dataset_root: Union[str, Path] = None,
         memory_size: int = 0,
 ):
@@ -68,6 +42,7 @@ def continual_training_benchmark(
     Creates a CL benchmark using the pre-processed GQA dataset.
 
     :param n_experiences: The number of experiences in the current benchmark.
+    :param image_size: size of image.
     :param return_task_id: If True, a progressive task id is returned for every
         experience. If False, all experiences will have a task ID of 0.
     :param seed: A valid int used to initialize the random number generator.
@@ -102,8 +77,36 @@ def continual_training_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
+    '''
+    Default transforms borrowed from MetaShift.
+    Imagenet normalization.
+    '''
+    _default_cgqa_train_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),  # allow reshape but not equal scaling
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
+        ]
+    )
+    _default_cgqa_eval_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
+        ]
+    )
+    if train_transform is None:
+        train_transform = _default_cgqa_train_transform
+    if eval_transform is None:
+        eval_transform = _default_cgqa_eval_transform
+
     '''load datasets'''
-    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual')
+    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual', image_size=image_size)
     train_set, val_set, test_set = datasets['train'], datasets['val'], datasets['test']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 
@@ -203,6 +206,7 @@ def continual_training_benchmark(
 def fewshot_testing_benchmark(
         n_experiences: int,
         *,
+        image_size=(128, 128),
         n_way: int = 10,
         n_shot: int = 10,
         n_val: int = 5,
@@ -211,8 +215,8 @@ def fewshot_testing_benchmark(
         task_offset: int = 10,
         seed: Optional[int] = None,
         fixed_class_order: Optional[Sequence[int]] = None,
-        train_transform: Optional[Any] = _default_cgqa_train_transform,
-        eval_transform: Optional[Any] = _default_cgqa_eval_transform,
+        train_transform: Optional[Any] = None,
+        eval_transform: Optional[Any] = None,
         dataset_root: Union[str, Path] = None,
 ):
     """
@@ -222,6 +226,7 @@ def fewshot_testing_benchmark(
 
     :param n_experiences: The number of experiences in the current benchmark.
         In the fewshot setting, it means the number of few-shot tasks
+    :param image_size: size of image.
     :param n_way: Number of ways for few-shot tasks.
     :param n_shot: Number of support image instances for each class.
     :param n_val: Number of evaluation image instances for each class.
@@ -257,8 +262,36 @@ def fewshot_testing_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
+    '''
+    Default transforms borrowed from MetaShift.
+    Imagenet normalization.
+    '''
+    _default_cgqa_train_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),  # allow reshape but not equal scaling
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
+        ]
+    )
+    _default_cgqa_eval_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
+        ]
+    )
+    if train_transform is None:
+        train_transform = _default_cgqa_train_transform
+    if eval_transform is None:
+        eval_transform = _default_cgqa_eval_transform
+
     '''load datasets'''
-    datasets, label_info = _get_gqa_datasets(dataset_root, mode=mode)
+    datasets, label_info = _get_gqa_datasets(dataset_root, mode=mode, image_size=image_size)
     dataset = datasets['dataset']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 
@@ -350,6 +383,7 @@ def fewshot_testing_benchmark(
 
 def _get_gqa_datasets(
         dataset_root,
+        image_size=(128, 128),
         shuffle=False, seed: Optional[int] = None,
         mode='continual',
         num_samples_each_label=None,
@@ -363,6 +397,7 @@ def _get_gqa_datasets(
     You may need to specify label_offset if relative label do not start from 0.
 
     :param dataset_root: Path to the dataset root folder.
+    :param image_size: size of image.
     :param shuffle: If true, the train sample order (in json)
         in the incremental experiences is
         randomly shuffled. Default to False.
@@ -468,30 +503,15 @@ def _get_gqa_datasets(
         train_set = PathsDataset(
             root=img_folder_path,
             files=train_list,
-            transform=transforms.Compose([transforms.Resize(_image_size)]))
+            transform=transforms.Compose([transforms.Resize(image_size)]))
         val_set = PathsDataset(
             root=img_folder_path,
             files=val_list,
-            transform=transforms.Compose([transforms.Resize(_image_size)]))
+            transform=transforms.Compose([transforms.Resize(image_size)]))
         test_set = PathsDataset(
             root=img_folder_path,
             files=test_list,
-            transform=transforms.Compose([transforms.Resize(_image_size)]))
-        # train_set = AvalancheDataset(PathsDataset(
-        #     root=img_folder_path,
-        #     files=train_list,
-        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
-        #     transform_groups={'val': (None, None)})
-        # val_set = AvalancheDataset(PathsDataset(
-        #     root=img_folder_path,
-        #     files=val_list,
-        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
-        #     transform_groups={'val': (None, None)})
-        # test_set = AvalancheDataset(PathsDataset(
-        #     root=img_folder_path,
-        #     files=test_list,
-        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
-        #     transform_groups={'val': (None, None)})
+            transform=transforms.Compose([transforms.Resize(image_size)]))
 
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
@@ -510,12 +530,7 @@ def _get_gqa_datasets(
         dataset = PathsDataset(
             root=img_folder_path,
             files=img_list,
-            transform=transforms.Compose([transforms.Resize(_image_size)]))
-        # dataset = AvalancheDataset(PathsDataset(
-        #     root=img_folder_path,
-        #     files=img_list,
-        #     transform=transforms.Compose([transforms.Resize(_image_size)])),   # , transforms.ToTensor()])),
-        #     transform_groups={'val': (None, None)})
+            transform=transforms.Compose([transforms.Resize(image_size)]))
 
         datasets = {'dataset': dataset}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)

@@ -60,7 +60,7 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
     :param path: store the sh, 'tests/tasks/TASK_NAME'
     :param name: sh file name, '1'
     :param params: a list of param dict
-    :param out_path: path to the root of std out file.
+    :param out_path: path to the root of std out file.  No use
     :param cuda: device used
     """
     '''Make dir'''
@@ -86,9 +86,11 @@ def template_exp_sh(target, path, name, params, out_path='../avalanche-experimen
         # param_str_ = ' '.join([f"--{key}" for key, value in params.items() if value is True])       # True
         # param_str = ' '.join([param_str, param_str_])
 
+        # template_str += \
+        #     f"CUDA_VISIBLE_DEVICES={cuda} python3 {target}{param_str}" \
+        #     f" >> {out_path} 2>&1\n"
         template_str += \
-            f"CUDA_VISIBLE_DEVICES={cuda} python3 {target}{param_str}" \
-            f" >> {out_path} 2>&1\n"
+            f"CUDA_VISIBLE_DEVICES={cuda} python3 {target}{param_str}\n"
 
     '''Write to file'''
     with open(os.path.join(path, f'{name}.sh'), 'w', newline='') as f:

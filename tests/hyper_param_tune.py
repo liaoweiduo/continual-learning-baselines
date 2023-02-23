@@ -59,7 +59,7 @@ dataset = 'cgqa'
 dataset_root = '/apdcephfs/share_1364275/lwd/datasets'
 exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
 task_root = 'tests/tasks'        # path for sh
-num_runs_1sh = 2       # num of runs in 1 sh file
+num_runs_1sh = 1       # num of runs in 1 sh file
 common_args = {
     'model_backbone': 'vit',
     'use_wandb': use_wandb,
@@ -73,25 +73,31 @@ common_args = {
 params = []
 
 # tune vit structure
-return_task_id = False
-strategy = 'naive'
+return_task_id = True
+strategy = 'er'
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'learning_rate': 0.00001,
-    'vit_patch_size': 8,
+    'eval_patience': 20,
+    'image_size': 224,
 })
 exp_name_template = '{model_backbone}-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
                     '-lr{learning_rate}-ps{vit_patch_size}' + \
-                    '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}-md{vit_mlp_dim}'
+                    '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}'   # -md{vit_mlp_dim}
 param_grid = {
-    'vit_dim': [512, 1024, 2048],
-    'vit_depth': [5, 7, 9],
-    'vit_heads': [8, 16, 32],
-    'vit_mlp_dim': [512, 1024, 2048]
+    'train_mb_size': [32, 64, 128],
+    'learning_rate': [1e-5, 1e-4, 1e-3],
+    'vit_patch_size': [16],
+    'vit_dim': [192, 384, 768],
+    'vit_depth': [9],
+    'vit_heads': [16],
+    # 'vit_mlp_dim': [512, 1024],
 }
-params.extend(generate_params(common_args, param_grid, exp_name_template))
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+for p in params_temp:
+    p['vit_mlp_dim'] = 4 * p['vit_dim']
+params.extend(params_temp)
 
 # return_task_id = False
 # strategy = 'naive'
@@ -292,7 +298,6 @@ params.extend(generate_params(common_args, param_grid, exp_name_template))
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 
-
 '''Run experiments in sequence'''
 # print('************************')
 # print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
@@ -333,7 +338,7 @@ for idx, param in enumerate(params):
             path=f'../avalanche-experiments/tasks/{task_name}',
             name=iter,
             params=params_temp,
-            out_path=f"{exp_root}/out/{task_name}-{iter}.out",
+            # out_path=f"{exp_root}/out/{task_name}-{iter}.out",
         )
         names.append(iter)
         params_temp = []
