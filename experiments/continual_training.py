@@ -48,22 +48,37 @@ def continual_train(override_args=None):
         from datasets.cpin import continual_training_benchmark
     else:
         raise Exception(f'Un-implemented dataset: {args.dataset}.')
+    if args.model_backbone == 'vit':
+        from datasets.cgqa import build_transform_for_vit
+
+        train_transform = build_transform_for_vit((args.image_size, args.image_size), True)
+        eval_transform = build_transform_for_vit((args.image_size, args.image_size), False)
+    else:
+        train_transform, eval_transform = None, None    # default transform
     benchmark = continual_training_benchmark(
         n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
         return_task_id=args.return_task_id,
         seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
-        dataset_root=args.dataset_root)
+        dataset_root=args.dataset_root,
+        train_transform=train_transform, eval_transform=eval_transform
+    )
+
+    '''Check resume'''
+    if args.resume and os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
+        pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
+    else:
+        pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
     if args.model_backbone == "resnet18":
         from models.resnet import get_resnet
         model = get_resnet(
             multi_head=args.return_task_id,
-            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path)
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path)
     elif args.model_backbone == "vit":
         from models.vit import get_vit
         model = get_vit(
             image_size=args.image_size,
             multi_head=args.return_task_id,
-            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path,
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
             mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
         )
@@ -97,13 +112,13 @@ def continual_train(override_args=None):
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
     ]
-    if args.dataset_mode == 'continual':
-        metrics_list.extend([
-            metrics.forgetting_metrics(experience=True, stream=True),
-            metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
-                                             save_image=True if args.use_wandb else False,
-                                             stream=True),
-        ])
+    # if args.dataset_mode == 'continual':
+    #     metrics_list.extend([
+    #         metrics.forgetting_metrics(experience=True, stream=True),
+    #         metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
+    #                                          save_image=True if args.use_wandb else False,
+    #                                          stream=True),
+    #     ])
     evaluation_plugin = EvaluationPlugin(
         *metrics_list,
         # benchmark=benchmark,
@@ -132,23 +147,34 @@ def continual_train(override_args=None):
         print("Computing accuracy on the whole test set.")
         results.append(cl_strategy.eval(benchmark.test_stream))
 
-    # ####################
-    # STORE CHECKPOINT
-    # ####################
-    # if wandb_logger is not None:
-    #     wandb_logger: avl.logging.WandBLogger
-    #     wandb_logger.log_artifacts
-    model_file = os.path.join(checkpoint_path, 'model.pth')
-    print("Store checkpoint in", model_file)
-    torch.save(model.state_dict(), model_file)
-    if args.use_wandb:
+        # ####################
+        # STORE CHECKPOINT
+        # ####################
+        # if args.use_wandb:
+        #
+        #     wandb_logger: avl.logging.WandBLogger
+        #
+        #     artifact = wandb_logger.wandb.Artifact(f'WeightCheckpoint-{args.exp_name}', type="model")
+        #     artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
+        #     artifact.add_file(model_file, name=artifact_name)
+        #     wandb_logger.wandb.run.log_artifact(artifact)
+        model_file = os.path.join(checkpoint_path, 'model.pth')
+        print("Store checkpoint in", model_file)
+        torch.save(model.state_dict(), model_file)
 
-        wandb_logger: avl.logging.WandBLogger
-
-        artifact = wandb_logger.wandb.Artifact(f'WeightCheckpoint-{args.exp_name}', type="model")
-        artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
-        artifact.add_file(model_file, name=artifact_name)
-        wandb_logger.wandb.run.log_artifact(artifact)
+        # ####################
+        # STORE RESULTS
+        # ####################
+        stored_results = []
+        for result in results:
+            re = dict()
+            for key, item in result.items():
+                if 'ConfusionMatrix' not in key:
+                    re[key] = item
+            stored_results.append(re)
+        result_file = os.path.join(exp_path, f'results-{args.exp_name}.npy')
+        print("Save results in", result_file)
+        np.save(result_file, stored_results)
 
     # print("Final results:")
     # print(results)
@@ -156,18 +182,6 @@ def continual_train(override_args=None):
     '''print needed info'''
     print('Average test acc:', get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream'))
     # average test accuracy for all tasks
-
-    # ####################
-    # STORE RESULTS
-    # ####################
-    stored_results = []
-    for result in results:
-        re = dict()
-        for key, item in result.items():
-            if 'ConfusionMatrix' not in key:
-                re[key] = item
-        stored_results.append(re)
-    np.save(os.path.join(exp_path, f'results-{args.exp_name}.npy'), stored_results)
 
     # finish wandb
     if args.use_wandb:

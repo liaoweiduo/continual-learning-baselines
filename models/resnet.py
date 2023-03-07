@@ -226,10 +226,24 @@ class MTResNet18(MultiTaskModule, DynamicModule):
         It employs multi-head output layer.
     """
 
-    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None,
+                 fix=False, load_classifier=False):
         super().__init__()
-        self.resnet = resnet18(pretrained, pretrained_model_path, fix=fix)
+        self.resnet = resnet18(pretrained, pretrained_model_path, fix)
         self.classifier = MultiHeadClassifier(self.resnet.output_size, initial_out_features=initial_out_features)
+
+        # if pretrained:
+        #     print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
+        #     ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
+        #     if 'state_dict' in ckpt_dict:
+        #         self.resnet.load_state_dict(ckpt_dict['state_dict'])
+        #     else:   # load resnet and classifier
+        #         self.load_state_dict(ckpt_dict)
+        #
+        #     # Freeze the parameters of the feature extractor
+        #     if fix:
+        #         for param in self.resnet.parameters():
+        #             param.requires_grad = False
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
         out = self.resnet(x)
@@ -239,11 +253,13 @@ class MTResNet18(MultiTaskModule, DynamicModule):
 
 def get_resnet(
         multi_head: bool = False,
-        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False):
     if multi_head:
-        return MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+        model = MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
     else:
-        return ResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+        model = ResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+
+    return model
 
 
 __all__ = ['ResNet18', 'MTResNet18', 'get_resnet']

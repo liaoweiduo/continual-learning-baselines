@@ -4,8 +4,10 @@ import argparse
 parser = argparse.ArgumentParser(description='Train prototypical networks')
 
 # data args
-parser.add_argument('--dataset', type=str, default='cgqa', choices=['cgqa', 'cpin'], metavar='DATASET',
-                    help='Compositional GQA dataset: cgqa, Compositional PIN dataset: cpin.')
+parser.add_argument('--dataset', type=str, default='cgqa', choices=['cgqa', 'cpin', 'scifar100'], metavar='DATASET',
+                    help='Compositional GQA dataset: cgqa, '
+                         'Compositional PIN dataset: cpin, '
+                         'Split cifar100: scifar100')
 parser.add_argument('--dataset_mode', type=str, default='continual', metavar='DATASET_MODE',
                     choices=['continual', 'sys', 'pro', 'sub', 'non', 'noc'],
                     help='For cgqa, mode indicates the benchmark mode.')
@@ -24,20 +26,30 @@ parser.add_argument('--cuda', type=int, default=0, metavar='CUDA',
                          'and specified with envir["CUDA_VISIBLE_DEVICES"].'
                          '-1 for using `cpu`.')
 parser.add_argument('--vit_patch_size', type=int, default=16, metavar='VIT', help='')
-parser.add_argument('--vit_dim', type=int, default=1024, metavar='VIT', help='')
+parser.add_argument('--vit_dim', type=int, default=384, metavar='VIT', help='')
 parser.add_argument('--vit_depth', type=int, default=9, metavar='VIT', help='')
 parser.add_argument('--vit_heads', type=int, default=16, metavar='VIT', help='')
-parser.add_argument('--vit_mlp_dim', type=int, default=2048, metavar='VIT', help='')
+parser.add_argument('--vit_mlp_dim', type=int, default=1536, metavar='VIT', help='')
 parser.add_argument('--vit_dropout', type=float, default=0.1, metavar='VIT', help='')
 parser.add_argument('--vit_emb_dropout', type=float, default=0.1, metavar='VIT', help='')
 
 # train args
+parser.add_argument('--resume', action='store_true', help='Resume the experiment. not implemented')
 parser.add_argument('--train_mb_size', type=int, default=100, metavar='BS',
                     help='Number of images in a batch.')
 parser.add_argument('--epochs', type=int, default=100, metavar='EPOCHS',
                     help='Number of epochs to train.')
 parser.add_argument('--learning_rate', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01).')
+parser.add_argument('--lr_schedule', type=str, default='cos', metavar='LR_SCHEDULE',
+                    choices=['step', 'cos'],
+                    help='learning rate schedule.')
+parser.add_argument('--lr_schedule_step_size', type=int, default=20, metavar='STEP_SIZE',
+                    help='step size in stepLR schedule.')
+parser.add_argument('--lr_schedule_gamma', type=float, default=0.5, metavar='GAMMA',
+                    help='gamma in stepLR schedule.')
+parser.add_argument('--lr_schedule_eta_min', type=float, default=1e-6, metavar='ETA_MIN',
+                    help='minimal lr in cosineAnn schedule.')
 parser.add_argument('--n_experiences', type=int, default=10, metavar='NEXPERIENCES',
                     help='Number of tasks for continual training.')
 parser.add_argument('--seed', type=int, default=1234, metavar='SEED',
@@ -49,6 +61,24 @@ parser.add_argument('--device', type=int, default=0, metavar='CUDA',
                     help='CUDA id use to train.')
 parser.add_argument('--strategy', type=str, default='naive', metavar='STRATEGY',
                     help='Name of the used strategy.')
+
+# # Augmentation parameters
+# parser.add_argument('--color_jitter', type=float, default=0.3, metavar='PCT',
+#                     help='Color jitter factor (default: 0.3)')
+# parser.add_argument('--aa', type=str, default='rand-m9-mstd0.5-inc1', metavar='NAME',
+#                     help='Use AutoAugment policy. "v0" or "original". " + \
+#                          "(default: rand-m9-mstd0.5-inc1)'),
+# parser.add_argument('--train_interpolation', type=str, default='bicubic',
+#                     help='Training interpolation (random, bilinear, bicubic default: "bicubic")')
+#
+# # Random Erase params
+# parser.add_argument('--reprob', type=float, default=0.25, metavar='PCT',
+#                     help='Random erase prob (default: 0.25)')
+# parser.add_argument('--remode', type=str, default='pixel',
+#                     help='Random erase mode (default: "pixel")')
+# parser.add_argument('--recount', type=int, default=1,
+#                     help='Random erase count (default: 1)')
+
 # er args
 parser.add_argument('--er_mem_size', type=int, default=1000, metavar='ER',
                     help='Memory buffer size to store past tasks.')
@@ -60,9 +90,9 @@ parser.add_argument('--lwf_temperature', type=float, default=2, metavar='LWF',
                     help='.')
 
 # gem args
-parser.add_argument('--gem_patterns_per_exp', type=int, default=256, metavar='GEM',
+parser.add_argument('--gem_patterns_per_exp', type=int, default=32, metavar='GEM',
                     help='.')
-parser.add_argument('--gem_mem_strength', type=float, default=0.5, metavar='GEM',
+parser.add_argument('--gem_mem_strength', type=float, default=0.3, metavar='GEM',
                     help='.')
 
 # ewc args

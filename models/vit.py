@@ -41,8 +41,10 @@ from avalanche.models import BaseModel, MultiHeadClassifier, IncrementalClassifi
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
+from collections import OrderedDict
+
 '''
-Modification: change all nn.LayerNorm -> nn.BatchNorm1d or nn.BatchNorm2d? 
+Modification: change all nn.LayerNorm -> nn.BatchNorm1d or nn.BatchNorm1d? 
 '''
 
 # helpers
@@ -53,9 +55,10 @@ def pair(t):
 # classes
 
 class PreNorm(nn.Module):
-    def __init__(self, dim, fn):
+    def __init__(self, dim, bn_dim, fn):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
+        # self.norm = nn.BatchNorm1d(bn_dim)
         self.fn = fn
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
@@ -106,21 +109,21 @@ class Attention(nn.Module):
         return self.to_out(out)
 
 class T_block(nn.Module):
-    def __init__(self, dim, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, bn_dim, heads, dim_head, mlp_dim, dropout = 0.):
         super().__init__()
-        self.attn = PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout))
-        self.ff = PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
+        self.attn = PreNorm(dim, bn_dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout))
+        self.ff = PreNorm(dim, bn_dim, FeedForward(dim, mlp_dim, dropout = dropout))
     def forward(self, x):
         x = self.attn(x) + x
         x = self.ff(x) + x
         return x
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, bn_dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
-            self.layers.append(T_block(dim, heads, dim_head, mlp_dim, dropout))
+            self.layers.append(T_block(dim, bn_dim, heads, dim_head, mlp_dim, dropout))
     def forward(self, x):
         for blk in self.layers:
             x = blk(x)
@@ -158,7 +161,7 @@ class ViT(nn.Module):
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        self.transformer = Transformer(dim, num_patches + 1, depth, heads, dim_head, mlp_dim, dropout)
 
         self.pool = pool
         self.to_latent = nn.Identity()
@@ -258,7 +261,12 @@ class MTViT(MultiTaskModule, DynamicModule):
             if 'state_dict' in ckpt_dict:
                 self.vit.load_state_dict(ckpt_dict['state_dict'])
             else:   # load vit and classifier
-                self.load_state_dict(ckpt_dict)
+                d = OrderedDict()
+                for key, item in ckpt_dict.items():
+                    if key.startswith('vit'):
+                        d['.'.join(key.split('.')[1:])] = item
+                self.vit.load_state_dict(d)
+                # self.load_state_dict(ckpt_dict)
 
             # Freeze the parameters of the feature extractor
             if fix:
@@ -321,6 +329,33 @@ if __name__ == '__main__':
     # )
     img = torch.randn(1, 3, 128, 128)
     preds = v(img)  # (1, 1000)
+
+    # self.to_patch_embedding = nn.Sequential(
+    #     Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_height, p2=patch_width),
+    #     # nn.BatchNorm1d(num_patches),
+    #     nn.LayerNorm(patch_dim),
+    #     nn.Linear(patch_dim, dim),
+    #     # nn.BatchNorm1d(num_patches),
+    #     nn.LayerNorm(dim),
+    # )
+    # x1 = v.to_patch_embedding[0](img)
+    # b, n, _ = x1.shape
+    # print(b, n)
+    # x2 = v.to_patch_embedding[1](x1)
+    # b, n, _ = x2.shape
+    # print(b, n)
+
+    # cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
+    # x = torch.cat((cls_tokens, x), dim=1)
+    # x += self.pos_embedding[:, :(n + 1)]
+    # x = self.dropout(x)
+    #
+    # x = self.transformer(x)
+    #
+    # x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
+    #
+    # x = self.to_latent(x)
+    # return self.mlp_head(x)
 
     d = get_parameter_number(v)
     print(d)

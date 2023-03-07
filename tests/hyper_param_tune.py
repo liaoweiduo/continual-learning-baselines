@@ -52,7 +52,7 @@ def generate_params(common_args, param_grid, exp_name_template):
 
 
 task_name = return_time()   # defined by time
-use_wandb = True
+use_wandb = False
 use_interactive_logger = False
 project_name = 'CGQA'
 dataset = 'cgqa'
@@ -61,7 +61,6 @@ exp_root = '/apdcephfs/share_1364275/lwd/avalanche-experiments'
 task_root = 'tests/tasks'        # path for sh
 num_runs_1sh = 1       # num of runs in 1 sh file
 common_args = {
-    'model_backbone': 'vit',
     'use_wandb': use_wandb,
     'use_interactive_logger': use_interactive_logger,
     'project_name': project_name,
@@ -72,36 +71,252 @@ common_args = {
 
 params = []
 
-# tune vit structure
-return_task_id = True
-strategy = 'er'
+"""
+baselines vit
+"""
+# vit structure: ps16 - dim384 - depth9 - heads16 - mlp_dim1536
+# naive
+return_task_id = False
+strategy = 'naive'
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'eval_patience': 20,
+    'model_backbone': 'vit',
+    'epochs': 200,
     'image_size': 224,
+    'train_mb_size': 32,
 })
-exp_name_template = '{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}-ps{vit_patch_size}' + \
-                    '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}'   # -md{vit_mlp_dim}
+                    '-lr{learning_rate}'
 param_grid = {
-    'train_mb_size': [32, 64, 128],
-    'learning_rate': [1e-5, 1e-4, 1e-3],
-    'vit_patch_size': [16],
-    'vit_dim': [192, 384, 768],
-    'vit_depth': [9],
-    'vit_heads': [16],
-    # 'vit_mlp_dim': [512, 1024],
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
 }
 params_temp = generate_params(common_args, param_grid, exp_name_template)
-for p in params_temp:
-    p['vit_mlp_dim'] = 4 * p['vit_dim']
 params.extend(params_temp)
+
+return_task_id = True
+strategy = 'naive'
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+}
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+
+# er
+return_task_id = False
+strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+return_task_id = True
+strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+# gem
+return_task_id = False
+strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+    'gem_patterns_per_exp': [32],
+    'gem_mem_strength': [0.3],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+return_task_id = True
+strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+    'gem_patterns_per_exp': [32],
+    'gem_mem_strength': [0.3],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+# lwf
+return_task_id = False
+strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+    'lwf_alpha': [1],
+    'lwf_temperature': [1],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+return_task_id = True
+strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+    'lwf_alpha': [1],
+    'lwf_temperature': [1],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+# ewc
+return_task_id = False
+strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+    'ewc_lambda': [0.1],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+return_task_id = True
+strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
+common_args.update({
+    'return_task_id': return_task_id,
+    'strategy': strategy,
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+                    ('tsk' if return_task_id else 'cls') + \
+                    '-lr{learning_rate}'
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+    'ewc_lambda': [2],
+}
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+
+# tune vit structure
+# return_task_id = False
+# strategy = 'naive'
+# common_args.update({
+#     'model_backbone': 'vit',
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = '{model_backbone}-aug-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-{lr_schedule}lr{learning_rate}-ps{vit_patch_size}' + \
+#                     '-dim{vit_dim}-depth{vit_depth}-heads{vit_heads}'   # -md{vit_mlp_dim}
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+#     'vit_patch_size': [16],
+#     'vit_dim': [192, 384],  # 768 is ViT-B/16
+#     'vit_depth': [9],
+#     'vit_heads': [16],
+#     # 'vit_mlp_dim': [512, 1024],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# for p in params_temp:
+#     p['vit_mlp_dim'] = 4 * p['vit_dim']
+# params.extend(params_temp)
+#
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+#     'vit_patch_size': [16],
+#     'vit_dim': [512],
+#     'vit_depth': [9],
+#     'vit_heads': [16],
+#     'vit_mlp_dim': [512],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
 
 # return_task_id = False
 # strategy = 'naive'
 # common_args.update({
+#     'model_backbone': 'vit',
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 #     'learning_rate': 0.00001,
@@ -122,6 +337,7 @@ params.extend(params_temp)
 # return_task_id = False
 # strategy = 'naive'
 # common_args.update({
+#     'model_backbone': 'vit',
 #     'return_task_id': return_task_id,
 #     'strategy': strategy,
 #     'learning_rate': 0.00001,
@@ -140,7 +356,9 @@ params.extend(params_temp)
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 
-
+"""
+baselines resnet
+"""
 # # naive
 # return_task_id = False
 # strategy = 'naive'   # optional: [naive, er, gem, lwf, ewc]
@@ -153,7 +371,6 @@ params.extend(params_temp)
 #                     '-lr{learning_rate}'
 # param_grid = {
 #     'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],       # cgqa resnet
-#     'learning_rate': [0.00001, 0.0001, 0.001],       # cgqa vit
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 #

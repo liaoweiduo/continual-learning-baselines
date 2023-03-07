@@ -13,6 +13,10 @@ import json
 
 import numpy as np
 from torchvision import transforms
+from torchvision.transforms.functional import InterpolationMode
+import timm
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from timm.data import create_transform
 
 from avalanche.benchmarks.classic.classic_benchmarks_utils import check_vision_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
@@ -23,6 +27,56 @@ from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, Avalanche
 The original labels of classes are the sorted combination of all existing
 objects defined in json. E.g., "apple,banana".
 """
+
+
+def _build_default_transform(image_size=(128, 228), is_train=True):
+    """
+    Default transforms borrowed from MetaShift.
+    Imagenet normalization.
+    """
+    _default_train_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),  # allow reshape but not equal scaling
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
+        ]
+    )
+    _default_eval_transform = transforms.Compose(
+        [
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),
+        ]
+    )
+    if is_train:
+        return _default_train_transform
+    else:
+        return _default_eval_transform
+
+
+def build_transform_for_vit(img_size=(224, 224), is_train=True):
+    if is_train:
+        _train_transform = create_transform(
+            input_size=img_size,
+            is_training=is_train,
+            color_jitter=0.3,  # 颜色抖动
+            auto_augment='rand-m9-mstd0.5-inc1',
+            interpolation='bicubic',
+            re_prob=0.25,
+            re_mode='pixel',
+            re_count=1,
+        )
+        # replace RandomResizedCropAndInterpolation with Resize, for not cropping img and missing concepts
+        _train_transform.transforms[0] = transforms.Resize(img_size, interpolation=InterpolationMode.BICUBIC)
+
+        return _train_transform
+    else:
+        return _build_default_transform(img_size, False)
 
 
 def continual_training_benchmark(
@@ -77,33 +131,10 @@ def continual_training_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
-    '''
-    Default transforms borrowed from MetaShift.
-    Imagenet normalization.
-    '''
-    _default_cgqa_train_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),  # allow reshape but not equal scaling
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_cgqa_eval_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
     if train_transform is None:
-        train_transform = _default_cgqa_train_transform
+        train_transform = _build_default_transform(image_size, True)
     if eval_transform is None:
-        eval_transform = _default_cgqa_eval_transform
+        eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
     datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual', image_size=image_size)
@@ -262,33 +293,10 @@ def fewshot_testing_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
-    '''
-    Default transforms borrowed from MetaShift.
-    Imagenet normalization.
-    '''
-    _default_cgqa_train_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),  # allow reshape but not equal scaling
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_cgqa_eval_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
     if train_transform is None:
-        train_transform = _default_cgqa_train_transform
+        train_transform = _build_default_transform(image_size, True)
     if eval_transform is None:
-        eval_transform = _default_cgqa_eval_transform
+        eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
     datasets, label_info = _get_gqa_datasets(dataset_root, mode=mode, image_size=image_size)
@@ -541,7 +549,7 @@ def _get_gqa_datasets(
     return datasets, label_info
 
 
-__all__ = ["continual_training_benchmark", "fewshot_testing_benchmark"]
+__all__ = ["continual_training_benchmark", "fewshot_testing_benchmark", "build_transform_for_vit"]
 
 
 if __name__ == "__main__":
@@ -584,7 +592,7 @@ if __name__ == "__main__":
     #   ('helmet', 'sign'), ('flower', 'wall'), ('door', 'pole'), ('leaves', 'shorts'), ('fence', 'shorts')]]
 
     '''Sys'''
-    _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
+    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
 
     # _benchmark_instance = fewshot_testing_benchmark(
     #     n_experiences=600, n_way=10, n_shot=10, n_query=10, mode='sys',
@@ -609,3 +617,64 @@ if __name__ == "__main__":
     # plt.show()
 
     # check_vision_benchmark(_benchmark_instance, show_without_transforms=True)
+
+    train_transform = create_transform(
+        input_size=224,
+        is_training=True,
+        color_jitter=0.3,     # 颜色抖动
+        auto_augment='rand-m9-mstd0.5-inc1',
+        interpolation='bicubic',
+        re_prob=0.25,
+        re_mode='pixel',
+        re_count=1,
+    )
+    # Compose(
+    #     RandomResizedCropAndInterpolation(size=(224, 224), scale=(0.08, 1.0), ratio=(0.75, 1.3333), interpolation=bicubic)
+    #     RandomHorizontalFlip(p=0.5)
+    #     RandAugment(n=2, ops=
+    # 	AugmentOp(name=AutoContrast, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Equalize, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Invert, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Rotate, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=PosterizeIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SolarizeIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SolarizeAdd, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ColorIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ContrastIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=BrightnessIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SharpnessIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ShearX, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ShearY, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=TranslateXRel, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=TranslateYRel, p=0.5, m=9, mstd=0.5))
+    #     ToTensor()
+    #     Normalize(mean=tensor([0.4850, 0.4560, 0.4060]), std=tensor([0.2290, 0.2240, 0.2250]))
+    #     RandomErasing(p=0.25, mode=pixel, count=(1, 1))
+    # )
+
+    # replace RandomResizedCropAndInterpolation with
+    # Resize, for not
+    train_transform.transforms[0] = transforms.Resize(224, interpolation=InterpolationMode.BICUBIC)
+    # Compose(
+    #     Resize(size=224, interpolation=bicubic, max_size=None, antialias=None)
+    #     RandomHorizontalFlip(p=0.5)
+    #     RandAugment(n=2, ops=
+    # 	AugmentOp(name=AutoContrast, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Equalize, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Invert, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Rotate, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=PosterizeIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SolarizeIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SolarizeAdd, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ColorIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ContrastIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=BrightnessIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SharpnessIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ShearX, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ShearY, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=TranslateXRel, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=TranslateYRel, p=0.5, m=9, mstd=0.5))
+    #     ToTensor()
+    #     Normalize(mean=tensor([0.4850, 0.4560, 0.4060]), std=tensor([0.2290, 0.2240, 0.2250]))
+    #     RandomErasing(p=0.25, mode=pixel, count=(1, 1))
+    # )

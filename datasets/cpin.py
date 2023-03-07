@@ -19,6 +19,8 @@ from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import nc_benchmark, dataset_benchmark
 from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, AvalancheSubset
 
+from datasets.cgqa import _build_default_transform
+
 """ README
 The original labels of classes are the sorted combination of all existing
 objects defined in json. E.g., "apple,banana".
@@ -89,33 +91,10 @@ def continual_training_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("pin")
 
-    '''
-    Default transforms borrowed from MetaShift.
-    Imagenet normalization.
-    '''
-    _default_cgqa_train_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),  # allow reshape but not equal scaling
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_cgqa_eval_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
     if train_transform is None:
-        train_transform = _default_cgqa_train_transform
+        train_transform = _build_default_transform(image_size, True)
     if eval_transform is None:
-        eval_transform = _default_cgqa_eval_transform
+        eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
     datasets, label_info = _get_pin_datasets(dataset_root, mode='continual', image_size=image_size)
@@ -274,36 +253,13 @@ def fewshot_testing_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("pin")
 
-    '''
-    Default transforms borrowed from MetaShift.
-    Imagenet normalization.
-    '''
-    _default_cgqa_train_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),  # allow reshape but not equal scaling
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_cgqa_eval_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
     if train_transform is None:
-        train_transform = _default_cgqa_train_transform
+        train_transform = _build_default_transform(image_size, True)
     if eval_transform is None:
-        eval_transform = _default_cgqa_eval_transform
+        eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
-    datasets, label_info = _get_pin_datasets(dataset_root, mode=mode)
+    datasets, label_info = _get_pin_datasets(dataset_root, mode=mode, image_size=image_size)
     dataset = datasets['dataset']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 

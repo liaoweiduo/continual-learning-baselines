@@ -7,7 +7,7 @@ from torch.nn import CrossEntropyLoss
 import numpy as np
 import random
 
-from avalanche.training.plugins import EarlyStoppingPlugin
+from avalanche.training.plugins import EarlyStoppingPlugin, LRSchedulerPlugin
 
 
 def set_seed(seed):
@@ -58,18 +58,31 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
 
 
 def get_strategy(name, model, device, evaluator, args, early_stop=True):
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+
+    def make_scheduler(_optimizer):
+        if args.lr_schedule == 'step':
+            _scheduler = torch.optim.lr_scheduler.StepLR(
+                _optimizer, step_size=args.lr_schedule_step_size, gamma=args.lr_schedule_gamma
+            )
+        elif args.lr_schedule == 'cos':
+            _scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(_optimizer, args.epochs, args.lr_schedule_eta_min)
+        else:
+            raise Exception(f'Un-implemented lr schedule: {args.lr_schedule}.')
+        return _scheduler
+
+    plugins = [LRSchedulerPlugin(scheduler=make_scheduler(optimizer))]
+
+    eval_every = -1
     if early_stop:
-        plugins = [EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream')]
+        plugins.append([EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream')])
         eval_every = args.eval_every
-    else:
-        plugins = None
-        eval_every = -1
 
     if name == 'naive':
         from avalanche.training.supervised import Naive
         return Naive(
             model,
-            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            optimizer,
             CrossEntropyLoss(),
             train_mb_size=args.train_mb_size,
             train_epochs=args.epochs,
@@ -77,12 +90,12 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             device=device,
             plugins=plugins,
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
-    )
+        )
     elif name == 'gem':
         from avalanche.training.supervised import GEM
         return GEM(
             model,
-            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            optimizer,
             CrossEntropyLoss(),
             patterns_per_exp=args.gem_patterns_per_exp, memory_strength=args.gem_mem_strength,
             train_mb_size=args.train_mb_size,
@@ -96,7 +109,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
         from avalanche.training.supervised import LwF
         return LwF(
             model,
-            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            optimizer,
             CrossEntropyLoss(),
             alpha=args.lwf_alpha, temperature=args.lwf_temperature,
             train_mb_size=args.train_mb_size,
@@ -110,7 +123,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
         from avalanche.training.supervised import Replay
         return Replay(
             model,
-            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            optimizer,
             CrossEntropyLoss(),
             mem_size=args.er_mem_size,
             train_mb_size=args.train_mb_size,
@@ -124,7 +137,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
         from avalanche.training.supervised import EWC
         return EWC(
             model,
-            torch.optim.Adam(model.parameters(), lr=args.learning_rate),
+            optimizer,
             CrossEntropyLoss(),
             ewc_lambda=args.ewc_lambda,
             train_mb_size=args.train_mb_size,

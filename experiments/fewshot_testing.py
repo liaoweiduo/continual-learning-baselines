@@ -71,7 +71,7 @@ def fewshot_test(override_args=None):
         from models.vit import get_vit
         origin_model = get_vit(
             image_size=args.image_size,
-            multi_head=args.return_task_id,
+            multi_head=True,
             pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path,
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
             mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
@@ -129,11 +129,11 @@ def fewshot_test(override_args=None):
         # ####################
         cl_strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args, early_stop=True)
 
-        cl_strategy.train(experience, eval_streams=[val_task])
+        cl_strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")
-        results.append(cl_strategy.eval(benchmark.test_stream[current_experience]))
+        results.append(cl_strategy.eval(benchmark.test_stream[current_experience], pin_memory=False, num_workers=10))
 
         task_id_str = '%03d' % (task_offset + current_experience)    # 010, 011  -> 309
         print(f"Top1_Acc_Stream/eval_phase/test_stream/Task{task_id_str}: ",
@@ -165,16 +165,20 @@ def fewshot_test(override_args=None):
 
 
 if __name__ == "__main__":
+
+    results = fewshot_test()
+
     # dataset_modes = ['sys', 'pro', 'sub', 'non', 'noc']         # cgqa
-    dataset_modes = ['sys', 'pro', 'non', 'noc']         # cpin
+    # dataset_modes = ['sys', 'pro', 'non', 'noc']         # cpin
+
     '''Naive'''
-    for dataset_mode in dataset_modes:
-        fewshot_test({
-            'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
-            'test_freeze_feature_extractor': True, 'dataset': 'cpin',
-            'exp_name': 'Naive-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
-            'learning_rate': 0.01,
-        })
+    # for dataset_mode in dataset_modes:
+    #     fewshot_test({
+    #         'use_wandb': False, 'project_name': 'CPIN', 'return_task_id': False, 'use_interactive_logger': False,
+    #         'test_freeze_feature_extractor': True, 'dataset': 'cpin',
+    #         'exp_name': 'Naive-cls', 'strategy': 'naive', 'dataset_mode': dataset_mode,
+    #         'learning_rate': 0.01,
+    #     })
 
     '''ER'''
     # for dataset_mode in dataset_modes:
