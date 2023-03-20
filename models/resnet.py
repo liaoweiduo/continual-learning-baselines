@@ -262,7 +262,7 @@ def get_resnet(
     return model
 
 
-__all__ = ['ResNet18', 'MTResNet18', 'get_resnet']
+__all__ = ['ResNet18', 'MTResNet18', 'get_resnet', 'conv1x1', 'conv3x3', 'BasicBlock']
 
 
 if __name__ == '__main__':
@@ -273,7 +273,10 @@ if __name__ == '__main__':
     # features = model(x)
     # print(features.shape)   # whatever input shape, the output is [1, 512]
 
-    model = MTResNet18()
+    model = ResNet(BasicBlock, [2, 2, 2, 2])        # MTResNet18()
+    x = torch.randn(1, 3, 128, 128)
+    features = model(x)
+    print(features.shape)   # whatever input shape, the output is [1, 512]
 
     from models import get_parameter_number
 

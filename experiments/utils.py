@@ -71,15 +71,17 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             raise Exception(f'Un-implemented lr schedule: {args.lr_schedule}.')
         return _scheduler
 
-    plugins = [LRSchedulerPlugin(scheduler=make_scheduler(optimizer))]
+    plugins = []
+    if args.lr_schedule != 'none':
+        plugins.append(LRSchedulerPlugin(scheduler=make_scheduler(optimizer)))
 
     eval_every = -1
     if early_stop:
-        plugins.append([EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream')])
+        plugins.append(EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream'))
         eval_every = args.eval_every
 
     if name == 'naive':
-        from avalanche.training.supervised import Naive
+        from avalanche.training import Naive
         return Naive(
             model,
             optimizer,
@@ -92,7 +94,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
     elif name == 'gem':
-        from avalanche.training.supervised import GEM
+        from avalanche.training import GEM
         return GEM(
             model,
             optimizer,
@@ -106,7 +108,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
     elif name == 'lwf':
-        from avalanche.training.supervised import LwF
+        from avalanche.training import LwF
         return LwF(
             model,
             optimizer,
@@ -120,7 +122,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
     elif name == 'er':
-        from avalanche.training.supervised import Replay
+        from avalanche.training import Replay
         return Replay(
             model,
             optimizer,
@@ -134,7 +136,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
     elif name == 'ewc':
-        from avalanche.training.supervised import EWC
+        from avalanche.training import EWC
         return EWC(
             model,
             optimizer,

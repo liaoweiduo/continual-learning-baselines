@@ -27,8 +27,14 @@ def fewshot_test(override_args=None):
     args = create_default_args(default_args, override_args)
 
     print(vars(args))
-    assert (args.dataset_mode in ['sys', 'pro', 'sub', 'non', 'noc']
-            ), f"dataset mode is {args.dataset_mode}, need to be one of ['sys', 'pro', 'sub', 'non', 'noc']."
+    assert (
+        args.dataset_mode not in ['continual']
+    ), f"dataset mode should not be {args.dataset_mode}."
+    if args.dataset_mode in ['nonf', 'nono', 'sysf', 'syso']:
+        assert (
+            args.test_n_way == 2
+        ), f"Few-shot tasks should be 2-way for {args.dataset_mode} mode. " \
+           f"But current you specify test_n_way: {args.test_n_way}."
     assert (args.exp_name != "TIME"
             ), f"exp_name should be one of trained experiment path."
     exp_path, checkpoint_path = create_experiment_folder(

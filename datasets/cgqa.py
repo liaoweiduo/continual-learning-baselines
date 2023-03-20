@@ -91,6 +91,7 @@ def continual_training_benchmark(
         eval_transform: Optional[Any] = None,
         dataset_root: Union[str, Path] = None,
         memory_size: int = 0,
+        num_samples_each_label: Optional[int] = None
 ):
     """
     Creates a CL benchmark using the pre-processed GQA dataset.
@@ -124,6 +125,8 @@ def continual_training_benchmark(
         'tinyimagenet' will be used.
     :param memory_size: Total memory size for store all past classes/tasks.
         Each class has equal number of instances in the memory.
+    :param num_samples_each_label: Number of samples for each label,
+        -1 or None means all data are used.
 
     :returns: A properly initialized instance: `GenericCLScenario`
         with train_stream, val_stream, test_stream.
@@ -137,7 +140,11 @@ def continual_training_benchmark(
         eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
-    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual', image_size=image_size)
+    if num_samples_each_label is None or num_samples_each_label < 0:
+        num_samples_each_label = None
+
+    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual', image_size=image_size,
+                                             num_samples_each_label=num_samples_each_label)
     train_set, val_set, test_set = datasets['train'], datasets['val'], datasets['test']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 
@@ -411,7 +418,7 @@ def _get_gqa_datasets(
         randomly shuffled. Default to False.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
-    :param mode: Option [continual, sys, pro, sub, non, noc, nons, syss].
+    :param mode: Option [continual, sys, pro, sub, non, noc].
     :param num_samples_each_label: If specify a certain number of samples for each label,
         random sampling (build-in seed:1234,
         and replace=True if num_samples_each_label > num_samples, else False)
@@ -426,6 +433,9 @@ def _get_gqa_datasets(
     :return data_sets defined by json file and label information.
     """
     img_folder_path = os.path.join(dataset_root, "gqa", "GQA_100")
+
+    if mode in ['nonf', 'nono', 'sysf', 'syso']:
+        mode = mode[:3]     # recover to its original mode
 
     def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
         for item in img_info:
@@ -524,7 +534,7 @@ def _get_gqa_datasets(
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
-    elif mode in ['sys', 'pro', 'sub', 'non', 'noc', 'nons', 'syss']:
+    elif mode in ['sys', 'pro', 'sub', 'non', 'noc']:
         json_name = {'sys': 'sys/sys_fewshot.json', 'pro': 'pro/pro_fewshot.json', 'sub': 'sub/sub_fewshot.json',
                      'non': 'non_novel/non_novel_fewshot.json', 'noc': 'non_comp/non_comp_fewshot.json'}[mode]
         json_path = os.path.join(img_folder_path, "fewshot", json_name)
@@ -554,7 +564,7 @@ __all__ = ["continual_training_benchmark", "fewshot_testing_benchmark", "build_t
 
 if __name__ == "__main__":
     '''Continual'''
-    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='continual')
+    _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='continual')
 
     # _benchmark_instance = continual_training_benchmark(
     #     n_experiences=10, return_task_id=True,
@@ -600,10 +610,6 @@ if __name__ == "__main__":
     #     seed=1234, dataset_root='../../datasets',
     # )
 
-    '''Sub'''
-
-
-
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt
     # dataset = benchmark_instance.train_stream[0].dataset
@@ -628,30 +634,6 @@ if __name__ == "__main__":
         re_mode='pixel',
         re_count=1,
     )
-    # Compose(
-    #     RandomResizedCropAndInterpolation(size=(224, 224), scale=(0.08, 1.0), ratio=(0.75, 1.3333), interpolation=bicubic)
-    #     RandomHorizontalFlip(p=0.5)
-    #     RandAugment(n=2, ops=
-    # 	AugmentOp(name=AutoContrast, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=Equalize, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=Invert, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=Rotate, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=PosterizeIncreasing, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=SolarizeIncreasing, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=SolarizeAdd, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=ColorIncreasing, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=ContrastIncreasing, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=BrightnessIncreasing, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=SharpnessIncreasing, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=ShearX, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=ShearY, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=TranslateXRel, p=0.5, m=9, mstd=0.5)
-    # 	AugmentOp(name=TranslateYRel, p=0.5, m=9, mstd=0.5))
-    #     ToTensor()
-    #     Normalize(mean=tensor([0.4850, 0.4560, 0.4060]), std=tensor([0.2290, 0.2240, 0.2250]))
-    #     RandomErasing(p=0.25, mode=pixel, count=(1, 1))
-    # )
-
     # replace RandomResizedCropAndInterpolation with
     # Resize, for not
     train_transform.transforms[0] = transforms.Resize(224, interpolation=InterpolationMode.BICUBIC)

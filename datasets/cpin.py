@@ -39,6 +39,7 @@ def continual_training_benchmark(
         eval_transform: Optional[Any] = None,
         dataset_root: Union[str, Path] = None,
         memory_size: int = 0,
+        num_samples_each_label: Optional[int] = None
 ):
     """
     Creates a CL benchmark using the pre-processed PIN dataset.
@@ -84,6 +85,8 @@ def continual_training_benchmark(
         'tinyimagenet' will be used.
     :param memory_size: Total memory size for store all past classes/tasks.
         Each class has equal number of instances in the memory.
+    :param num_samples_each_label: Number of samples for each label,
+        -1 or None means all data are used.
 
     :returns: A properly initialized instance: `GenericCLScenario`
         with train_stream, val_stream, test_stream.
@@ -97,7 +100,11 @@ def continual_training_benchmark(
         eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
-    datasets, label_info = _get_pin_datasets(dataset_root, mode='continual', image_size=image_size)
+    if num_samples_each_label is None or num_samples_each_label < 0:
+        num_samples_each_label = None
+
+    datasets, label_info = _get_pin_datasets(dataset_root, mode='continual', image_size=image_size,
+                                             num_samples_each_label=num_samples_each_label)
     train_set, val_set, test_set = datasets['train'], datasets['val'], datasets['test']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 

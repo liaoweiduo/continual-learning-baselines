@@ -51,6 +51,59 @@ def generate_params(common_args, param_grid, exp_name_template):
     return params
 
 
+def main(params):
+    '''Run experiments in sequence'''
+    # print('************************')
+    # print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
+    # print(param_grid)
+    # for param in params:
+    #     '''Generate exp_name according to param'''
+    #     param.update(common_args)
+    #     exp_name = exp_name_template.format(**param)
+    #     exp_name = exp_name.replace('.', '_')      # for float, change '0.1' to '0_1' for potential problem in Windows.
+    #     param['exp_name'] = exp_name
+    #     print(f'{time.asctime(time.localtime(time.time()))}: Run experiment with params: {param}.')
+    #
+    #     res = continual_train(param)
+    #
+    #     wandb.finish()
+    #
+    # print(f'{time.asctime(time.localtime(time.time()))}: Complete tuning hyper parameters for {exp_name_template}.')
+    # print('************************')
+    # print()
+    # CMD:
+    # CUDA_VISIBLE_DEVICES=0 python tests/hyper_param_tune.py > ../avalanche-experiments/out/hyper_param_naive_cls.out 2>&1
+    # CUDA_VISIBLE_DEVICES=1 python tests/hyper_param_tune.py > ../avalanche-experiments/out/hyper_param_ewc_tsk.out 2>&1
+    # >> for append
+
+    '''Or, generate sh files'''
+    names = []
+    params_temp = []
+    iter = 0
+    for idx, param in enumerate(params):
+        if len(params_temp) < num_runs_1sh:
+            params_temp.append(param)
+
+        if len(params_temp) == num_runs_1sh or idx == len(params) - 1:  # every num_runs_1sh or last runs
+            print(f'Generate {iter}.sh with params: {params_temp}.')
+            template_exp_sh(
+                target='experiments/continual_training.py',
+                path=f'../avalanche-experiments/tasks/{task_name}',
+                name=iter,
+                params=params_temp,
+                # out_path=f"{exp_root}/out/{task_name}-{iter}.out",
+            )
+            names.append(iter)
+            params_temp = []
+            iter += 1
+
+    '''Generate json and sh for Tencent servers'''
+    template_tencent(
+        name_list=names,
+        cmd_path=f'{task_root}/{task_name}',
+        path=f'../avalanche-experiments/tasks/{task_name}')
+
+
 task_name = return_time()   # defined by time
 use_wandb = False
 use_interactive_logger = False
@@ -72,47 +125,36 @@ common_args = {
 params = []
 
 """
-baselines vit
+exp: different training size
 """
-# vit structure: ps16 - dim384 - depth9 - heads16 - mlp_dim1536
+param_grid = {
+    # 'num_samples_each_label': [10, 100, 500, 1000]
+    'num_samples_each_label': [50, 200, 300, 800]
+}
 # naive
 return_task_id = False
-strategy = 'naive'
+strategy = 'naive'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.003,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-}
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-params.extend(params_temp)
+                    '-ts{num_samples_each_label}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 return_task_id = True
-strategy = 'naive'
+strategy = 'naive'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.008,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-}
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-params.extend(params_temp)
+                    '-ts{num_samples_each_label}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 # er
 return_task_id = False
@@ -120,17 +162,11 @@ strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.003,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 return_task_id = True
@@ -138,17 +174,11 @@ strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.0008,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 # gem
@@ -157,19 +187,13 @@ strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.01,
+    'gem_patterns_per_exp': 32,
+    'gem_mem_strength': 0.3,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-    'gem_patterns_per_exp': [32],
-    'gem_mem_strength': [0.3],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 return_task_id = True
@@ -177,19 +201,13 @@ strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.001,
+    'gem_patterns_per_exp': 32,
+    'gem_mem_strength': 0.3,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-    'gem_patterns_per_exp': [32],
-    'gem_mem_strength': [0.3],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 # lwf
@@ -198,19 +216,13 @@ strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.005,
+    'lwf_alpha': 1,
+    'lwf_temperature': 1,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-    'lwf_alpha': [1],
-    'lwf_temperature': [1],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 return_task_id = True
@@ -218,19 +230,13 @@ strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.01,
+    'lwf_alpha': 1,
+    'lwf_temperature': 1,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-    'lwf_alpha': [1],
-    'lwf_temperature': [1],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 # ewc
@@ -239,18 +245,12 @@ strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.005,
+    'ewc_lambda': 0.1,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-    'ewc_lambda': [0.1],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 return_task_id = True
@@ -258,19 +258,226 @@ strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
 common_args.update({
     'return_task_id': return_task_id,
     'strategy': strategy,
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    'train_mb_size': 32,
+    'learning_rate': 0.005,
+    'ewc_lambda': 2,
 })
-exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+exp_name_template = 'train_size-' + strategy + '-' + \
                     ('tsk' if return_task_id else 'cls') + \
-                    '-lr{learning_rate}'
-param_grid = {
-    'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
-    'ewc_lambda': [2],
-}
+                    '-ts{num_samples_each_label}'
 params.extend(generate_params(common_args, param_grid, exp_name_template))
+
+
+
+"""
+baselines vit
+"""
+# vit structure: ps16 - dim384 - depth9 - heads16 - mlp_dim1536
+# # naive
+# return_task_id = False
+# strategy = 'naive'
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+#
+# return_task_id = True
+# strategy = 'naive'
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+#
+# # er
+# return_task_id = False
+# strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# # gem
+# return_task_id = False
+# strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+#     'gem_patterns_per_exp': [32],
+#     'gem_mem_strength': [0.3],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'gem'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+#     'gem_patterns_per_exp': [32],
+#     'gem_mem_strength': [0.3],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# # lwf
+# return_task_id = False
+# strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+#     'lwf_alpha': [1],
+#     'lwf_temperature': [1],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'lwf'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+#     'lwf_alpha': [1],
+#     'lwf_temperature': [1],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# # ewc
+# return_task_id = False
+# strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+#     'ewc_lambda': [0.1],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+#
+# return_task_id = True
+# strategy = 'ewc'   # optional: [naive, er, gem, lwf, ewc]
+# common_args.update({
+#     'return_task_id': return_task_id,
+#     'strategy': strategy,
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = 'ht-{model_backbone}-' + strategy + '-' + \
+#                     ('tsk' if return_task_id else 'cls') + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-5, 5e-5, 1e-4, 1e-3],
+#     'ewc_lambda': [2],
+# }
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 
 # tune vit structure
@@ -514,55 +721,4 @@ baselines resnet
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 
-
-'''Run experiments in sequence'''
-# print('************************')
-# print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
-# print(param_grid)
-# for param in params:
-#     '''Generate exp_name according to param'''
-#     param.update(common_args)
-#     exp_name = exp_name_template.format(**param)
-#     exp_name = exp_name.replace('.', '_')      # for float, change '0.1' to '0_1' for potential problem in Windows.
-#     param['exp_name'] = exp_name
-#     print(f'{time.asctime(time.localtime(time.time()))}: Run experiment with params: {param}.')
-#
-#     res = continual_train(param)
-#
-#     wandb.finish()
-#
-# print(f'{time.asctime(time.localtime(time.time()))}: Complete tuning hyper parameters for {exp_name_template}.')
-# print('************************')
-# print()
-# CMD:
-# CUDA_VISIBLE_DEVICES=0 python tests/hyper_param_tune.py > ../avalanche-experiments/out/hyper_param_naive_cls.out 2>&1
-# CUDA_VISIBLE_DEVICES=1 python tests/hyper_param_tune.py > ../avalanche-experiments/out/hyper_param_ewc_tsk.out 2>&1
-# >> for append
-
-
-'''Or, generate sh files'''
-names = []
-params_temp = []
-iter = 0
-for idx, param in enumerate(params):
-    if len(params_temp) < num_runs_1sh:
-        params_temp.append(param)
-
-    if len(params_temp) == num_runs_1sh or idx == len(params) - 1:      # every num_runs_1sh or last runs
-        print(f'Generate {iter}.sh with params: {params_temp}.')
-        template_exp_sh(
-            target='experiments/continual_training.py',
-            path=f'../avalanche-experiments/tasks/{task_name}',
-            name=iter,
-            params=params_temp,
-            # out_path=f"{exp_root}/out/{task_name}-{iter}.out",
-        )
-        names.append(iter)
-        params_temp = []
-        iter += 1
-
-'''Generate json and sh for Tencent servers'''
-template_tencent(
-    name_list=names,
-    cmd_path=f'{task_root}/{task_name}',
-    path=f'../avalanche-experiments/tasks/{task_name}')
+main(params)

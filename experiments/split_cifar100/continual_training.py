@@ -170,10 +170,9 @@ if __name__ == "__main__":
     # results = continual_train({
     #     'use_wandb': False, 'project_name': 'CGQA',
     #     'return_task_id': False, 'use_interactive_logger': True,
-    #     'dataset': 'cgqa',
     #     'exp_name': 'Naive-cls', 'strategy': 'naive',
     #     'learning_rate': 0.001,
     # })
 
-    results = continual_train()
+    results = continual_train({'strategy': 'er', 'dataset': 'scifar100'})
     # CUDA_VISIBLE_DEVICES=4 python experiments/continual_training.py

@@ -60,7 +60,8 @@ def continual_train(override_args=None):
         return_task_id=args.return_task_id,
         seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
         dataset_root=args.dataset_root,
-        train_transform=train_transform, eval_transform=eval_transform
+        train_transform=train_transform, eval_transform=eval_transform,
+        num_samples_each_label=args.num_samples_each_label
     )
 
     '''Check resume'''
