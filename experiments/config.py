@@ -106,6 +106,14 @@ parser.add_argument('--ewc_mode', type=str, default='separate', metavar='EWC',
 parser.add_argument('--ewc_decay', type=float, default=0.0, metavar='EWC',
                     help='Only used when ewc mode is `onlineweightedsum`.')
 
+# our args
+parser.add_argument('--ssc', type=float, default=0.1, metavar='REG',
+                    help='SparseSelection coefficient.')
+parser.add_argument('--isc', type=float, default=0.1, metavar='REG',
+                    help='IndependentSelection coefficient.')
+parser.add_argument('--csc', type=float, default=0.1, metavar='REG',
+                    help='ConsistentSelection coefficient.')
+
 # evaluation during training
 parser.add_argument('--eval_mb_size', type=int, default=50, metavar='BS',
                     help='Number of images in a batch.')

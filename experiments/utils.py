@@ -149,5 +149,21 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             plugins=plugins,
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
+    elif name == 'our':
+        from strategies.select_module import Algorithm
+        return Algorithm(
+            model,
+            optimizer,
+            CrossEntropyLoss(),
+            ssc=args.ssc,
+            isc=args.isc,
+            csc=args.csc,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
     else:
         raise Exception(f"Un-implemented strategy: {name}.")

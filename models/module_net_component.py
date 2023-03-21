@@ -32,7 +32,7 @@ class BackboneModule(nn.Module):
         self.multi_head = multi_head        # num of modules in this layer
         self.identity = identity            # true if the last module is identity module
         if 'resnet18' == module_arch:
-            from resnet import conv1x1, BasicBlock
+            from models.resnet import conv1x1, BasicBlock
 
             def _make_layer(inplanes, planes, blocks, stride=1, out_planes=None):
                 if out_planes is None:
@@ -76,7 +76,7 @@ class BackboneModule(nn.Module):
             self.freeze(-1)     # freeze the identity module
 
         elif 'resnet18_pnf' == module_arch:
-            from resnet18_pnf import conv1x1, BasicBlockFilm
+            from models.resnet18_pnf import conv1x1, BasicBlockFilm
 
             def _make_layer(inplanes, planes, blocks, stride=1, _multi_head=1):
                 block = BasicBlockFilm
@@ -197,7 +197,7 @@ class SelectorModule(nn.Module):
 
         self.ones = nn.Parameter(torch.ones(self.prototype_shape), requires_grad=False)
 
-    def forward(self, x, inference=False):
+    def forward(self, x):
         if self.pooling_before:
             x = F.adaptive_avg_pool2d(x, (1, 1))
 
@@ -250,7 +250,7 @@ class SelectorModule(nn.Module):
             out = self.norm(out)
         # print(f'out after norm: {out}')
 
-        if inference:
+        if self.training is False:
             out = torch.sigmoid(out)
             out[out >= 0.5] = 1
             out[out < 0.5] = 0

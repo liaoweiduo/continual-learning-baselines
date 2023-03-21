@@ -17,18 +17,18 @@ import torch.nn.functional as F
 
 from avalanche.models import BaseModel, MultiHeadClassifier, IncrementalClassifier, MultiTaskModule, DynamicModule
 
-# from models.module_net_component import BackboneModule, SelectorModule
-from module_net_component import BackboneModule, SelectorModule
-from resnet18_pnf import CatFilm
+from models.module_net_component import BackboneModule, SelectorModule
+# from module_net_component import BackboneModule, SelectorModule
+from models.resnet18_pnf import CatFilm
 
 
-class ModuleNet(nn.Module):
+class ModuleNetBackbone(nn.Module):
 
     def __init__(
             self, num_layers=4, backbone_arch='resnet18_pnf', selector_mode='prototype',
             image_size=128, in_channels=3, init_modules=7,
     ):
-        super(ModuleNet, self).__init__()
+        super(ModuleNetBackbone, self).__init__()
         self.num_layers = num_layers
         self.backbone_arch = backbone_arch
         self.selector_mode = selector_mode
@@ -74,6 +74,9 @@ class ModuleNet(nn.Module):
         self.selector_constructor = SelectorModule
         self.init_selector()
 
+        '''intermediate variables for reg'''
+        self.selected_idxs_each_layer = []
+
     def init_backbone(self):
         self.backbone = nn.ModuleList()
         in_channels = self.inplanes
@@ -117,15 +120,17 @@ class ModuleNet(nn.Module):
         """
         raise Exception("Un-implemented func: add_modules")
 
-    def forward(self, x, inference=False):
+    def forward(self, x):
         """
         """
         x = self.encoder(x)
 
+        self.selected_idxs_each_layer = []
         for layer_idx in range(self.num_layers):
             # selector
-            selected_idxs, sm, _, _ = self.selector[layer_idx](x, inference)
+            selected_idxs, sm, _, _ = self.selector[layer_idx](x)
             # selected_idxs [bs, n_modules + 1]
+            self.selected_idxs_each_layer.append(selected_idxs)
 
             # module
             out = self.backbone[layer_idx](x)
@@ -143,9 +148,83 @@ class ModuleNet(nn.Module):
 
         return x
 
+    @property
+    def output_size(self):
+        return 512
+
+
+class ModuleNet(DynamicModule):
+    """ ModuleNet with incremental classifier.
+    """
+    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+        super().__init__()
+        self.backbone = ModuleNetBackbone()
+        self.classifier = IncrementalClassifier(self.backbone.output_size, initial_out_features=initial_out_features)
+
+        if pretrained:
+            print('Load pretrained ModuleNet model from {}.'.format(pretrained_model_path))
+            ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
+            if 'state_dict' in ckpt_dict:
+                self.backbone.load_state_dict(ckpt_dict['state_dict'])
+            else:   # load backbone and classifier
+                self.load_state_dict(ckpt_dict)
+
+            # Freeze the parameters of the feature extractor
+            if fix:
+                for param in self.backbone.parameters():
+                    param.requires_grad = False
+
+    def forward(self, x):
+        out = self.backbone(x)
+        out = out.view(out.size(0), -1)
+        return self.classifier(out)
+
+
+class MTModuleNet(MultiTaskModule, DynamicModule):
+    """ ModuleNet with multitask classifier.
+    """
+
+    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None,
+                 fix=False, load_classifier=False):
+        super().__init__()
+        self.backbone = ModuleNetBackbone()
+        self.classifier = MultiHeadClassifier(self.backbone.output_size, initial_out_features=initial_out_features)
+
+        if pretrained:
+            print('Load pretrained ModuleNet model from {}.'.format(pretrained_model_path))
+            ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
+            if 'state_dict' in ckpt_dict:
+                self.backbone.load_state_dict(ckpt_dict['state_dict'])
+            else:   # load backbone and classifier
+                self.load_state_dict(ckpt_dict)
+
+            # Freeze the parameters of the feature extractor
+            if fix:
+                for param in self.backbone.parameters():
+                    param.requires_grad = False
+
+    def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
+        out = self.ModuleNet(x)
+        out = out.view(out.size(0), -1)
+        return self.classifier(out, task_label)
+
+
+def get_module_net(
+        multi_head: bool = False,
+        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False):
+    if multi_head:
+        model = MTModuleNet(initial_out_features, pretrained, pretrained_model_path, fix)
+    else:
+        model = ModuleNet(initial_out_features, pretrained, pretrained_model_path, fix)
+
+    return model
+
+
+__all__ = ['ModuleNetBackbone', 'ModuleNet', 'MTModuleNet', 'get_module_net']
+
 
 if __name__ == '__main__':
-    model = ModuleNet(init_modules=7)
+    model = ModuleNetBackbone(init_modules=7)
 
     X = torch.randn((3, 3, 128, 128))
 

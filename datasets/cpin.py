@@ -17,7 +17,7 @@ from torchvision import transforms
 from avalanche.benchmarks.classic.classic_benchmarks_utils import check_vision_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import nc_benchmark, dataset_benchmark
-from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, AvalancheSubset
+from avalanche.benchmarks.utils import PathsDataset, classification_subset
 
 from datasets.cgqa import _build_default_transform
 
@@ -112,19 +112,21 @@ def continual_training_benchmark(
     num_classes = len(label_set)
     assert num_classes % n_experiences == 0
     num_class_in_exp = num_classes // n_experiences
-    classes_order = np.array(list(map_int_label_to_tuple.keys()))  # [0-99]
+    classes_order = np.array(list(map_int_label_to_tuple.keys())).astype(np.int64)  # [0-99]
     if fixed_class_order is not None:
         assert len(fixed_class_order) == num_classes
-        classes_order = np.array(fixed_class_order)
+        classes_order = np.array(fixed_class_order).astype(np.int64)
     elif shuffle:
         rng = np.random.RandomState(seed=seed)
         rng.shuffle(classes_order)
 
     original_classes_in_exp = classes_order.reshape([n_experiences, num_class_in_exp])  # e.g.[[5, 2], [6, 10],...]
     if return_task_id:      # task-IL
-        classes_in_exp = np.stack([np.arange(num_class_in_exp) for _ in range(n_experiences)])  # [[0,1], [0,1],...]
+        classes_in_exp = np.stack([np.arange(num_class_in_exp) for _ in range(n_experiences)]).astype(np.int64)
+        # [[0,1], [0,1],...]
     else:
-        classes_in_exp = np.arange(num_classes).reshape([n_experiences, num_class_in_exp])  # [[0,1], [2,3],...]
+        classes_in_exp = np.arange(num_classes).reshape([n_experiences, num_class_in_exp]).astype(np.int64)
+        # [[0,1], [2,3],...]
 
     '''class mapping for each exp, contain the mapping for previous exps (unseen filled with -1)'''
     '''so that it allow memory buffer for previous exps'''
@@ -133,7 +135,7 @@ def continual_training_benchmark(
         class_mapping = np.array([-1] * num_classes)
         class_mapping[original_classes_in_exp[:exp_idx+1].reshape(-1)] = classes_in_exp[:exp_idx+1].reshape(-1)
         class_mappings.append(class_mapping)    # [-1 -1  2 ... -1  6 -1 ... -1  0 -1 ... -1]
-    class_mappings = np.array(class_mappings)
+    class_mappings = np.array(class_mappings).astype(np.int64)
 
     '''get sample indices for each experiment'''
     rng = np.random.RandomState(seed)   # reset rng for memory selection
@@ -161,7 +163,7 @@ def continual_training_benchmark(
         indices = np.concatenate(indices)
         task_labels = np.concatenate(task_labels)
         assert indices.shape[0] == task_labels.shape[0]
-        return AvalancheSubset(
+        return classification_subset(
             dataset,
             indices=indices,
             class_mapping=class_mappings[exp_idx],
@@ -282,20 +284,20 @@ def fewshot_testing_benchmark(
 
     if fixed_class_order is not None:
         assert len(fixed_class_order) == n_experiences * n_way
-        selected_classes_in_exp = np.array(fixed_class_order).reshape(n_experiences, n_way)
+        selected_classes_in_exp = np.array(fixed_class_order).astype(np.int64).reshape(n_experiences, n_way)
     else:
         rng = np.random.RandomState(seed=seed)
         for exp_idx in range(n_experiences):
             '''select n_way classes for each exp'''
-            selected_class_idxs = rng.choice(classes_order, n_way, replace=False)
+            selected_class_idxs = rng.choice(classes_order, n_way, replace=False).astype(np.int64)
             selected_classes_in_exp.append(selected_class_idxs)
 
     for exp_idx in range(n_experiences):
         selected_class_idxs = selected_classes_in_exp[exp_idx]
-        classes_in_exp.append(np.arange(n_way))
+        classes_in_exp.append(np.arange(n_way).astype(np.int64))
         class_mapping = np.array([-1] * num_classes)
         class_mapping[selected_class_idxs] = np.arange(n_way)
-        class_mappings.append(class_mapping)
+        class_mappings.append(class_mapping.astype(np.int64))
         task_labels.append(exp_idx + task_offset)
 
     rng = np.random.RandomState(seed)
@@ -312,7 +314,7 @@ def fewshot_testing_benchmark(
         val_indices = np.concatenate(val_indices)
         query_indices = np.concatenate(query_indices)
         train_subsets.append(
-            AvalancheSubset(
+            classification_subset(
                 dataset,
                 indices=shot_indices,
                 class_mapping=class_mappings[exp_idx],
@@ -320,7 +322,7 @@ def fewshot_testing_benchmark(
                 task_labels=task_labels[exp_idx])
         )
         val_subsets.append(
-            AvalancheSubset(
+            classification_subset(
                 dataset,
                 indices=val_indices,
                 class_mapping=class_mappings[exp_idx],
@@ -328,7 +330,7 @@ def fewshot_testing_benchmark(
                 task_labels=task_labels[exp_idx])
         )
         test_subsets.append(
-            AvalancheSubset(
+            classification_subset(
                 dataset,
                 indices=query_indices,
                 class_mapping=class_mappings[exp_idx],

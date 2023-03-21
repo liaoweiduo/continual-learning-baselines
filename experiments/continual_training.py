@@ -69,7 +69,12 @@ def continual_train(override_args=None):
         pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
     else:
         pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
-    if args.model_backbone == "resnet18":
+    if args.strategy == 'our':
+        from models.module_net import get_module_net
+        model = get_module_net(
+            multi_head=args.return_task_id,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path)
+    elif args.model_backbone == "resnet18":
         from models.resnet import get_resnet
         model = get_resnet(
             multi_head=args.return_task_id,
@@ -193,7 +198,6 @@ def continual_train(override_args=None):
 
 if __name__ == "__main__":
 
-    '''Naive: cls'''
     # results = continual_train({
     #     'use_wandb': False, 'project_name': 'CGQA',
     #     'return_task_id': False, 'use_interactive_logger': True,
