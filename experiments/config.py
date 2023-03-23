@@ -37,7 +37,8 @@ parser.add_argument('--vit_dropout', type=float, default=0.1, metavar='VIT', hel
 parser.add_argument('--vit_emb_dropout', type=float, default=0.1, metavar='VIT', help='')
 
 # train args
-parser.add_argument('--resume', action='store_true', help='Resume the experiment. not implemented')
+parser.add_argument('--train_num_exp', type=int, default=-1, metavar='NUM',
+                    help='Number of experiments to train in this run (default: -1 finish all exps).')
 parser.add_argument('--train_mb_size', type=int, default=100, metavar='BS',
                     help='Number of images in a batch.')
 parser.add_argument('--epochs', type=int, default=100, metavar='EPOCHS',
@@ -158,8 +159,11 @@ parser.add_argument('--exp_name', type=str, metavar='EXP_NAME',
                     help='Name of the experiment. TIME for automatically assign according to the time.')
 parser.add_argument('--use_interactive_logger', action='store_true',
                     help="Using interactive_logger.")
+parser.add_argument('--do_not_store_checkpoint_per_exp', action='store_true',
+                    help="Trigger do not store model{exp_id}.pth after each exp.")
 
-parser.add_argument('-f', type=str, default="")    # use for jupyter import args
+# use for jupyter import args
+parser.add_argument('-f', type=str, default="")
 
 default_args = vars(parser.parse_args())
 

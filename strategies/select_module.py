@@ -2,16 +2,98 @@ from typing import Optional, Sequence, List, Union
 
 import torch
 from avalanche.benchmarks import CLExperience
+from avalanche.evaluation.metric_definitions import TResult
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
-from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedTemplate
 
+from avalanche.evaluation import PluginMetric
+from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.evaluation.metric_results import (
+    MetricValue,
+    MetricResult,
+)
+
 from models.module_net import ModuleNet
 from strategies.hsic import hsic_normalized
+
+
+class SelectModuleMetric(PluginMetric):
+    """Metric used to output selected modules on all layers.
+
+    This metric is activated only at eval time.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.mode = 'eval'
+        self.save_image = False
+        self._select_matrix = []
+        self._labels = []
+
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        _select_matrix = self.result()
+
+        metric_name = get_metric_name(
+            self,
+            strategy,
+            add_experience=self.mode == "eval",
+            add_task=True,
+        )
+
+        plot_x_position = strategy.clock.train_iterations
+
+        metric_representation = MetricValue(
+            self, metric_name, _select_matrix, plot_x_position
+        )
+
+        return [metric_representation]
+
+    def reset(self) -> None:
+        self._select_matrix = []
+        self._labels = []
+
+    def result(self, **kwargs) -> torch.Tensor:
+        if not self._select_matrix:
+            return torch.zeros((0, 0), dtype=torch.long)
+        _select_matrix = torch.cat(self._select_matrix).cpu()  # [n_samp, 32]
+
+        _labels = torch.cat(self._labels).cpu()     # no use for debug
+
+        return _select_matrix
+
+    def before_eval(self, strategy) -> None:
+        self.reset()
+
+    def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        return self._package_result(strategy)
+
+    def after_eval_iteration(self, strategy: "SupervisedTemplate"):
+        """
+        Update the accuracy metric with the current
+        predictions and targets
+        """
+        super().after_training_iteration(strategy)
+
+        selected_idxs_each_layer = strategy.model.backbone.selected_idxs_each_layer
+        # [n_layers* tensor[bs, n_modules]]: [4* tensor[64, 8]]
+        selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1).detach().clone()     # [64, 4, 8]
+        bs, n_layers, n_modules = selected_idxs_each_layer.shape
+        selected_idxs = selected_idxs_each_layer.reshape(bs, -1)
+        dim = n_layers * n_modules
+        # [bs, dim]: [64, 32]
+
+        batch_labels = strategy.mbatch[1]  # [bs,]: [64]
+
+        self._select_matrix.append(selected_idxs)
+        self._labels.append(batch_labels)
+
+    def __str__(self):
+        return "SelectModule"
 
 
 class SparseSelectionPlugin(SupervisedPlugin):
@@ -74,7 +156,6 @@ class IndependentSelectionPlugin(SupervisedPlugin):
             # [bs, dim]: [64, 32]
 
             '''labels for this batch'''
-            structure_loss = 0
             batch_labels = strategy.mbatch[1]       # [bs,]: [64]
             label_set = sorted(set(batch_labels.tolist()))
             if len(label_set) == 1:
@@ -154,6 +235,7 @@ class Algorithm(SupervisedTemplate):
         ssc: Union[float, Sequence[float]],
         isc: Union[float, Sequence[float]],
         csc: Union[float, Sequence[float]],
+        mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = None,
@@ -171,6 +253,7 @@ class Algorithm(SupervisedTemplate):
         :param ssc: coefficient for SparseSelection.
         :param isc: coefficient for IndependentSelection.
         :param csc: coefficient for ConsistentSelection.
+        :param mem_size: replay buffer size.
         :param train_mb_size: The train minibatch size. Defaults to 1.
         :param train_epochs: The number of training epochs. Defaults to 1.
         :param eval_mb_size: The eval minibatch size. Defaults to 1.
@@ -186,12 +269,14 @@ class Algorithm(SupervisedTemplate):
         :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
+
+        rp = ReplayPlugin(mem_size)
         ssp = SparseSelectionPlugin(ssc)
         isp = IndependentSelectionPlugin(isc)
         csp = ConsistentSelectionPlugin(csc)
 
         if plugins is None:
-            plugins = [ssp, isp, csp]
+            plugins = [rp, ssp, isp, csp]
         else:
             plugins.append(ssp)
             plugins.append(isp)

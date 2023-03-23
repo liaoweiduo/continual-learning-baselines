@@ -14,15 +14,12 @@ from torch.nn import CrossEntropyLoss
 
 import avalanche as avl
 from avalanche.evaluation import metrics as metrics
-from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
-from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
-    FileSystemCheckpointStorage
 
-from experiments.utils import create_default_args, create_experiment_folder, get_strategy
-from experiments.config import default_args, FIXED_CLASS_ORDER
+from experiments.utils import set_seed, create_default_args, create_experiment_folder, get_strategy
 from tests.utils import get_average_metric
-from strategies.select_module import SelectModuleMetric
+
+from experiments.config import default_args, FIXED_CLASS_ORDER
 
 
 def continual_train(override_args=None):
@@ -35,7 +32,7 @@ def continual_train(override_args=None):
         exp_name=args.exp_name if args.exp_name != "TIME" else None,
         project_name=args.project_name)
     args.exp_name = exp_path.split(os.sep)[-1]
-    RNGManager.set_random_seeds(args.seed)
+    set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
@@ -67,123 +64,94 @@ def continual_train(override_args=None):
         num_samples_each_label=args.num_samples_each_label
     )
 
-    # ####################
-    # CHECKPOINTING
-    # ####################
-    # todo: checkpointing
-    checkpoint_plugin = CheckpointPlugin(
-        FileSystemCheckpointStorage(directory=checkpoint_path),
-        map_location=device
-    )
-    # Load checkpoint (if exists in the given storage)
-    # If it does not exist, strategy will be None and initial_exp will be 0
-    strategy, initial_exp = checkpoint_plugin.load_checkpoint_if_exists()
-
-    wandb_logger = None
-    if strategy is None:
-        # '''Check resume'''
-        # if os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
-        #     pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
-        # else:
-        #     pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
+    '''Check resume'''
+    if args.resume and os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
+        pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
+    else:
         pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
-        if args.strategy == 'our':
-            from models.module_net import get_module_net
-            model = get_module_net(
-                multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path)
-        elif args.model_backbone == "resnet18":
-            from models.resnet import get_resnet
-            model = get_resnet(
-                multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path)
-        elif args.model_backbone == "vit":
-            from models.vit import get_vit
-            model = get_vit(
-                image_size=args.image_size,
-                multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path,
-                patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
-                mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
-            )
-        else:
-            raise Exception(f"Un-recognized model structure {args.model_backbone}.")
+    if args.strategy == 'our':
+        from models.module_net import get_module_net
+        model = get_module_net(
+            multi_head=args.return_task_id,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path)
+    elif args.model_backbone == "resnet18":
+        from models.resnet import get_resnet
+        model = get_resnet(
+            multi_head=args.return_task_id,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path)
+    elif args.model_backbone == "vit":
+        from models.vit import get_vit
+        model = get_vit(
+            image_size=args.image_size,
+            multi_head=args.return_task_id,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path,
+            patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
+            mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
+        )
+    else:
+        raise Exception(f"Un-recognized model structure {args.model_backbone}.")
 
-        # ####################
-        # LOGGER
-        # ####################
-        loggers = [
-            avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-        ]
-        if args.use_interactive_logger:
-            loggers.append(avl.logging.InteractiveLogger())
-        if args.use_wandb:
-            wandb_logger = avl.logging.WandBLogger(
-                project_name=args.project_name, run_name=args.exp_name,
-                log_artifacts=True,
-                path=checkpoint_path,
-                dir=exp_path,
-                config=vars(args),
-            )
-            loggers.append(wandb_logger)
+    # ####################
+    # LOGGER
+    # ####################
+    loggers = [
+        avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
+    ]
+    if args.use_interactive_logger:
+        loggers.append(avl.logging.InteractiveLogger())
+    if args.use_wandb:
+        wandb_logger = avl.logging.WandBLogger(
+            project_name=args.project_name, run_name=args.exp_name,
+            log_artifacts=True,
+            path=checkpoint_path,
+            dir=exp_path,
+            config=vars(args),
+        )
+        loggers.append(wandb_logger)
 
-            wandb_logger.wandb.watch(model)
+        wandb_logger.wandb.watch(model)
 
-        # ####################
-        # EVALUATION PLUGIN
-        # ####################
-        metrics_list = [
+    # ####################
+    # EVALUATION PLUGIN
+    # ####################
+    metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
-            metrics.forgetting_metrics(experience=True, stream=True),
-            metrics.class_accuracy_metrics(stream=True),
-            SelectModuleMetric(),
-            metrics.timing_metrics(epoch=True),
-            metrics.disk_usage_metrics(paths_to_monitor=exp_path, epoch=True, stream=True),
-            metrics.cpu_usage_metrics(epoch=True, stream=True),
-            metrics.ram_usage_metrics(epoch=True, stream=True),
-        ]
-        if args.cuda >= 0:
-            metrics_list.append(metrics.gpu_usage_metrics(args.cuda, epoch=True, stream=True))
-        # if args.dataset_mode == 'continual':
-        #     metrics_list.extend([
-        #         metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
-        #                                          save_image=True if args.use_wandb else False,
-        #                                          stream=True),
-        #     ])
-        evaluation_plugin = EvaluationPlugin(
-            *metrics_list,
-            # benchmark=benchmark,
-            loggers=loggers)
+    ]
+    # if args.dataset_mode == 'continual':
+    #     metrics_list.extend([
+    #         metrics.forgetting_metrics(experience=True, stream=True),
+    #         metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
+    #                                          save_image=True if args.use_wandb else False,
+    #                                          stream=True),
+    #     ])
+    evaluation_plugin = EvaluationPlugin(
+        *metrics_list,
+        # benchmark=benchmark,
+        loggers=loggers)
 
-        # ####################
-        # STRATEGY INSTANCE
-        # ####################
-        strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args,
-                                early_stop=True, plugins=[checkpoint_plugin])
+    # ####################
+    # STRATEGY INSTANCE
+    # ####################
+    cl_strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args, early_stop=True)
 
     # ####################
     # TRAINING LOOP
     # ####################
     print("Starting experiment...")
     results = []
-    num_trained_exp_this_run = 0
-    for experience, val_task in zip(benchmark.train_stream[initial_exp:], benchmark.val_stream[initial_exp:]):
-
-        if 0 <= args.train_num_exp <= num_trained_exp_this_run:
-            break
-
+    for experience, val_task in zip(benchmark.train_stream, benchmark.val_stream):
         print("Start of experience ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
         print("Current Classes: ", [
             benchmark.label_info[2][cls_idx]
             for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
         ])
-        strategy.train(experience, eval_streams=[val_task])
+        cl_strategy.train(experience, eval_streams=[val_task])
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")
-        results.append(strategy.eval(benchmark.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
         # ####################
         # STORE CHECKPOINT
@@ -196,9 +164,7 @@ def continual_train(override_args=None):
         #     artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
         #     artifact.add_file(model_file, name=artifact_name)
         #     wandb_logger.wandb.run.log_artifact(artifact)
-        model_name = 'model.pth' if args.do_not_store_checkpoint_per_exp \
-            else f'model{experience.current_experience}.pth'
-        model_file = os.path.join(checkpoint_path, model_name)
+        model_file = os.path.join(checkpoint_path, 'model.pth')
         print("Store checkpoint in", model_file)
         torch.save(model.state_dict(), model_file)
 
@@ -216,8 +182,6 @@ def continual_train(override_args=None):
         print("Save results in", result_file)
         np.save(result_file, stored_results)
 
-        num_trained_exp_this_run += 1
-
     # print("Final results:")
     # print(results)
 
@@ -226,7 +190,7 @@ def continual_train(override_args=None):
     # average test accuracy for all tasks
 
     # finish wandb
-    if wandb_logger is not None:
+    if args.use_wandb:
         wandb_logger.wandb.finish()
 
     return results

@@ -75,7 +75,7 @@ class ModuleNetBackbone(nn.Module):
         self.init_selector()
 
         '''intermediate variables for reg'''
-        self.selected_idxs_each_layer = []
+        self.selected_idxs_each_layer = []      # reset every iteration.
 
     def init_backbone(self):
         self.backbone = nn.ModuleList()

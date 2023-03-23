@@ -57,7 +57,7 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
     return exp_path, checkpoint_path
 
 
-def get_strategy(name, model, device, evaluator, args, early_stop=True):
+def get_strategy(name, model, device, evaluator, args, early_stop=True, plugins=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     def make_scheduler(_optimizer):
@@ -71,7 +71,8 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True):
             raise Exception(f'Un-implemented lr schedule: {args.lr_schedule}.')
         return _scheduler
 
-    plugins = []
+    if plugins is None:
+        plugins = []
     if args.lr_schedule != 'none':
         plugins.append(LRSchedulerPlugin(scheduler=make_scheduler(optimizer)))
 
