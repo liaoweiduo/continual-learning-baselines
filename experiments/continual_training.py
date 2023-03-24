@@ -22,7 +22,7 @@ from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
 from experiments.utils import create_default_args, create_experiment_folder, get_strategy
 from experiments.config import default_args, FIXED_CLASS_ORDER
 from tests.utils import get_average_metric
-from strategies.select_module import SelectModuleMetric
+from strategies.select_module import SelectionPluginMetric
 
 
 def continual_train(override_args=None):
@@ -70,7 +70,6 @@ def continual_train(override_args=None):
     # ####################
     # CHECKPOINTING
     # ####################
-    # todo: checkpointing
     checkpoint_plugin = CheckpointPlugin(
         FileSystemCheckpointStorage(directory=checkpoint_path),
         map_location=device
@@ -137,14 +136,14 @@ def continual_train(override_args=None):
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
             metrics.forgetting_metrics(experience=True, stream=True),
             metrics.class_accuracy_metrics(stream=True),
-            SelectModuleMetric(),
+            SelectionPluginMetric(),
             metrics.timing_metrics(epoch=True),
-            metrics.disk_usage_metrics(paths_to_monitor=exp_path, epoch=True, stream=True),
-            metrics.cpu_usage_metrics(epoch=True, stream=True),
-            metrics.ram_usage_metrics(epoch=True, stream=True),
+            metrics.disk_usage_metrics(paths_to_monitor=exp_path, epoch=True),      # only train , experience=True
+            metrics.cpu_usage_metrics(epoch=True),            # only train , experience=True
+            metrics.ram_usage_metrics(epoch=True),                # only train , experience=True
         ]
         if args.cuda >= 0:
-            metrics_list.append(metrics.gpu_usage_metrics(args.cuda, epoch=True, stream=True))
+            metrics_list.append(metrics.gpu_usage_metrics(args.cuda, epoch=True))      # only train , experience=True
         # if args.dataset_mode == 'continual':
         #     metrics_list.extend([
         #         metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
@@ -220,6 +219,22 @@ def continual_train(override_args=None):
 
     # print("Final results:")
     # print(results)
+
+    print("Experiments completed")
+
+    if num_trained_exp_this_run == 0:       # no training performed, only test
+        print("No training is performed, just computing accuracy on the whole test set.")
+        results.append(strategy.eval(benchmark.test_stream))
+        stored_results = []
+        for result in results:
+            re = dict()
+            for key, item in result.items():
+                if 'ConfusionMatrix' not in key:
+                    re[key] = item
+            stored_results.append(re)
+        result_file = os.path.join(exp_path, f'results-{args.exp_name}-only-test.npy')
+        print("Save results in", result_file)
+        np.save(result_file, stored_results)
 
     '''print needed info'''
     print('Average test acc:', get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream'))

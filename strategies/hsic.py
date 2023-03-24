@@ -43,12 +43,12 @@ def kernelmat(X, sigma):
     else:
         try:
             sx = sigma_estimation(X, X)
-            Kx = torch.exp(-Dxx / (2. * sx * sx)).type(torch.FloatTensor)
+            Kx = torch.exp(-Dxx / (2. * sx * sx))       # .type(torch.FloatTensor)
         except RuntimeError as e:
             raise RuntimeError("Unstable sigma {} with maximum/minimum input ({},{})".format(
                 sx, torch.max(X), torch.min(X)))
 
-    Kxc = torch.mm(Kx, H)
+    Kxc = torch.mm(Kx, H.to(X.device))
 
     return Kxc
 
