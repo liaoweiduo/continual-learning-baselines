@@ -124,7 +124,7 @@ def template_tencent(name_list, cmd_path, path):
             "GPUName": "V100",
             "is_elasticity": True,
             "mount_ceph_business_flag": "DrugAI_CQ",
-            "image_full_name": "mirrors.tencent.com/yunqiao_cv/liaoweiduo:avalanche-0.2.1"
+            "image_full_name": "mirrors.tencent.com/yunqiao_cv/liaoweiduo:avalanche-0.3.1"
         }
         with open(os.path.join(path, f'{name}.json'), 'w') as f:
             json.dump(config, f, indent=4)

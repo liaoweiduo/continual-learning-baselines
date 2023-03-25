@@ -159,7 +159,7 @@ def continual_train(override_args=None):
         # STRATEGY INSTANCE
         # ####################
         strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args,
-                                early_stop=False, plugins=[checkpoint_plugin])
+                                early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
 
     # ####################
     # TRAINING LOOP

@@ -121,6 +121,7 @@ parser.add_argument('--eval_mb_size', type=int, default=50, metavar='BS',
 parser.add_argument('--eval_every', type=int, default=1, metavar='EVAL_EVERY',
                     help='Do evaluation every epochs for early stop.'
                          '-1 for not evaluation during epochs.')
+parser.add_argument('--disable_early_stop', action='store_true', help="Do not use early stop.")
 parser.add_argument('--eval_patience', type=int, default=5, metavar='PATIENCE',
                     help='Patience for EarlyStopingPlugin.')
 

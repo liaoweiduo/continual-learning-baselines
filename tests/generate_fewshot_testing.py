@@ -102,11 +102,10 @@ def main(params):
 
 task_name = return_time()   # defined by time
 task_root = 'tests/tasks'        # path for sh file from code_root
-num_runs_1sh = 2       # num of runs in 1 sh file
+num_runs_1sh = 1       # num of runs in 1 sh file
 common_args = {
-    'model_backbone': 'resnet18',
     'use_wandb': False,
-    'use_interactive_logger': False,
+    'use_interactive_logger': True,
     'project_name': 'CGQA',
     'dataset': 'cgqa',
     'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
@@ -116,6 +115,28 @@ common_args = {
 }
 
 params = []
+
+"""
+exp: baselines vit cgqa
+"""
+common_args.update({
+    'model_backbone': 'vit',
+    'image_size': 224,
+    'train_mb_size': 32,
+})
+param_grid = {
+    'exp_name': [
+        'ht-vit-naive-cls-lr0_0001', 'ht-vit-naive-tsk-lr0_0001',
+        'ht-vit-er-cls-lr0_0001', 'ht-vit-er-tsk-lr0_0001',
+        'ht-vit-gem-cls-lr5e-05', 'ht-vit-gem-tsk-lr1e-05',
+        'ht-vit-lwf-cls-lr0_0001', 'ht-vit-lwf-tsk-lr0_0001',
+        'ht-vit-ewc-cls-lr0_0001', 'ht-vit-ewc-tsk-lr0_0001',
+    ],
+    'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
+}
+params.extend(generate_params(common_args, param_grid))
+
+
 
 """
 exp: fresh or old concepts
@@ -136,16 +157,16 @@ exp: fresh or old concepts
 """
 exp: different training size
 """
-param_grid = {
-    'exp_name': [f'train_size-{strategy}-{c_t}-ts{ts}'
-                 for strategy in ['naive', 'er', 'gem', 'lwf', 'ewc']
-                 for c_t in ['cls', 'tsk']
-                 for ts in [50, 200, 300, 800]],
-    'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
-}
-# c_t: [10, 100, 500, 1000]
-# c_t: [50, 200, 300, 800]
-params.extend(generate_params(common_args, param_grid))
+# param_grid = {
+#     'exp_name': [f'train_size-{strategy}-{c_t}-ts{ts}'
+#                  for strategy in ['naive', 'er', 'gem', 'lwf', 'ewc']
+#                  for c_t in ['cls', 'tsk']
+#                  for ts in [50, 200, 300, 800]],
+#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
+# }
+# # c_t: [10, 100, 500, 1000]
+# # c_t: [50, 200, 300, 800]
+# params.extend(generate_params(common_args, param_grid))
 
 
 """

@@ -204,7 +204,7 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
                     param.requires_grad = False
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
-        out = self.ModuleNet(x)
+        out = self.backbone(x)
         out = out.view(out.size(0), -1)
         return self.classifier(out, task_label)
 
