@@ -74,13 +74,13 @@ class SelectionMetric(Metric):
         :param sparse: whether to output sparse selection loss
         :param independent: whether to output independent selection loss
         :param consistent: whether to output consistent selection loss
-        :param return_float: whether to return float for scalars.
+        :param return_float: whether to return float for scalars and detach and cpu for Tensors.
         """
         dic = {}
         if matrix:
             select_matrix, labels = self.prepare_matrix()
-            dic['Matrix'] = select_matrix
-            dic['Labels'] = labels
+            dic['Matrix'] = select_matrix.detach().cpu() if return_float else select_matrix
+            dic['Labels'] = labels.detach().cpu() if return_float else labels
 
         if sparse:
             sparse_loss = self.get_sparse_selection_loss()
@@ -210,10 +210,6 @@ class SelectionPluginMetric(PluginMetric):
     def result(self, **kwargs):
         dic = self._metric.result(matrix=self.matrix, sparse=self.sparse,
                                   independent=self.independent, consistent=self.consistent)
-
-        '''to cpu'''
-        for k, v in dic.items():
-            dic[k] = v.detach().cpu()
 
         return dic
 
