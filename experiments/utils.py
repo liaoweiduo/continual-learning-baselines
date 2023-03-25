@@ -76,10 +76,9 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True, plugins=
     if args.lr_schedule != 'none':
         plugins.append(LRSchedulerPlugin(scheduler=make_scheduler(optimizer)))
 
-    eval_every = -1
+    eval_every = args.eval_every
     if early_stop:
         plugins.append(EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream'))
-        eval_every = args.eval_every
 
     if name == 'naive':
         from avalanche.training import Naive

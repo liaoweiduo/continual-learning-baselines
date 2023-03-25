@@ -67,13 +67,14 @@ class SelectionMetric(Metric):
         self._labels.append(batch_labels)
 
     def result(
-            self, matrix=True, sparse=True, independent=True, consistent=True, **kwargs
+            self, matrix=True, sparse=True, independent=True, consistent=True, return_float=True, **kwargs
     ):
         """Cat select_matrix and labels for output
         :param matrix: whether to output matrix
         :param sparse: whether to output sparse selection loss
         :param independent: whether to output independent selection loss
         :param consistent: whether to output consistent selection loss
+        :param return_float: whether to return float for scalars.
         """
         dic = {}
         if matrix:
@@ -83,15 +84,15 @@ class SelectionMetric(Metric):
 
         if sparse:
             sparse_loss = self.get_sparse_selection_loss()
-            dic['Sparse'] = sparse_loss
+            dic['Sparse'] = sparse_loss.item() if return_float else sparse_loss
 
         if independent:
             independent_loss = self.get_independent_selection_loss()
-            dic['Independent'] = independent_loss
+            dic['Independent'] = independent_loss.item() if return_float else independent_loss
 
         if consistent:
             consistent_loss = self.get_consistent_selection_loss()
-            dic['Consistent'] = consistent_loss
+            dic['Consistent'] = consistent_loss.item() if return_float else consistent_loss
 
         return dic
 
@@ -159,8 +160,8 @@ class SelectionMetric(Metric):
 
             structure_loss.append(torch.mean(sim_matrix))
 
-        structure_loss = torch.mean(torch.stack(structure_loss)) / 10       # /10 for its large scale
-        structure_loss = - structure_loss       # minimize negative similarity.
+        structure_loss = - torch.mean(torch.stack(structure_loss)) / 10       # /10 for its large scale
+        # increase similarity -> minimize negative similarity.
 
         return structure_loss
 
@@ -196,9 +197,8 @@ class SelectionPluginMetric(PluginMetric):
                 add_task=True,
             ) + f'/{k}'
             plot_x_position = strategy.clock.train_iterations
-            logging_type = LoggingType.IMAGE if k == 'Matrix' else LoggingType.ANY
 
-            metric_representation = MetricValue(self, metric_name, v, plot_x_position, logging_type)
+            metric_representation = MetricValue(self, metric_name, v, plot_x_position)
 
             metrics.append(metric_representation)
 
