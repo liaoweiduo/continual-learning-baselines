@@ -160,6 +160,8 @@ def continual_train(override_args=None):
         # ####################
         strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args,
                                 early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
+    else:
+        model = strategy.model
 
     # ####################
     # TRAINING LOOP
@@ -195,9 +197,11 @@ def continual_train(override_args=None):
         #     artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
         #     artifact.add_file(model_file, name=artifact_name)
         #     wandb_logger.wandb.run.log_artifact(artifact)
-        model_name = 'model.pth' if args.do_not_store_checkpoint_per_exp \
-            else f'model{experience.current_experience}.pth'
-        model_file = os.path.join(checkpoint_path, model_name)
+        if not args.do_not_store_checkpoint_per_exp:
+            model_file = os.path.join(checkpoint_path, f'model{experience.current_experience}.pth')
+            print("Store checkpoint in", model_file)
+            torch.save(model.state_dict(), model_file)
+        model_file = os.path.join(checkpoint_path, 'model.pth')
         print("Store checkpoint in", model_file)
         torch.save(model.state_dict(), model_file)
 

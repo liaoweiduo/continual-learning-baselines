@@ -78,7 +78,7 @@ def fewshot_test(override_args=None):
         origin_model = get_vit(
             image_size=args.image_size,
             multi_head=True,
-            pretrained=args.model_pretrained, pretrained_model_path=args.pretrained_model_path,
+            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
             mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
         )
