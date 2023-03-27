@@ -110,9 +110,11 @@ parser.add_argument('--ewc_decay', type=float, default=0.0, metavar='EWC',
 # our args
 parser.add_argument('--ssc', type=float, default=0.1, metavar='REG',
                     help='SparseSelection coefficient.')
-parser.add_argument('--isc', type=float, default=0.1, metavar='REG',
+parser.add_argument('--scc', type=float, default=0.1, metavar='REG',
+                    help='SupConLoss coefficient.')
+parser.add_argument('--isc', type=float, default=0.0, metavar='REG',
                     help='IndependentSelection coefficient.')
-parser.add_argument('--csc', type=float, default=0.1, metavar='REG',
+parser.add_argument('--csc', type=float, default=0.0, metavar='REG',
                     help='ConsistentSelection coefficient.')
 
 # evaluation during training

@@ -122,8 +122,10 @@ params = []
 exp: module-net, only first task, tune lr and reg coeff
 """
 param_grid = {
-    'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
-    'ssc': [0.01, 0.1, 1, 10]
+    # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
+    # 'ssc': [0.01, 0.1, 1, 10],
+    'learning_rate': [5e-4, 8e-4, 1e-4, 2e-4, 5e-3, 8e-4, 1e-3],
+    'ssc': [0.01, 0.1, 1, 10],
 }
 common_args.update({
     'return_task_id': True,
@@ -132,14 +134,14 @@ common_args.update({
     'train_num_exp': 1,
     'use_interactive_logger': True,
     'disable_early_stop': True,
+    'epochs': 200,
 })
-exp_name_template = 'MNt1_lr_reg-' + common_args['strategy'] + '-' + \
+exp_name_template = 'MNt1_lr_reg2-' + common_args['strategy'] + '-' + \
                     ('tsk' if common_args['return_task_id'] else 'cls') + \
                     '-lr{learning_rate}-reg{ssc}'
 params_temp = generate_params(common_args, param_grid, exp_name_template)
 for p in params_temp:
-    p['isc'] = p['ssc']
-    p['csc'] = p['ssc']
+    p['scc'] = p['ssc']
 params.extend(params_temp)
 
 

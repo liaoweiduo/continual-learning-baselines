@@ -156,6 +156,7 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True, plugins=
             optimizer,
             CrossEntropyLoss(),
             ssc=args.ssc,
+            scc=args.scc,
             isc=args.isc,
             csc=args.csc,
             train_mb_size=args.train_mb_size,

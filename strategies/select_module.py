@@ -1,9 +1,7 @@
 from typing import Optional, Sequence, List, Union, Dict
+from collections import Counter
 
 import torch
-from avalanche.benchmarks import CLExperience
-from avalanche.evaluation.metric_definitions import TResult
-from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
 
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
@@ -22,6 +20,7 @@ from avalanche.evaluation.metric_results import (
 
 from models.module_net import ModuleNet
 from strategies.hsic import hsic_normalized
+from strategies.sup_con_loss import SupConLoss
 
 
 class SelectionMetric(Metric):
@@ -67,11 +66,14 @@ class SelectionMetric(Metric):
         self._labels.append(batch_labels)
 
     def result(
-            self, matrix=True, sparse=True, independent=True, consistent=True, return_float=True, **kwargs
+            self, matrix=True, sparse=True, supcon=True,
+            independent=False, consistent=False,
+            return_float=True, **kwargs
     ):
         """Cat select_matrix and labels for output
         :param matrix: whether to output matrix
         :param sparse: whether to output sparse selection loss
+        :param supcon: whether to output SupCon loss
         :param independent: whether to output independent selection loss
         :param consistent: whether to output consistent selection loss
         :param return_float: whether to return float for scalars and detach and cpu for Tensors.
@@ -85,6 +87,10 @@ class SelectionMetric(Metric):
         if sparse:
             sparse_loss = self.get_sparse_selection_loss()
             dic['Sparse'] = sparse_loss.item() if return_float else sparse_loss
+
+        if supcon:
+            supcon_loss = self.get_sup_con_loss()
+            dic['SupCon'] = supcon_loss.item() if return_float else supcon_loss
 
         if independent:
             independent_loss = self.get_independent_selection_loss()
@@ -111,11 +117,30 @@ class SelectionMetric(Metric):
 
     def get_sparse_selection_loss(self):
         """l1 norm: torch.mean"""
-        select_matrix, _ = self.prepare_matrix()
+        select_matrix, labels = self.prepare_matrix()
         if select_matrix is None:
-            return 0
+            return torch.tensor(0)
 
         structure_loss = torch.mean(select_matrix)
+
+        return structure_loss
+
+    def get_sup_con_loss(self):
+        """Super Contrastive Loss"""
+        select_matrix, labels = self.prepare_matrix()
+        if select_matrix is None:
+            return torch.tensor(0)
+
+        # if any of label exists only once, sup con fails and will output nan, instead, we output 0
+        if min(Counter(labels.tolist()).values()) == 1:
+            return torch.tensor(0)
+
+        'norm to Euclidean dist = 1'
+        select_matrix = select_matrix.unsqueeze(1)    # [n_samp, 1, 32]
+        select_matrix = select_matrix / torch.norm(select_matrix, dim=2, p=2, keepdim=True)
+
+        criterion = SupConLoss()
+        structure_loss = criterion(select_matrix, labels)
 
         return structure_loss
 
@@ -123,7 +148,7 @@ class SelectionMetric(Metric):
         """HSIC loss over all combinations of class-pairs"""
         select_matrix, labels = self.prepare_matrix()
         if select_matrix is None:
-            return 0
+            return torch.tensor(0)
 
         label_set = sorted(set(labels.tolist()))
         if len(label_set) == 1:
@@ -148,7 +173,7 @@ class SelectionMetric(Metric):
         """pair-wise dot product of samples in the same class"""
         select_matrix, labels = self.prepare_matrix()
         if select_matrix is None:
-            return 0
+            return torch.tensor(0)
 
         label_set = sorted(set(labels.tolist()))
         structure_loss = []
@@ -172,7 +197,7 @@ class SelectionPluginMetric(PluginMetric):
     This metric is activated only at eval time.
     """
 
-    def __init__(self, mode='both', matrix=True, sparse=True, independent=True, consistent=True):
+    def __init__(self, mode='both', matrix=True, sparse=True, supcon=True, independent=False, consistent=False):
         super().__init__()
         assert (mode in ['both', 'train', 'eval']
                 ), f'Current mode is {mode}, should be one of [both, train, eval].'
@@ -180,6 +205,7 @@ class SelectionPluginMetric(PluginMetric):
         self.save_image = False     # todo: need to implement
         self.matrix = matrix
         self.sparse = sparse
+        self.supcon = supcon
         self.independent = independent
         self.consistent = consistent
 
@@ -193,7 +219,7 @@ class SelectionPluginMetric(PluginMetric):
             metric_name = get_metric_name(
                 self,
                 strategy,
-                add_experience=self.mode in ["eval", "both"],
+                add_experience=True,        # self.mode in ["eval", "both"],
                 add_task=True,
             ) + f'/{k}'
             plot_x_position = strategy.clock.train_iterations
@@ -208,7 +234,7 @@ class SelectionPluginMetric(PluginMetric):
         self._metric = SelectionMetric(self.save_image)
 
     def result(self, **kwargs):
-        dic = self._metric.result(matrix=self.matrix, sparse=self.sparse,
+        dic = self._metric.result(matrix=self.matrix, sparse=self.sparse, supcon=self.supcon,
                                   independent=self.independent, consistent=self.consistent)
 
         return dic
@@ -257,14 +283,16 @@ class SelectionPlugin(SupervisedPlugin):
         Consistent selection plugin:
             The selection of modules in each layer should be consistent for the same label.
     """
-    def __init__(self, sparse_alpha=1., independent_alpha=1., consistent_alpha=1.):
+    def __init__(self, sparse_alpha=1., supcon_alpha=1., independent_alpha=0., consistent_alpha=0.):
         """
         :param sparse_alpha: sparse reg coefficient.
+        :param supcon_alpha: supcon reg coefficient.
         :param independent_alpha: independent reg coefficient.
         :param consistent_alpha: consistent reg coefficient.
         """
         super().__init__()
         self.sparse_alpha = sparse_alpha
+        self.supcon_alpha = supcon_alpha
         self.independent_alpha = independent_alpha
         self.consistent_alpha = consistent_alpha
 
@@ -287,6 +315,8 @@ class SelectionPlugin(SupervisedPlugin):
 
         if self.sparse_alpha > 0:
             structure_loss = structure_loss + self.sparse_alpha * self._metric.get_sparse_selection_loss()
+        if self.supcon_alpha > 0:
+            structure_loss = structure_loss + self.supcon_alpha * self._metric.get_sup_con_loss()
         if self.independent_alpha > 0:
             structure_loss = structure_loss + self.independent_alpha * self._metric.get_independent_selection_loss()
         if self.consistent_alpha > 0:
@@ -304,6 +334,7 @@ class Algorithm(SupervisedTemplate):
         optimizer: Optimizer,
         criterion,
         ssc: Union[float, Sequence[float]],
+        scc: Union[float, Sequence[float]],
         isc: Union[float, Sequence[float]],
         csc: Union[float, Sequence[float]],
         mem_size: int = 200,
@@ -322,6 +353,7 @@ class Algorithm(SupervisedTemplate):
         :param optimizer: The optimizer to use.
         :param criterion: The loss criterion to use.
         :param ssc: coefficient for SparseSelection.
+        :param scc: coefficient for SupConLoss.
         :param isc: coefficient for IndependentSelection.
         :param csc: coefficient for ConsistentSelection.
         :param mem_size: replay buffer size.
@@ -342,7 +374,7 @@ class Algorithm(SupervisedTemplate):
         """
 
         rp = ReplayPlugin(mem_size)
-        sp = SelectionPlugin(sparse_alpha=ssc, independent_alpha=isc, consistent_alpha=csc)
+        sp = SelectionPlugin(sparse_alpha=ssc, supcon_alpha=scc, independent_alpha=isc, consistent_alpha=csc)
 
         if plugins is None:
             plugins = [rp, sp]
