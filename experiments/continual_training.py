@@ -21,6 +21,7 @@ from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
 
 from experiments.utils import create_default_args, create_experiment_folder, get_strategy
 from experiments.config import default_args, FIXED_CLASS_ORDER
+from experiments.fewshot_testing import fewshot_test
 from tests.utils import get_average_metric
 from strategies.select_module import SelectionPluginMetric
 
@@ -228,6 +229,8 @@ def continual_train(override_args=None):
 
     if num_trained_exp_this_run == 0:       # no training performed, only test
         print("No training is performed, just computing accuracy on the whole test set.")
+
+        results = []
         results.append(strategy.eval(benchmark.test_stream))
         stored_results = []
         for result in results:
@@ -263,3 +266,15 @@ if __name__ == "__main__":
 
     results = continual_train()
     # CUDA_VISIBLE_DEVICES=4 python experiments/continual_training.py
+
+    '''fewshot test'''
+    if not default_args.skip_fewshot_testing:
+        common_args = {
+            'use_wandb': False,
+            'learning_rate': 0.001,
+            'test_freeze_feature_extractor': True,
+            'strategy': default_args.strategy if default_args.strategy in ['our'] else 'naive',
+        }
+        for dataset_mode in ['sys', 'pro', 'sub', 'non', 'noc']:
+            common_args['dataset_mode'] = dataset_mode
+            fewshot_test(common_args)

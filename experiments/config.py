@@ -128,6 +128,8 @@ parser.add_argument('--eval_patience', type=int, default=5, metavar='PATIENCE',
                     help='Patience for EarlyStopingPlugin.')
 
 # test args
+parser.add_argument('--skip_fewshot_testing', action='store_true',
+                    help='Whether to do fewshot testing after the continual training.')
 parser.add_argument('--test_n_experiences', type=int, default=300, metavar='NEXPERIENCES',
                     help='Number of few-shot tasks.')
 parser.add_argument('--test_n_way', type=int, default=10, metavar='WAY',

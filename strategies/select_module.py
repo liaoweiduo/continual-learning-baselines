@@ -2,14 +2,20 @@ from typing import Optional, Sequence, List, Union, Dict
 from collections import Counter
 
 import torch
+from torch.utils.data import DataLoader
 from torch.optim import Optimizer, SGD
+from torchvision import transforms
+from torchvision.utils import make_grid
 
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedTemplate
 
+from avalanche.benchmarks.utils import make_classification_dataset
+
 from avalanche.evaluation import PluginMetric, Metric
+from avalanche.evaluation.metrics.images_samples import ImagesSamplePlugin
 from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metric_results import (
     MetricValue,
@@ -193,8 +199,6 @@ class SelectionMetric(Metric):
 
 class SelectionPluginMetric(PluginMetric):
     """Metric used to output selected modules on all layers.
-
-    This metric is activated only at eval time.
     """
 
     def __init__(self, mode='both', matrix=True, sparse=True, supcon=True, independent=False, consistent=False):
@@ -270,6 +274,145 @@ class SelectionPluginMetric(PluginMetric):
 
     def __str__(self):
         return "SelectModule"
+
+
+class ImageSimilarityPluginMetric(ImagesSamplePlugin):
+    """Metric used to output similarity tensor.
+
+    Visualizing with images.
+
+    This plugin is not recommended during training,
+    since it load and forward extra images to the model.
+    """
+    def __init__(self, active=False, image_size=128, num_samples=100, num_proto=28):
+        super().__init__(mode="eval", n_cols=1, n_rows=num_samples)
+        self.active = active
+        self.image_size = image_size
+        self.num_samples = num_samples
+        self.num_proto = num_proto      # 4*7
+
+        self.eval_transform_no_norm = transforms.Compose([
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+        ])      # no use
+
+        self.images = []
+        self.labels = []
+        self.tasks = []
+        self.similarity_tensors = []
+
+    def set_active(self, active: bool):
+        self.active = active
+
+    def result(self, **kwargs):
+        return self.images, self.labels, self.tasks, self.similarity_tensors
+
+    def reset(self):
+        self.images, self.labels, self.tasks, self.similarity_tensors = [], [], [], []
+
+    def _make_grid_sample(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
+        """Modify: add obtain similarity_tensors"""
+        self._load_sorted_images(strategy)
+
+        '''Forward model to get similarity_tensors'''
+        model = strategy.model
+        batched_images = torch.stack(self.images).to(model.classifier.active_units_T0.device)       # [bs, 3, H, W]
+
+        _ = model.backbone(batched_images)
+        similarity_tensor = model.backbone.similarity_tensor    # n_layer*[bs, n_proto, Hl, Wl]
+
+        # reshape mask in each layer to image_size: Hl->H, Wl->W
+        resize_trans = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(self.image_size),
+            transforms.ToTensor(),
+        ])
+
+        masks = []
+        for layer_id, similarity_tensor_each_layer in enumerate(similarity_tensor):
+            bs, n_proto, Hl, Wl = similarity_tensor_each_layer.shape
+            c3tensor = torch.stack(
+                [similarity_tensor_each_layer, similarity_tensor_each_layer, similarity_tensor_each_layer],
+                dim=2
+            ).reshape(-1, 3, Hl, Wl)       # [bs*n_proto, 3, Hl, Wl]
+            resized_mask = torch.stack([resize_trans(img) for img in c3tensor])
+            H, W = resized_mask.shape[-2:]
+            resized_mask = resized_mask.reshape(bs, n_proto, 3, H, W)
+            masks.append(resized_mask)
+        masks = torch.cat(masks, dim=1)     # [bs, n_layer*n_proto, 3, H, W]
+
+        images = torch.cat([batched_images.unsqueeze(1), masks], dim=1)     # [bs, 1+n_layer*n_proto, 3, H, W]
+        images = images.reshape(-1, *images.shape[-3:])      # [bs*(1+n_layer*n_proto), 3, H, W]
+
+        return [
+            MetricValue(
+                self,
+                name=get_metric_name(
+                    self,
+                    strategy,
+                    add_experience=self.mode == "eval",
+                    add_task=True,
+                ),
+                value=TensorImage(
+                    make_grid(
+                        list(images), normalize=False, nrow=self.num_proto+1
+                    )
+                ),
+                x_plot=strategy.clock.train_iterations,
+            )
+        ]
+
+    def _load_sorted_images(self, strategy: "SupervisedTemplate"):
+        """Modify: labels and tasks as instance variables"""
+        self.reset()
+        self.images, self.labels, self.tasks = self._load_data(strategy)
+        if self.group:
+            self._sort_images(self.labels, self.tasks)
+
+    def _sort_images(self, labels: List[int], tasks: List[int]):
+        """Modify: also change self.labels and self.tasks"""
+        ts, ls, ims = [], [], []
+        for task, label, image in sorted(
+                zip(tasks, labels, self.images),
+                key=lambda t: (t[0], t[1]),
+        ):
+            ts.append(task)
+            ls.append(label)
+            ims.append(image)
+        self.images = ims
+        self.labels = ls
+        self.tasks = ts
+
+    def _make_dataloader(
+        self, data: "make_classification_dataset", mb_size: int
+    ) -> DataLoader:
+        """Modify: use its transform, since we need forward images"""
+        # todo: if need to apply similarity mask on samples without normalization
+        # data_no_norm = data.replace_current_transform_group(self.eval_transform_no_norm)
+        collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
+        return DataLoader(
+            dataset=data,
+            batch_size=min(mb_size, self.n_wanted_images),
+            shuffle=True,
+            collate_fn=collate_fn,
+        )
+
+    def after_train_dataset_adaptation(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
+        if self.active:
+            return super().after_train_dataset_adaptation(strategy)
+
+    def after_eval_dataset_adaptation(
+        self, strategy: "SupervisedTemplate"
+    ) -> "MetricResult":
+        if self.active:
+            return super().after_eval_dataset_adaptation(strategy)
+
+    def __str__(self):
+        return "Images_with_Similarity"
 
 
 class SelectionPlugin(SupervisedPlugin):
@@ -396,7 +539,7 @@ class Algorithm(SupervisedTemplate):
         )
 
 
-__all__ = ['SelectionMetric', 'SelectionPluginMetric', 'SelectionPlugin', 'Algorithm']
+__all__ = ['SelectionMetric', 'SelectionPluginMetric', 'ImageSimilarityPluginMetric', 'SelectionPlugin', 'Algorithm']
 
 
 if __name__ == '__main__':

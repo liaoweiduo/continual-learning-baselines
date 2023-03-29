@@ -30,30 +30,31 @@ objects defined in json. E.g., "apple,banana".
 """
 
 
-def _build_default_transform(image_size=(128, 228), is_train=True):
+def _build_default_transform(image_size=(128, 228), is_train=True, normalize=True):
     """
     Default transforms borrowed from MetaShift.
     Imagenet normalization.
     """
-    _default_train_transform = transforms.Compose(
-        [
+    _train_transform = [
             transforms.Resize(image_size),  # allow reshape but not equal scaling
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_eval_transform = transforms.Compose(
-        [
+    ]
+    _eval_transform = [
             transforms.Resize(image_size),
             transforms.ToTensor(),
-            transforms.Normalize(
+    ]
+    if normalize:
+        _train_transform.append(transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
+            ))
+        _eval_transform.append(transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ))
+
+    _default_train_transform = transforms.Compose(_train_transform)
+    _default_eval_transform = transforms.Compose(_eval_transform)
+
     if is_train:
         return _default_train_transform
     else:
