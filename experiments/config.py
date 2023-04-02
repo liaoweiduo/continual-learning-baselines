@@ -117,6 +117,10 @@ parser.add_argument('--isc', type=float, default=0.0, metavar='REG',
 parser.add_argument('--csc', type=float, default=0.0, metavar='REG',
                     help='ConsistentSelection coefficient.')
 
+# multi_concept_classifier
+parser.add_argument('--multi_concept_weight', type=float, default=1., metavar='WEIGHT',
+                    help='Weight for multi_concept loss.')
+
 # evaluation during training
 parser.add_argument('--eval_mb_size', type=int, default=50, metavar='BS',
                     help='Number of images in a batch.')

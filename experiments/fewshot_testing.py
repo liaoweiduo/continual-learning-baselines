@@ -133,7 +133,7 @@ def fewshot_test(override_args=None):
         # ####################
         # STRATEGY INSTANCE
         # ####################
-        cl_strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args, early_stop=True)
+        cl_strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args, early_stop=True)
 
         cl_strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
         print("Training completed")

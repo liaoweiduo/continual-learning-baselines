@@ -23,7 +23,7 @@ from experiments.utils import create_default_args, create_experiment_folder, get
 from experiments.config import default_args, FIXED_CLASS_ORDER
 from experiments.fewshot_testing import fewshot_test
 from tests.utils import get_average_metric
-from strategies.select_module import SelectionPluginMetric
+from strategies.select_module import SelectionPluginMetric, ImageSimilarityPluginMetric
 
 
 def continual_train(override_args=None):
@@ -96,7 +96,9 @@ def continual_train(override_args=None):
             from models.resnet import get_resnet
             model = get_resnet(
                 multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path)
+                pretrained=pretrained, pretrained_model_path=pretrained_model_path,
+                add_multi_class_classifier=True if args.strategy == 'concept' else False
+            )
         elif args.model_backbone == "vit":
             from models.vit import get_vit
             model = get_vit(
@@ -132,12 +134,17 @@ def continual_train(override_args=None):
         # ####################
         # EVALUATION PLUGIN
         # ####################
+        if args.strategy == 'our':
+            image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False)
+            selection_plugin_metric = SelectionPluginMetric()
+        else:
+            image_similarity_plugin_metric = None
+            selection_plugin_metric = None
         metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
             metrics.forgetting_metrics(experience=True, stream=True),
             metrics.class_accuracy_metrics(stream=True),
-            SelectionPluginMetric(),
             metrics.timing_metrics(epoch=True),
             metrics.disk_usage_metrics(paths_to_monitor=exp_path, epoch=True),      # only train , experience=True
             metrics.cpu_usage_metrics(epoch=True),            # only train , experience=True
@@ -145,6 +152,11 @@ def continual_train(override_args=None):
         ]
         if args.cuda >= 0:
             metrics_list.append(metrics.gpu_usage_metrics(args.cuda, epoch=True))      # only train , experience=True
+        if args.strategy == 'our':
+            metrics_list.extend([
+                selection_plugin_metric,
+                image_similarity_plugin_metric,
+            ])
         # if args.dataset_mode == 'continual':
         #     metrics_list.extend([
         #         metrics.confusion_matrix_metrics(num_classes=benchmark.n_classes,
@@ -159,10 +171,13 @@ def continual_train(override_args=None):
         # ####################
         # STRATEGY INSTANCE
         # ####################
-        strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args,
+        strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args,
                                 early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
     else:
         model = strategy.model
+        image_similarity_plugin_metric = [
+            metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
+        ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
 
     # ####################
     # TRAINING LOOP
@@ -181,11 +196,25 @@ def continual_train(override_args=None):
             benchmark.label_info[2][cls_idx]
             for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
         ])
+
+        # if experience.current_experience == 0:    # issue: will has two /Task000/Exp000
+        #     print("Testing random model")
+        #     image_similarity_plugin_metric.set_active(True)
+        #     results.append(strategy.eval(benchmark.test_stream))
+        #     image_similarity_plugin_metric.set_active(False)
+
         strategy.train(experience, eval_streams=[val_task])
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")
+
+        if image_similarity_plugin_metric is not None:
+            image_similarity_plugin_metric.set_active(True)
+
         results.append(strategy.eval(benchmark.test_stream))
+
+        if image_similarity_plugin_metric is not None:
+            image_similarity_plugin_metric.set_active(False)
 
         # ####################
         # STORE CHECKPOINT
@@ -268,12 +297,12 @@ if __name__ == "__main__":
     # CUDA_VISIBLE_DEVICES=4 python experiments/continual_training.py
 
     '''fewshot test'''
-    if not default_args.skip_fewshot_testing:
+    if not default_args['skip_fewshot_testing']:
         common_args = {
             'use_wandb': False,
             'learning_rate': 0.001,
             'test_freeze_feature_extractor': True,
-            'strategy': default_args.strategy if default_args.strategy in ['our'] else 'naive',
+            'strategy': default_args['strategy'] if default_args['strategy'] in ['our'] else 'naive',
         }
         for dataset_mode in ['sys', 'pro', 'sub', 'non', 'noc']:
             common_args['dataset_mode'] = dataset_mode

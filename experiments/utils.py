@@ -57,7 +57,7 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
     return exp_path, checkpoint_path
 
 
-def get_strategy(name, model, device, evaluator, args, early_stop=True, plugins=None):
+def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=True, plugins=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     def make_scheduler(_optimizer):
@@ -155,10 +155,25 @@ def get_strategy(name, model, device, evaluator, args, early_stop=True, plugins=
             model,
             optimizer,
             CrossEntropyLoss(),
-            ssc=args.ssc,
-            scc=args.scc,
-            isc=args.isc,
-            csc=args.csc,
+            ssc=args.ssc, scc=args.scc,
+            isc=args.isc, csc=args.csc,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
+    elif name == 'concept':
+        from avalanche.training import Naive
+        from strategies.multi_concept_classifier import MultiConceptClassifier
+
+        plugins.append(MultiConceptClassifier(model, benchmark, weight=args.multi_concept_weight))
+
+        return Naive(
+            model,
+            optimizer,
+            CrossEntropyLoss(),
             train_mb_size=args.train_mb_size,
             train_epochs=args.epochs,
             eval_mb_size=args.eval_mb_size,

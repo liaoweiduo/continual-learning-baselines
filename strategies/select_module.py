@@ -1,7 +1,9 @@
-from typing import Optional, Sequence, List, Union, Dict
+from typing import Optional, Sequence, List, Union, Dict, Tuple
 from collections import Counter
+import math
 
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer, SGD
 from torchvision import transforms
@@ -47,6 +49,7 @@ class SelectionMetric(Metric):
         # todo: implement save_image=True
         self.save_image = save_image
         self._select_matrix = []
+        self._similarity_tensors = []
         self._labels = []
 
     def update(self, strategy):
@@ -60,8 +63,12 @@ class SelectionMetric(Metric):
         selected_idxs_each_layer = strategy.model.backbone.selected_idxs_each_layer
         # [n_layers* tensor[bs, n_modules]]: [4* tensor[64, 8]]
         selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)     # [64, 4, 8]
+        similarity_tensor = strategy.model.backbone.similarity_tensor
+        # n_layer*[bs, n_proto, Hl, Wl]     since they have different shape in each layer, can not be stack
         bs, n_layers, n_modules = selected_idxs_each_layer.shape
         selected_idxs = selected_idxs_each_layer.reshape(bs, -1)
+        self.n_layers = n_layers
+        self.n_modules = n_modules
         dim = n_layers * n_modules
         # [bs, dim]: [64, 32]
 
@@ -69,10 +76,11 @@ class SelectionMetric(Metric):
         batch_labels = strategy.mbatch[1]       # [bs,]: [64]
 
         self._select_matrix.append(selected_idxs)
+        self._similarity_tensors.append(similarity_tensor)
         self._labels.append(batch_labels)
 
     def result(
-            self, matrix=True, sparse=True, supcon=True,
+            self, matrix=True, simi=False, sparse=True, supcon=True,
             independent=False, consistent=False,
             return_float=True, **kwargs
     ):
@@ -87,8 +95,19 @@ class SelectionMetric(Metric):
         dic = {}
         if matrix:
             select_matrix, labels = self.prepare_matrix()
-            dic['Matrix'] = select_matrix.detach().cpu() if return_float else select_matrix
-            dic['Labels'] = labels.detach().cpu() if return_float else labels
+            dic['Matrix'] = select_matrix.detach().cpu().numpy() if return_float else select_matrix
+            dic['Labels'] = labels.detach().cpu().numpy() if return_float else labels
+
+            if simi:
+                # similarity tensors
+                similarity_tensors = self._similarity_tensors       # [n_batch* [n_layers* [bs, n_proto, Hl, Wl]]]
+                for layer_idx in range(len(similarity_tensors[0])):
+                    for proto_idx in range(similarity_tensors[0][0].shape[1]):
+                        per_layer_per_proto = torch.cat(
+                            [similarity_tensors[b_idx][layer_idx][:, proto_idx]
+                             for b_idx in range(len(similarity_tensors))])
+                        dic[f'SimilarityMatrix.l{layer_idx}.p{proto_idx}'] = per_layer_per_proto.detach(
+                        ).cpu().numpy() if return_float else per_layer_per_proto
 
         if sparse:
             sparse_loss = self.get_sparse_selection_loss()
@@ -106,10 +125,13 @@ class SelectionMetric(Metric):
             consistent_loss = self.get_consistent_selection_loss()
             dic['Consistent'] = consistent_loss.item() if return_float else consistent_loss
 
+        self.reset()
+
         return dic
 
     def reset(self):
         self._select_matrix = []
+        self._similarity_tensors = []
         self._labels = []
 
     def prepare_matrix(self):
@@ -206,8 +228,9 @@ class SelectionPluginMetric(PluginMetric):
         assert (mode in ['both', 'train', 'eval']
                 ), f'Current mode is {mode}, should be one of [both, train, eval].'
         self.mode = mode
-        self.save_image = False     # todo: need to implement
+        self.save_image = False
         self.matrix = matrix
+        self.simi = False
         self.sparse = sparse
         self.supcon = supcon
         self.independent = independent
@@ -238,7 +261,7 @@ class SelectionPluginMetric(PluginMetric):
         self._metric = SelectionMetric(self.save_image)
 
     def result(self, **kwargs):
-        dic = self._metric.result(matrix=self.matrix, sparse=self.sparse, supcon=self.supcon,
+        dic = self._metric.result(matrix=self.matrix, simi=self.simi, sparse=self.sparse, supcon=self.supcon,
                                   independent=self.independent, consistent=self.consistent)
 
         return dic
@@ -255,7 +278,9 @@ class SelectionPluginMetric(PluginMetric):
         super().after_training_iteration(strategy)
         if self.mode in ["train", "both"]:
             self.update(strategy)
-            return self._package_result(strategy)
+            result = self._package_result(strategy)
+            self.reset()
+            return result
 
     def before_eval_exp(self, strategy: "SupervisedTemplate"):
         super().before_eval_exp(strategy)
@@ -270,7 +295,9 @@ class SelectionPluginMetric(PluginMetric):
     def after_eval_exp(self, strategy: "SupervisedTemplate"):
         super().after_eval_exp(strategy)
         if self.mode in ["eval", "both"]:
-            return self._package_result(strategy)
+            result = self._package_result(strategy)
+            self.reset()
+            return result
 
     def __str__(self):
         return "SelectModule"
@@ -284,31 +311,38 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
     This plugin is not recommended during training,
     since it load and forward extra images to the model.
     """
-    def __init__(self, active=False, image_size=128, num_samples=100, num_proto=28):
+    def __init__(self, active=False, wandb_log=False, image_size=128, num_samples=10, num_proto=28):
         super().__init__(mode="eval", n_cols=1, n_rows=num_samples)
-        self.active = active
+        self.active = active        # since the eval during training is not needed for collecting masks
+        self.wandb_log = wandb_log
         self.image_size = image_size
         self.num_samples = num_samples
         self.num_proto = num_proto      # 4*7
 
+        self.wandb = None
+        if wandb_log:
+            import wandb
+            self.wandb = wandb
+
         self.eval_transform_no_norm = transforms.Compose([
             transforms.Resize(image_size),
             transforms.ToTensor(),
-        ])      # no use
+        ])
+        self.norm_transform = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
         self.images = []
+        self.images_no_norm = []
         self.labels = []
         self.tasks = []
-        self.similarity_tensors = []
 
     def set_active(self, active: bool):
         self.active = active
 
     def result(self, **kwargs):
-        return self.images, self.labels, self.tasks, self.similarity_tensors
+        return self.images, self.images_no_norm, self.labels, self.tasks
 
     def reset(self):
-        self.images, self.labels, self.tasks, self.similarity_tensors = [], [], [], []
+        self.images, self.images_no_norm, self.labels, self.tasks = [], [], [], []
 
     def _make_grid_sample(
         self, strategy: "SupervisedTemplate"
@@ -318,7 +352,9 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
 
         '''Forward model to get similarity_tensors'''
         model = strategy.model
-        batched_images = torch.stack(self.images).to(model.classifier.active_units_T0.device)       # [bs, 3, H, W]
+        batched_images = torch.stack(self.images).to(strategy.device)       # [bs, 3, H, W]
+        batched_images_no_norm = torch.stack(self.images_no_norm)
+        c = batched_images_no_norm.shape[-3]
 
         _ = model.backbone(batched_images)
         similarity_tensor = model.backbone.similarity_tensor    # n_layer*[bs, n_proto, Hl, Wl]
@@ -332,65 +368,153 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
 
         masks = []
         for layer_id, similarity_tensor_each_layer in enumerate(similarity_tensor):
-            bs, n_proto, Hl, Wl = similarity_tensor_each_layer.shape
-            c3tensor = torch.stack(
-                [similarity_tensor_each_layer, similarity_tensor_each_layer, similarity_tensor_each_layer],
-                dim=2
-            ).reshape(-1, 3, Hl, Wl)       # [bs*n_proto, 3, Hl, Wl]
-            resized_mask = torch.stack([resize_trans(img) for img in c3tensor])
-            H, W = resized_mask.shape[-2:]
-            resized_mask = resized_mask.reshape(bs, n_proto, 3, H, W)
+            bs, n_proto, hl, wl = similarity_tensor_each_layer.shape
+            resized_mask = torch.stack([
+                resize_trans(img)
+                for img in similarity_tensor_each_layer.reshape(-1, hl, wl)
+            ])
+            h, w = resized_mask.shape[-2:]
+            resized_mask = resized_mask.reshape(bs, n_proto, h, w)
             masks.append(resized_mask)
-        masks = torch.cat(masks, dim=1)     # [bs, n_layer*n_proto, 3, H, W]
+        masks = torch.stack(masks, dim=1)     # [bs, n_layer, n_proto, H, W]    n_layer*n_proto = self.num_proto
+        bs, n_layer, n_proto, h, w = masks.shape
+        #     c3tensor = torch.stack(
+        #         [similarity_tensor_each_layer, similarity_tensor_each_layer, similarity_tensor_each_layer],
+        #         dim=2
+        #     ).reshape(-1, 3, Hl, Wl)       # [bs*n_proto, 3, Hl, Wl]
+        #     resized_mask = torch.stack([resize_trans(img) for img in c3tensor])
+        #     H, W = resized_mask.shape[-2:]
+        #     resized_mask = resized_mask.reshape(bs, n_proto, 3, H, W)
+        #     masks.append(resized_mask)
+        # masks = torch.stack(masks, dim=1)     # [bs, n_layer, n_proto, 3, H, W]    n_layer*n_proto = self.num_proto
+        # bs, n_layer, n_proto, c, h, w = masks.shape
 
-        images = torch.cat([batched_images.unsqueeze(1), masks], dim=1)     # [bs, 1+n_layer*n_proto, 3, H, W]
-        images = images.reshape(-1, *images.shape[-3:])      # [bs*(1+n_layer*n_proto), 3, H, W]
-
-        return [
-            MetricValue(
-                self,
-                name=get_metric_name(
+        metric_name = get_metric_name(
                     self,
                     strategy,
                     add_experience=self.mode == "eval",
                     add_task=True,
-                ),
-                value=TensorImage(
-                    make_grid(
-                        list(images), normalize=False, nrow=self.num_proto+1
-                    )
-                ),
+                )
+
+        if self.wandb_log:
+            # prepare masks for wandb image for each prototype with name: ``l{l}.p{p}''
+            n_col = min(bs, 2)
+            grid_img = make_grid(list(batched_images_no_norm), normalize=False, nrow=n_col)
+
+            for layer_idx in range(n_layer):
+                mask_dict = {}
+                for proto_idx in range(n_proto):
+
+                    # binarize mask
+                    grid_mask = make_grid(
+                        list(masks[:, layer_idx, proto_idx].unsqueeze(1)), normalize=False, nrow=n_col)[0]
+                    # [0] for convert [3, HH, WW] to [HH, WW]
+                    binarized_grid_mask = (grid_mask > 0.2).int()       # threshold 0.5
+
+                    mask_dict[f'proto{proto_idx}'] = {
+                        "mask_data": binarized_grid_mask.numpy(),
+                        "class_labels": {0: "0", 1: "1"},
+                    }
+
+                wandb_image = self.wandb.Image(grid_img, masks=mask_dict)
+                self.wandb.log({f"{metric_name}/l{layer_idx}": wandb_image})
+
+        # apply mask on images
+        masks = masks - masks.min()
+        masks = masks / masks.max()      # normalize to [0, 1]
+        # masks = masks * 0.5 + 0.5     # normalize to [0.5, 1]
+        colored_masks = masks.reshape([bs, n_layer, n_proto, 1, h, w])
+        colored_masks = torch.cat((colored_masks, 0*colored_masks, 0*colored_masks), dim=-3)    # blue
+        masked_images = batched_images_no_norm.reshape(
+            [bs, 1, 1, c, h, w]) + 0.5 * colored_masks
+
+        images = torch.cat([batched_images_no_norm.unsqueeze(1),
+                            masked_images.reshape([bs, -1, c, h, w])], dim=1)     # [bs, 1+n_layer*n_proto, 3, H, W]
+        images = images.reshape(-1, *images.shape[-3:])  # [bs*(1+n_layer*n_proto), 3, H, W]
+
+        self.reset()
+
+        return [
+            MetricValue(
+                self,
+                name=metric_name,
+                value=make_grid(
+                    list(images), normalize=False, nrow=self.num_proto + 1
+                ).numpy(),
                 x_plot=strategy.clock.train_iterations,
-            )
+            ),
+            MetricValue(
+                self,
+                name=f"{metric_name}/images",
+                value=make_grid(
+                    list(batched_images_no_norm), normalize=False, nrow=min(bs, 5)
+                ).numpy(),
+                x_plot=strategy.clock.train_iterations,
+            ),
+            *[MetricValue(
+                self,
+                name=f"{metric_name}/masks.l{l}.p{p}",
+                value=make_grid(
+                    list(masks[:, l, p].unsqueeze(1)), normalize=False, nrow=min(bs, 5)
+                ).numpy(),
+                x_plot=strategy.clock.train_iterations,
+            ) for l in range(n_layer) for p in range(n_proto)],
         ]
 
     def _load_sorted_images(self, strategy: "SupervisedTemplate"):
         """Modify: labels and tasks as instance variables"""
         self.reset()
-        self.images, self.labels, self.tasks = self._load_data(strategy)
+        self.images, self.images_no_norm, self.labels, self.tasks = self._load_data(strategy)
         if self.group:
             self._sort_images(self.labels, self.tasks)
 
+    def _load_data(
+        self, strategy: "SupervisedTemplate"
+    ) -> Tuple[List[Tensor], List[Tensor], List[int], List[int]]:
+        """Modify: apply norm transform on images. provide w/ and w/o norm versions of images"""
+        dataloader = self._make_dataloader(
+            strategy.adapted_dataset, strategy.eval_mb_size
+        )
+
+        images, images_no_norm, labels, tasks = [], [], [], []
+
+        # todo: num_img for (label, task)
+        for batch_images, batch_labels, batch_tasks in dataloader:
+            n_missing_images = self.n_wanted_images - len(images)
+            labels.extend(batch_labels[:n_missing_images].tolist())
+            tasks.extend(batch_tasks[:n_missing_images].tolist())
+            raw_images = batch_images[:n_missing_images]
+            images_no_norm.extend([
+                img for img in raw_images
+            ])
+            images.extend([
+                self.norm_transform(img)
+                for img in raw_images
+            ])
+            if len(images) == self.n_wanted_images:
+                return images, images_no_norm, labels, tasks
+
     def _sort_images(self, labels: List[int], tasks: List[int]):
-        """Modify: also change self.labels and self.tasks"""
-        ts, ls, ims = [], [], []
-        for task, label, image in sorted(
-                zip(tasks, labels, self.images),
+        """Modify: also change self.labels and self.tasks and image_no_norm"""
+        ts, ls, ims, imns = [], [], [], []
+        for task, label, image, image_no_norm in sorted(
+                zip(tasks, labels, self.images, self.images_no_norm),
                 key=lambda t: (t[0], t[1]),
         ):
             ts.append(task)
             ls.append(label)
             ims.append(image)
+            imns.append(image_no_norm)
         self.images = ims
+        self.images_no_norm = imns
         self.labels = ls
         self.tasks = ts
 
     def _make_dataloader(
         self, data: "make_classification_dataset", mb_size: int
     ) -> DataLoader:
-        """Modify: use its transform, since we need forward images"""
-        # todo: if need to apply similarity mask on samples without normalization
-        # data_no_norm = data.replace_current_transform_group(self.eval_transform_no_norm)
+        """Modify: use transform without norm"""
+        data = data.replace_current_transform_group(self.eval_transform_no_norm)
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(
             dataset=data,

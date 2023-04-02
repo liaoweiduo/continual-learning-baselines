@@ -35,6 +35,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 from collections import OrderedDict
+from types import MethodType
 
 import torch.nn as nn
 import torch
@@ -200,7 +201,6 @@ class ResNet18(DynamicModule):
         super().__init__()
         self.resnet = resnet18()
         self.classifier = IncrementalClassifier(self.resnet.output_size, initial_out_features=initial_out_features)
-
         if pretrained:
             print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
             ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
@@ -253,11 +253,23 @@ class MTResNet18(MultiTaskModule, DynamicModule):
 
 def get_resnet(
         multi_head: bool = False,
-        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False):
+        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False,
+        add_multi_class_classifier=False, num_classes_in_multi_class_classifier=21
+):
     if multi_head:
         model = MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
     else:
         model = ResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+
+    if add_multi_class_classifier:
+        model.multi_class_classifier = nn.Linear(model.resnet.output_size, num_classes_in_multi_class_classifier)
+
+        def forward_multi_class(self, x):
+            out = self.resnet(x)
+            out = out.view(out.size(0), -1)
+            return self.multi_class_classifier(out)
+
+        model.forward_multi_class = MethodType(forward_multi_class, model)      # add method to model
 
     return model
 

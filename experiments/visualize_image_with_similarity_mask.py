@@ -12,12 +12,15 @@ import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss
 
+import wandb
+
 import avalanche as avl
 from avalanche.evaluation import metrics as metrics
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
     FileSystemCheckpointStorage
+from avalanche.evaluation.metrics.images_samples import ImagesSamplePlugin
 
 from experiments.utils import create_default_args, create_experiment_folder, get_strategy
 from experiments.config import default_args, FIXED_CLASS_ORDER
@@ -92,10 +95,13 @@ def main(override_args=None):
         from models.module_net import get_module_net
         model = get_module_net(
             multi_head=args.return_task_id,
-            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth')
+            # pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth')
         )
     else:
         model = strategy.model
+        wandb.finish()
+
+    model = model.to(device)
 
     loggers = []
     if args.use_interactive_logger:
@@ -112,9 +118,12 @@ def main(override_args=None):
 
         wandb_logger.wandb.watch(model)
 
-    image_similarity_plugin_metric = ImageSimilarityPluginMetric()
+    image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=True)
+    # image_sample_plugin = ImagesSamplePlugin(mode='eval', n_cols=5, n_rows=4)
     metrics_list = [
         image_similarity_plugin_metric,
+        SelectionPluginMetric(),
+        # image_sample_plugin,
     ]
     evaluation_plugin = EvaluationPlugin(
         *metrics_list,
@@ -123,20 +132,36 @@ def main(override_args=None):
     # ####################
     # STRATEGY INSTANCE
     # ####################
-    strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args,
-                            early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
+    strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args,
+                            early_stop=not args.disable_early_stop, plugins=[])
 
     print("No training is performed, just run plugin.")
+    results = []
+    image_similarity_plugin_metric.set_active(True)
+    results.append(strategy.eval(benchmark.test_stream[0]))
+    image_similarity_plugin_metric.set_active(False)
 
-    image_similarity_plugin_metric.active(True)
-    strategy.eval(benchmark.test_stream)
-    image_similarity_plugin_metric.active(False)
+    # ####################
+    # STORE RESULTS
+    # ####################
+    stored_results = []
+    for result in results:
+        re = dict()
+        for key, item in result.items():
+            if 'ConfusionMatrix' not in key:
+                re[key] = item
+        stored_results.append(re)
+    result_file = os.path.join(exp_path, f'results-{args.exp_name}-image-with-similarity-mask.npy')
+    print("Save results in", result_file)
+    np.save(result_file, stored_results)
 
     # finish wandb
     if wandb_logger is not None:
         wandb_logger.wandb.finish()
 
+    return results
+
 
 if __name__ == "__main__":
 
-    main()
+    results = main()

@@ -209,6 +209,8 @@ class SelectorModule(nn.Module):
         sm = F.softmax(dist.view(*dist.size()[:2], -1), dim=2).view_as(dist)
         # [bs, n_proto, H, W]   sim over H*W   sum on dim=(3, 4) = 1
 
+        # print(f'sm: {sm}')
+
         vecs = []
         for i in range(sm.size(1)):
             smi = sm[:, i].unsqueeze(1)
