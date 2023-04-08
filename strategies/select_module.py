@@ -201,6 +201,12 @@ class SelectionMetric(Metric):
         criterion = SupConLoss()
         structure_loss = criterion(select_matrix, labels)
 
+        if torch.isnan(structure_loss):
+            print(f'select_matrix: {select_matrix.tolist()}')
+            print(f'labels: {labels}')
+
+            raise Exception('structure_loss is nan')
+
         return structure_loss
 
     def get_independent_selection_loss(self):
