@@ -18,28 +18,32 @@ import torch.nn.functional as F
 from avalanche.models import BaseModel, MultiHeadClassifier, IncrementalClassifier, MultiTaskModule, DynamicModule
 
 from models.module_net_component import BackboneModule, SelectorModule
-# from module_net_component import BackboneModule, SelectorModule
 from models.resnet18_pnf import CatFilm
 
 
 class ModuleNetBackbone(nn.Module):
 
     def __init__(
-            self, num_layers=4, backbone_arch='resnet18_pnf', selector_mode='prototype',
-            image_size=128, in_channels=3, init_modules=7,
+            self, args, backbone_arch='vit_ia3', selector_mode='prototype',
+            in_channels=3, init_modules=7,
     ):
         super(ModuleNetBackbone, self).__init__()
-        self.num_layers = num_layers
+        self.args = args
+        self.num_layers = args['vit_depth'] if 'vit' in backbone_arch else 4    # 4 for resnet18
         self.backbone_arch = backbone_arch
         self.selector_mode = selector_mode
-        self.image_size = image_size
+        self.image_size = args['image_size']
         self.in_channels = in_channels  # img channels
         self.init_modules = init_modules   # num of modules init (init_modules + 1 modules in each layer)
-        self.inplanes = 64      # dim after encoder
 
-        assert (self.num_layers == 4
-                ), f"Number of layers should be 4, {self.num_layers} instead."
-        self.layer_out_dims = [64, 128, 256, 512]
+        if 'resnet18' in backbone_arch:
+            self.inplanes = 64      # dim after encoder
+            assert (self.num_layers == 4
+                    ), f"Number of layers should be 4, {self.num_layers} instead."
+            self.layer_out_dims = [64, 128, 256, 512]
+        else:   # vit
+            self.inplanes = self.args['vit_dim']      # dim after encoder
+            self.layer_out_dims = [self.args['vit_dim']] * self.num_layers  # [384, 384,..., 384]  shape [9]
 
         '''encoder & after backbone'''
         if 'resnet18' == self.backbone_arch:
@@ -60,6 +64,29 @@ class ModuleNetBackbone(nn.Module):
                 # nn.MaxPool2d(kernel_size=3, stride=2, padding=1),   # maxpool
             )
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        elif 'vit_ia3' == self.backbone_arch:
+            from models.vit import Encoder, pair
+
+            self.dim = args['vit_dim']
+            self.heads = args['vit_heads']
+            self.mlp_dim = args['vit_mlp_dim']
+            self.pool = 'cls'
+            image_height, image_width = pair(self.image_size)
+            patch_height, patch_width = pair(args['vit_patch_size'])
+            self.dropout = args['vit_dropout']
+            self.emb_dropout = args['vit_emb_dropout']
+
+            assert (image_height % patch_height == 0 and image_width % patch_width == 0
+                    ), 'Image dimensions must be divisible by the patch size.'
+
+            self.num_patches = (image_height // patch_height) * (image_width // patch_width)
+            self.patch_dim = self.in_channels * patch_height * patch_width
+            assert self.pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+            self.encoder = Encoder(patch_height, patch_width,
+                                   self.patch_dim, self.dim, self.num_patches, self.emb_dropout)
+
+            self.avgpool = nn.LayerNorm(self.dim)
         else:
             self.encoder = None
             self.avgpool = nn.Identity()
@@ -82,18 +109,27 @@ class ModuleNetBackbone(nn.Module):
         self.backbone = nn.ModuleList()
         in_channels = self.inplanes
         for layer_idx in range(self.num_layers):
+            params = {
+                    'in_channels': in_channels,
+                    'out_channels': self.layer_out_dims[layer_idx],
+                    'module_arch': self.backbone_arch,
+                    'layer_idx': layer_idx,
+                    'multi_head': self.init_modules + 1,      # 8
+            }
+            if 'vit' in self.backbone_arch:
+                params.update({
+                    'num_patches': self.num_patches,
+                    'heads': self.heads,
+                    'dim_head': 64,
+                    'mlp_dim': self.mlp_dim,
+                    'vit_dropout': self.dropout,
+                })
             self.backbone.append(
-                self.backbone_constructor(
-                    in_channels=in_channels,
-                    out_channels=self.layer_out_dims[layer_idx],
-                    module_arch=self.backbone_arch,
-                    layer_idx=layer_idx,
-                    multi_head=self.init_modules + 1,      # 8
-                )
+                self.backbone_constructor(**params)
             )
             if self.backbone_arch == 'resnet18':
                 in_channels = (self.layer_out_dims[layer_idx] // (self.init_modules + 1)) * (self.init_modules + 1)
-            else:       # elif 'resnet18_pnf' == self.backbone_arch:
+            else:       # elif 'resnet18_pnf' == self.backbone_arch: or vit_ia3
                 in_channels = self.layer_out_dims[layer_idx]
 
     def init_selector(self):
@@ -102,13 +138,15 @@ class ModuleNetBackbone(nn.Module):
         for layer_idx in range(self.num_layers):
             rep_dim = self.layer_out_dims[layer_idx] // (self.init_modules + 1) \
                 if self.backbone_arch == 'resnet18' else self.layer_out_dims[layer_idx]      # 64 // 8
+            proj = True if 'resnet18' in self.backbone_arch else False
             self.selector.append(
                 self.selector_constructor(
                     in_channels=in_channels,
                     rep_dim=rep_dim,
                     init_n_class=self.init_modules,
                     mode=self.selector_mode,
-                    layer_idx=layer_idx
+                    layer_idx=layer_idx,
+                    proj=proj,
                 )
             )
             if self.backbone_arch == 'resnet18':
@@ -139,13 +177,17 @@ class ModuleNetBackbone(nn.Module):
             # module
             out = self.backbone[layer_idx](x)
             for module_idx in range(self.init_modules + 1):
-                masked_out = out[module_idx] * selected_idxs[:, module_idx].view(selected_idxs.shape[0], 1, 1, 1)
+                masked_out = out[module_idx] * selected_idxs[:, module_idx].view(
+                    selected_idxs.shape[0], *[1]*(len(x.shape) - 1))
                 out[module_idx] = masked_out
 
             if 'resnet18' == self.backbone_arch:
                 x = torch.cat(out, dim=1)     # [bs, dim_out, H, W]
-            elif 'resnet18_pnf' == self.backbone_arch:
+            elif self.backbone_arch in ['resnet18_pnf', 'vit_ia3']:
                 x = torch.sum(torch.stack(out), dim=0)
+
+        if self.backbone_arch == 'vit_ia3':
+            x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
@@ -154,15 +196,15 @@ class ModuleNetBackbone(nn.Module):
 
     @property
     def output_size(self):
-        return 512
+        return self.layer_out_dims[-1]
 
 
 class ModuleNet(DynamicModule):
     """ ModuleNet with incremental classifier.
     """
-    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+    def __init__(self, args, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
         super().__init__()
-        self.backbone = ModuleNetBackbone()
+        self.backbone = ModuleNetBackbone(args)
         self.classifier = IncrementalClassifier(self.backbone.output_size, initial_out_features=initial_out_features)
 
         if pretrained:
@@ -188,10 +230,10 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
     """ ModuleNet with multitask classifier.
     """
 
-    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None,
+    def __init__(self, args, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None,
                  fix=False, load_classifier=False):
         super().__init__()
-        self.backbone = ModuleNetBackbone()
+        self.backbone = ModuleNetBackbone(args)
         self.classifier = MultiHeadClassifier(self.backbone.output_size, initial_out_features=initial_out_features)
 
         if pretrained:
@@ -214,12 +256,14 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
 
 
 def get_module_net(
+        args,
         multi_head: bool = False,
-        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False):
+        initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False,
+        ):
     if multi_head:
-        model = MTModuleNet(initial_out_features, pretrained, pretrained_model_path, fix)
+        model = MTModuleNet(args, initial_out_features, pretrained, pretrained_model_path, fix)
     else:
-        model = ModuleNet(initial_out_features, pretrained, pretrained_model_path, fix)
+        model = ModuleNet(args, initial_out_features, pretrained, pretrained_model_path, fix)
 
     return model
 
@@ -228,19 +272,29 @@ __all__ = ['ModuleNetBackbone', 'ModuleNet', 'MTModuleNet', 'get_module_net']
 
 
 if __name__ == '__main__':
-    model = ModuleNetBackbone(init_modules=7)
+    _args = {
+        'image_size': 224,
+        'model_backbone': 'vit',
+        'vit_patch_size': 16,
+        'vit_dim': 384,
+        'vit_depth': 9,
+        'vit_heads': 16,
+        'vit_mlp_dim': 1536,
+        'vit_dropout': 0.1,
+        'vit_emb_dropout': 0.1,
+    }
+    model = ModuleNetBackbone(_args)
 
-    X = torch.randn((3, 3, 128, 128))
+    X = torch.randn((4, 3, 224, 224))
 
-    Out = model(X)
+    _out = model(X)
 
-    from models import get_parameter_number
+    from models._models import get_parameter_number
 
-    d = get_parameter_number(model)
+    _d = get_parameter_number(model)
     # model = torch.nn.DataParallel(model)
-    print(d)
-    print(f'Total number of parameters: {d["Total"] / 1024 / 1024:.2f}MB, '
-          f'memory size: {d["Total"] * 4 / 1024 / 1024:.2f}MB')
-    print(f'Total number of trainable parameters: {d["Trainable"] / 1024 / 1024:.2f}MB, '
-          f'memory size: {d["Trainable"] * 4 / 1024 / 1024:.2f}MB')
-
+    print(_d)
+    print(f'Total number of parameters: {_d["Total"] / 1024 / 1024:.2f}MB, '
+          f'memory size: {_d["Total"] * 4 / 1024 / 1024:.2f}MB')
+    print(f'Total number of trainable parameters: {_d["Trainable"] / 1024 / 1024:.2f}MB, '
+          f'memory size: {_d["Trainable"] * 4 / 1024 / 1024:.2f}MB')

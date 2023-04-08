@@ -22,7 +22,8 @@ parser.add_argument('--num_samples_each_label', type=int, default=-1, metavar='N
 # model args
 parser.add_argument('--model_backbone', type=str, default='resnet18', metavar='MODEL_BACKBONE',
                     choices=['resnet18', 'vit'],
-                    help='Backbone of the feature extractor.')
+                    help='Backbone of the feature extractor. '
+                         'Will influence transform for train and eval.')
 parser.add_argument('--model_pretrained', action='store_true', help="Using pretrained model for learning or not.")
 parser.add_argument('--cuda', type=int, default=0, metavar='CUDA',
                     help='The cuda device id, default to 0 '
@@ -38,7 +39,7 @@ parser.add_argument('--vit_emb_dropout', type=float, default=0.1, metavar='VIT',
 
 # train args
 parser.add_argument('--train_num_exp', type=int, default=-1, metavar='NUM',
-                    help='Number of experiments to train in this run (default: -1 finish all exps).')
+                    help='Number of experiments to train (default: -1 finish all exps).')
 parser.add_argument('--train_mb_size', type=int, default=100, metavar='BS',
                     help='Number of images in a batch.')
 parser.add_argument('--epochs', type=int, default=100, metavar='EPOCHS',
@@ -108,9 +109,12 @@ parser.add_argument('--ewc_decay', type=float, default=0.0, metavar='EWC',
                     help='Only used when ewc mode is `onlineweightedsum`.')
 
 # our args
-parser.add_argument('--ssc', type=float, default=0.1, metavar='REG',
+parser.add_argument('--ssc', type=float, default=1, metavar='REG',
                     help='SparseSelection coefficient.')
-parser.add_argument('--scc', type=float, default=0.1, metavar='REG',
+parser.add_argument('--ssc_threshold', type=float, default=2, metavar='REG',
+                    help='Number of maximal modules can be selected in each layer.'
+                         'Larger than this threshold, ssc will penalize it.')
+parser.add_argument('--scc', type=float, default=1, metavar='REG',
                     help='SupConLoss coefficient.')
 parser.add_argument('--isc', type=float, default=0.0, metavar='REG',
                     help='IndependentSelection coefficient.')
@@ -134,6 +138,8 @@ parser.add_argument('--eval_patience', type=int, default=5, metavar='PATIENCE',
 # test args
 parser.add_argument('--skip_fewshot_testing', action='store_true',
                     help='Whether to do fewshot testing after the continual training.')
+parser.add_argument('--ignore_finished_testing', action='store_true',
+                    help='Whether to check if have done the specific few-shot testing True not check.')
 parser.add_argument('--test_n_experiences', type=int, default=300, metavar='NEXPERIENCES',
                     help='Number of few-shot tasks.')
 parser.add_argument('--test_n_way', type=int, default=10, metavar='WAY',

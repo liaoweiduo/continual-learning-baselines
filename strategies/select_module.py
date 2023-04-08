@@ -48,6 +48,8 @@ class SelectionMetric(Metric):
     def __init__(self, save_image=False):
         # todo: implement save_image=True
         self.save_image = save_image
+        self.sparse_threshold = 2
+
         self._select_matrix = []
         self._similarity_tensors = []
         self._labels = []
@@ -143,13 +145,31 @@ class SelectionMetric(Metric):
         labels = torch.cat(self._labels)
         return select_matrix, labels
 
-    def get_sparse_selection_loss(self):
+    def get_sparse_selection_loss(self, sparse_threshold=2):
         """l1 norm: torch.mean"""
         select_matrix, labels = self.prepare_matrix()
         if select_matrix is None:
             return torch.tensor(0)
 
-        structure_loss = torch.mean(select_matrix)
+        bs = select_matrix.shape[0]
+        n_layers = self.n_layers
+        n_modules = self.n_modules
+        assert select_matrix.shape[1] == n_layers * n_modules
+
+        # penalty num_module selected larger than sparse_threshold
+        select_matrix = select_matrix.reshape(bs, n_layers, n_modules)
+        sum_over_layer = torch.sum(select_matrix, dim=-1)
+        # mask out <= sparse_threshold+1, here +1 for identity module
+        sum_over_layer = torch.where(sum_over_layer > sparse_threshold + 1, sum_over_layer, 0)
+
+        structure_loss = torch.sum(sum_over_layer) / (bs * n_layers * n_modules)
+
+        # penalty mask for identity modules
+        # mask = torch.ones_like(select_matrix)
+        # for layer_idx in range(n_layers):
+        #     mask[:, (layer_idx + 1) * n_modules - 1] = 10
+        #
+        # structure_loss = torch.mean(select_matrix * mask)
 
         return structure_loss
 
@@ -163,8 +183,17 @@ class SelectionMetric(Metric):
         if min(Counter(labels.tolist()).values()) == 1:
             return torch.tensor(0)
 
+        '''mask out identity'''
+        bs = select_matrix.shape[0]
+        n_layers = self.n_layers
+        n_modules = self.n_modules
+        assert select_matrix.shape[1] == n_layers * n_modules
+        select_matrix = select_matrix.reshape(bs, n_layers, n_modules)
+        select_matrix = select_matrix[:, :, :-1]        # [bs, n_layers, n_modules - 1]
+        select_matrix = select_matrix.reshape(bs, n_layers * (n_modules - 1))
+
         'norm to Euclidean dist = 1'
-        select_matrix = select_matrix.unsqueeze(1)    # [n_samp, 1, 32]
+        select_matrix = select_matrix.unsqueeze(1)    # [n_samp, 1, 28]
         select_matrix = select_matrix / torch.norm(select_matrix, dim=2, p=2, keepdim=True)
 
         criterion = SupConLoss()
@@ -223,14 +252,15 @@ class SelectionPluginMetric(PluginMetric):
     """Metric used to output selected modules on all layers.
     """
 
-    def __init__(self, mode='both', matrix=True, sparse=True, supcon=True, independent=False, consistent=False):
+    def __init__(self, mode='both', matrix=True, simi=False,
+                 sparse=True, supcon=True, independent=False, consistent=False):
         super().__init__()
         assert (mode in ['both', 'train', 'eval']
                 ), f'Current mode is {mode}, should be one of [both, train, eval].'
         self.mode = mode
         self.save_image = False
         self.matrix = matrix
-        self.simi = False
+        self.simi = simi
         self.sparse = sparse
         self.supcon = supcon
         self.independent = independent

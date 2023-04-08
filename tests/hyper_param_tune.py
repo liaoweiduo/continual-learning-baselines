@@ -12,7 +12,7 @@ import wandb
 import copy
 
 from experiments.continual_training import continual_train
-from tests.utils import template_exp_sh, template_tencent, return_time
+from tests.utils import template_exp_sh, template_sustech, return_time
 
 
 def generate_params(common_args, param_grid, exp_name_template):
@@ -98,23 +98,26 @@ def main(params):
             iter += 1
 
     '''Generate json and sh for Tencent servers'''
-    template_tencent(
+    template_sustech(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
-        path=f'../avalanche-experiments/tasks/{task_name}')
+        path=f'../avalanche-experiments/tasks/{task_name}',
+        device='v100'
+    )
 
 
 task_name = return_time()   # defined by time
 task_root = 'tests/tasks'        # path for sh
-num_runs_1sh = 2       # num of runs in 1 sh file
+num_runs_1sh = 1       # num of runs in 1 sh file
 common_args = {
     'use_wandb': False,
     'use_interactive_logger': False,
     'project_name': 'CGQA',
     'dataset': 'cgqa',
-    'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
-    'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
 }
+# for tencent server:
+# 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
+# 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
 
 params = []
 

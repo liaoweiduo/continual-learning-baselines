@@ -134,6 +134,44 @@ def template_tencent(name_list, cmd_path, path):
         f.write(task_str)
 
 
+def template_sustech(name_list, cmd_path, path, device='v100'):
+    """
+    Generate slurm bash for file_list and 1 sh contains all sbatch $run_id$.slurm
+    """
+    '''Make dir'''
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    task_str = f"#!/bin/sh"
+
+    '''Generate slurm bash'''
+    for idx, name in enumerate(name_list):
+        task_str += f"\nsbatch {name}.slurm"
+
+        template_str = \
+            f"#!/bin/bash\n" \
+            f"#SBATCH --error=output/job.%j.err\n" \
+            f"#SBATCH --output output/job.%j.out\n" \
+            f"#SBATCH -p {device}\n" \
+            f"#SBATCH --qos={device}\n" \
+            f"#SBATCH -J l{name}\n" \
+            f"#SBATCH --nodes=1\n" \
+            f"#SBATCH --ntasks-per-node=10\n" \
+            f"#SBATCH --gres=gpu:1\n" \
+            f"ulimit -n 10000\n" \
+            f"cd ../datasets/continual-learning-baselines\n" \
+            f"export WANDB_MODE=offline\n" \
+            f"singularity exec --bind ~/datasets:/liaoweiduo --nv ~/sif/avalanche.sif sh {cmd_path}/{name}.sh\n"
+
+        '''Write to file'''
+        with open(os.path.join(path, f'{name}.slurm'), 'w', newline='') as f:
+            f.write(template_str)
+
+    '''Generate task.sh'''
+    with open(os.path.join(path, 'task.sh'), 'w', newline='') as f:
+        f.write(task_str)
+
+
 if __name__ == '__main__':
     # template_exp_sh('experiments/continual_training.py',
     #                 f'tasks/{return_time()}',

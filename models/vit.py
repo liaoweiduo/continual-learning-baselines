@@ -49,10 +49,28 @@ Modification: change all nn.LayerNorm -> nn.BatchNorm1d or nn.BatchNorm1d?
 
 # helpers
 
+
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
 
 # classes
+
+
+class IA3(nn.Module):
+    """IA3 layer that performs per-channel affine transformation."""
+    def __init__(self, planes):
+        super(IA3, self).__init__()
+        self.gamma = nn.Parameter(torch.ones(1, planes))
+        # self.beta = nn.Parameter(torch.zeros(1, planes))
+
+    def forward(self, x):
+        # gamma = self.gamma.view(1, -1, 1, 1)
+        # beta = self.beta.view(1, -1, 1, 1)
+        # x = gamma * x + beta
+
+        x = self.gamma * x
+        return x
+
 
 class PreNorm(nn.Module):
     def __init__(self, dim, bn_dim, fn):
@@ -60,11 +78,13 @@ class PreNorm(nn.Module):
         self.norm = nn.LayerNorm(dim)
         # self.norm = nn.BatchNorm1d(bn_dim)
         self.fn = fn
+
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
 
+
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout = 0.):
+    def __init__(self, dim, hidden_dim, dropout=0.):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
@@ -73,22 +93,48 @@ class FeedForward(nn.Module):
             nn.Linear(hidden_dim, dim),
             nn.Dropout(dropout)
         )
+
     def forward(self, x):
         return self.net(x)
 
-class Attention(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
+
+class FeedForwardIA3(nn.Module):
+    def __init__(self, dim, hidden_dim, dropout=0., multi_head=1):
         super().__init__()
-        inner_dim = dim_head *  heads
+        self.multi_head = multi_head
+
+        self.net_before_IA3 = nn.Sequential(
+            nn.Linear(dim, hidden_dim),
+            nn.GELU(),
+        )
+        self.IA3_ff = nn.ModuleList([IA3(hidden_dim) for _ in range(multi_head)])
+        self.net_after_IA3 = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, dim),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x, head_idx):
+        x = self.net_before_IA3(x)
+        x = self.IA3_ff[head_idx](x)
+        x = self.net_after_IA3(x)
+
+        return x
+
+
+class Attention(nn.Module):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+        super().__init__()
+        inner_dim = dim_head * heads
         project_out = not (heads == 1 and dim_head == dim)
 
         self.heads = heads
         self.scale = dim_head ** -0.5
 
-        self.attend = nn.Softmax(dim = -1)
+        self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
 
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
 
         self.to_out = nn.Sequential(
             nn.Linear(inner_dim, dim),
@@ -97,7 +143,7 @@ class Attention(nn.Module):
 
     def forward(self, x):
         qkv = self.to_qkv(x).chunk(3, dim = -1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.heads), qkv)
 
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
@@ -108,26 +154,114 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
 
-class T_block(nn.Module):
-    def __init__(self, dim, bn_dim, heads, dim_head, mlp_dim, dropout = 0.):
+
+class AttentionIA3(nn.Module):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0., multi_head=1):
         super().__init__()
-        self.attn = PreNorm(dim, bn_dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout))
-        self.ff = PreNorm(dim, bn_dim, FeedForward(dim, mlp_dim, dropout = dropout))
+        inner_dim = dim_head * heads
+        project_out = not (heads == 1 and dim_head == dim)
+
+        self.heads = heads
+        self.scale = dim_head ** -0.5
+
+        self.attend = nn.Softmax(dim=-1)
+        self.dropout = nn.Dropout(dropout)
+
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
+
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout)
+        ) if project_out else nn.Identity()
+
+        self.multi_head = multi_head
+        self.IA3_k = nn.ModuleList([IA3(dim_head) for _ in range(multi_head)])
+        self.IA3_v = nn.ModuleList([IA3(dim_head) for _ in range(multi_head)])
+
+    def forward(self, x, head_idx):
+        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
+        # bs, patch_size, 1+num_patches, dim_head
+        k = self.IA3_k[head_idx](k)
+        v = self.IA3_v[head_idx](v)
+
+        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+
+        attn = self.attend(dots)
+        attn = self.dropout(attn)
+
+        out = torch.matmul(attn, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        return self.to_out(out)
+
+
+class T_block(nn.Module):
+    def __init__(self, dim, bn_dim, heads, dim_head, mlp_dim, dropout=0.):
+        super().__init__()
+        self.attn = PreNorm(dim, bn_dim, Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout))
+        self.ff = PreNorm(dim, bn_dim, FeedForward(dim, mlp_dim, dropout=dropout))
+
     def forward(self, x):
         x = self.attn(x) + x
         x = self.ff(x) + x
         return x
 
+
+class TBlockIA3(nn.Module):
+    def __init__(self, dim, bn_dim, heads, dim_head, mlp_dim, dropout=0., multi_head=1):
+        # the multi_head is for IA3, different from the heads in MHA
+        super().__init__()
+        self.multi_head = multi_head
+        self.attn = PreNorm(dim, bn_dim,
+                            AttentionIA3(dim, heads=heads, dim_head=dim_head, dropout=dropout, multi_head=multi_head))
+        self.ff = PreNorm(dim, bn_dim, FeedForwardIA3(dim, mlp_dim, dropout=dropout, multi_head=multi_head))
+
+    def forward(self, x, head_idx):
+        x = self.attn(x, head_idx=head_idx) + x
+        x = self.ff(x, head_idx=head_idx) + x
+        return x
+
+
 class Transformer(nn.Module):
-    def __init__(self, dim, bn_dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, bn_dim, depth, heads, dim_head, mlp_dim, dropout=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(T_block(dim, bn_dim, heads, dim_head, mlp_dim, dropout))
+
     def forward(self, x):
         for blk in self.layers:
             x = blk(x)
         return x
+
+
+class Encoder(nn.Module):
+    def __init__(self, patch_height, patch_width, patch_dim, dim, num_patches, emb_dropout):
+        super().__init__()
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_height, p2=patch_width),
+            # nn.BatchNorm1d(num_patches),
+            nn.LayerNorm(patch_dim),
+            nn.Linear(patch_dim, dim),
+            # nn.BatchNorm1d(num_patches),
+            nn.LayerNorm(dim),
+        )
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+
+    def forward(self, img):
+        x = self.to_patch_embedding(img)
+        b, n, _ = x.shape
+
+        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, :(n + 1)]
+        x = self.dropout(x)
+
+        return x
+
 
 class ViT(nn.Module):
     """
@@ -148,18 +282,7 @@ class ViT(nn.Module):
         patch_dim = channels * patch_height * patch_width
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
-            # nn.BatchNorm1d(num_patches),
-            nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, dim),
-            # nn.BatchNorm1d(num_patches),
-            nn.LayerNorm(dim),
-        )
-
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
-        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
-        self.dropout = nn.Dropout(emb_dropout)
+        self.encoder = Encoder(patch_height, patch_width, patch_dim, dim, num_patches, emb_dropout)
 
         self.transformer = Transformer(dim, num_patches + 1, depth, heads, dim_head, mlp_dim, dropout)
 
@@ -173,17 +296,11 @@ class ViT(nn.Module):
         )
 
     def forward(self, img):
-        x = self.to_patch_embedding(img)
-        b, n, _ = x.shape
-
-        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b)
-        x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, :(n + 1)]
-        x = self.dropout(x)
+        x = self.encoder(img)
 
         x = self.transformer(x)
 
-        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
 
         x = self.to_latent(x)
         return self.mlp_head(x)
@@ -297,7 +414,7 @@ def get_vit(
                     pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix)
 
 
-__all__ = ['DViT', 'MTViT', 'get_vit']
+__all__ = ['DViT', 'MTViT', 'get_vit', 'Encoder', 'pair', 'TBlockIA3']
 
 
 if __name__ == '__main__':

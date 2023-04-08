@@ -115,3 +115,49 @@ if __name__ == "__main__":
     _labels = torch.Tensor([0, 1, 2]).long()
     _loss2 = criterion(_features, _labels)
     # _loss2 = tensor(9.2037)
+
+    torch.random.manual_seed(0)
+    criterion = SupConLoss()
+    _features = torch.Tensor([
+        [[0, 0, 0, 1, 1, 1, 0, 0, 0]],
+        [[0, 0, 0, 1, 1, 1, 0, 0, 0]],
+        [[1, 1, 1, 0, 0, 0, 0, 0, 0]],
+        [[1, 1, 1, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 1, 1, 1]],
+        [[0, 0, 0, 0, 0, 0, 1, 1, 1]],
+    ]).cuda().requires_grad_(True)
+    _features = _features / torch.norm(_features, dim=2, p=2, keepdim=True)  # norm with Euclidean dis = 1
+    _labels = torch.Tensor([0, 0, 1, 1, 2, 2]).long().cuda()
+    _loss3 = criterion(_features, _labels)
+    # _loss3 = tensor(2.4239e-06)
+
+    torch.random.manual_seed(0)
+    criterion = SupConLoss()
+    _features = torch.Tensor([
+        [[0, 0, 0, 1, 1, 1, 0, 0, 0]],
+        [[0, 1, 0, 1, 1, 1, 0, 0, 0]],
+        [[1, 1, 1, 0, 0, 0, 0, 0, 0]],
+        [[1, 1, 1, 0, 1, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 1, 1, 1]],
+        [[0, 1, 0, 0, 0, 0, 1, 1, 1]],
+    ]).cuda().requires_grad_(True)
+    _features = _features / torch.norm(_features, dim=2, p=2, keepdim=True)  # norm with Euclidean dis = 1
+    _labels = torch.Tensor([0, 0, 1, 1, 2, 2]).long().cuda()
+    _loss4 = criterion(_features, _labels)
+    # _loss4 = tensor(0.0022)
+
+    torch.random.manual_seed(0)
+    criterion = SupConLoss()
+    _features = torch.Tensor([
+        [[0, 0, 1, 1, 0, 1, 0, 0, 1]],
+        [[0, 1, 0, 1, 1, 1, 0, 0, 0]],
+        [[1, 1, 0, 0, 1, 0, 0, 0, 0]],
+        [[1, 1, 1, 0, 1, 0, 0, 0, 0]],
+        [[0, 0, 1, 0, 0, 0, 1, 1, 1]],
+        [[0, 1, 0, 0, 0, 0, 1, 1, 1]],
+        [[1, 0, 0, 1, 0, 1, 0, 1, 1]],
+    ]).cuda().requires_grad_(True)
+    _features = _features / torch.norm(_features, dim=2, p=2, keepdim=True)  # norm with Euclidean dis = 1
+    _labels = torch.Tensor([0, 0, 1, 1, 2, 2, 2]).long().cuda()
+    _loss5 = criterion(_features, _labels)
+    # _loss5 = tensor(1.7191, device='cuda:0', grad_fn=<MeanBackward0>)

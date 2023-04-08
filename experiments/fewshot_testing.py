@@ -49,6 +49,12 @@ def fewshot_test(override_args=None):
                           if torch.cuda.is_available() and
                           args.cuda >= 0 else "cpu")
 
+    if not args.ignore_finished_testing:
+        '''Check whether this testing has been done'''
+        if os.path.exists(os.path.join(exp_path, f'results-{args.exp_name}.npy')):
+            print(f"{args.exp_name} has alreadly finished. Pass.")
+            return None
+
     # ####################
     # BENCHMARK & MODEL
     # ####################
@@ -93,6 +99,8 @@ def fewshot_test(override_args=None):
     ]
     if args.use_interactive_logger:
         loggers.append(avl.logging.InteractiveLogger())
+
+    wandb_logger = None
     if args.use_wandb:
         wandb_logger = avl.logging.WandBLogger(
             project_name=args.project_name, run_name=args.exp_name,
@@ -160,11 +168,19 @@ def fewshot_test(override_args=None):
 
     print('###################################')
     print('accs:', accs)
+
+    avg_test_acc = np.mean(accs)
+    std_test_acc = np.std(accs)
+    ci95_test_acc = 1.96 * (std_test_acc/np.sqrt(args.test_n_experiences))
     print(f'Top1_Acc_Stream/eval_phase/test_stream: '
-          f'{np.mean(accs)*100:.2f}% +- {1.96 * (np.std(accs)/np.sqrt(args.test_n_experiences)) * 100:.2f}%)')
+          f'{avg_test_acc*100:.2f}% +- {ci95_test_acc * 100:.2f}%)')
+    if wandb_logger is not None:
+        wandb_logger.wandb.log({'avg_test_acc': avg_test_acc,
+                                'std_test_acc': std_test_acc,
+                                'ci95_test_acc': ci95_test_acc})
 
     # finish wandb
-    if args.use_wandb:
+    if wandb_logger is not None:
         wandb_logger.wandb.finish()
 
     return results

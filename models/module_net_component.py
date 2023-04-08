@@ -16,6 +16,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from einops import rearrange
+
 from avalanche.models import BaseModel, MultiHeadClassifier, IncrementalClassifier, MultiTaskModule, DynamicModule
 
 
@@ -23,7 +25,7 @@ class BackboneModule(nn.Module):
     """ manage modules in one layer for backbones.
     """
     def __init__(self, in_channels, out_channels, module_arch='resnet18_pnf', layer_idx=0, dropout=0,
-                 multi_head=1, identity=True):
+                 multi_head=1, identity=True, **kwargs):
         super(BackboneModule, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -31,6 +33,8 @@ class BackboneModule(nn.Module):
         self.layer_idx = layer_idx
         self.multi_head = multi_head        # num of modules in this layer
         self.identity = identity            # true if the last module is identity module
+        self.kwargs = kwargs
+
         if 'resnet18' == module_arch:
             from models.resnet import conv1x1, BasicBlock
 
@@ -105,6 +109,19 @@ class BackboneModule(nn.Module):
                     blocks=2, stride=1 if layer_idx == 0 else 2, _multi_head=1)) if self.identity else None
             self.freeze(-1)     # freeze the identity module
 
+        elif 'vit_ia3' == module_arch:
+            from models.vit import TBlockIA3
+            assert self.in_channels == self.out_channels
+            assert 'num_patches' in self.kwargs.keys()
+            num_blocks = self.multi_head - 1 if self.identity else self.multi_head
+            self._blocks = nn.ModuleList([      # consistent with resnet18_pnf
+                TBlockIA3(self.in_channels, self.kwargs['num_patches'] + 1,
+                          heads=self.kwargs['heads'], dim_head=self.kwargs['dim_head'],
+                          mlp_dim=self.kwargs['mlp_dim'], dropout=self.kwargs['vit_dropout'],
+                          multi_head=num_blocks)])
+            self._identity = nn.Identity()
+            # todo: if self.in_channels is not self.out_channels, use a frozen random TBlockIA3.
+
         else:
             raise Exception(f'Un-implemented module_arch: {module_arch}.')
 
@@ -130,7 +147,7 @@ class BackboneModule(nn.Module):
 
         if self.identity and module_idx == self.multi_head - 1:     # forward identity module.
             x = self._identity(x)
-        elif self.module_arch == 'resnet18_pnf':
+        elif self.module_arch in ['resnet18_pnf', 'vit_ia3']:
             for block_idx in range(len(self._blocks)):
                 x = self._blocks[block_idx](x, module_idx)
         else:
@@ -164,10 +181,10 @@ class SelectorModule(nn.Module):
     """
     def __init__(self, in_channels, rep_dim, init_n_class,
                  mode='prototype', layer_idx=0,
-                 pooling_before=False, proj=True, metric='dot', bn=True, layer_norm=True):
+                 pooling_before=False, proj=False, metric='dot', bn=True, layer_norm=True):
         super(SelectorModule, self).__init__()
         self.in_channels = in_channels
-        self.rep_dim = rep_dim
+        self.rep_dim = rep_dim      # dim for prototypes and projected_x
         self.n_class = init_n_class     # num of concepts
         self.mode = mode
         self.layer_idx = layer_idx
@@ -176,6 +193,9 @@ class SelectorModule(nn.Module):
         self.metric = metric
         self.bn = bn
         self.layer_norm = layer_norm  # True use layer_norm for normalizing similarity matrix, else use standard.
+
+        assert (in_channels == rep_dim or proj
+                ), f"in_channels should equals rep_dim or proj == True"
 
         if self.proj:
             self.conv1 = nn.Conv2d(in_channels, self.rep_dim, kernel_size=1)
@@ -198,6 +218,10 @@ class SelectorModule(nn.Module):
         self.ones = nn.Parameter(torch.ones(self.prototype_shape), requires_grad=False)
 
     def forward(self, x):
+        if len(x.shape) == 3:       # forward on vit
+            # view (bs, 1+n_patches, dim) to (bs, dim, n_patches, 1)
+            x = rearrange(x[:, 1:, :], 'b n d -> b d n 1')
+
         if self.pooling_before:
             x = F.adaptive_avg_pool2d(x, (1, 1))
 
@@ -262,8 +286,11 @@ class SelectorModule(nn.Module):
             out = self._gumbel_hard_sigmoid(out)        # [bs, n_proto]
 
         '''handle none selection case'''
-        out_identity = torch.zeros(out.shape[0], 1).to(out.device)
-        out_identity[out.detach().sum(1) == 0] = 1
+        # out_identity = torch.zeros(out.shape[0], 1).to(out.device)
+        # out_identity[out.detach().sum(1) == 0] = 1
+
+        '''identity'''
+        out_identity = torch.ones(out.shape[0], 1).to(out.device)
 
         out = torch.cat([out, out_identity], dim=1)     # [bs, n_proto + 1]
 

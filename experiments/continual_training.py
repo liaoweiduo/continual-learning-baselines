@@ -80,6 +80,8 @@ def continual_train(override_args=None):
     strategy, initial_exp = checkpoint_plugin.load_checkpoint_if_exists()
 
     wandb_logger = None
+    image_similarity_plugin_metric = None
+    selection_plugin_metric = None
     if strategy is None:
         # '''Check resume'''
         # if os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
@@ -137,9 +139,6 @@ def continual_train(override_args=None):
         if args.strategy == 'our':
             image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False)
             selection_plugin_metric = SelectionPluginMetric()
-        else:
-            image_similarity_plugin_metric = None
-            selection_plugin_metric = None
         metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
@@ -175,20 +174,22 @@ def continual_train(override_args=None):
                                 early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
     else:
         model = strategy.model
-        image_similarity_plugin_metric = [
-            metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
-        ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
+        if args.strategy == 'our':
+            image_similarity_plugin_metric = [
+                metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
+            ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
+
 
     # ####################
     # TRAINING LOOP
     # ####################
     print("Starting experiment...")
-    results = []
     num_trained_exp_this_run = 0
     for experience, val_task in zip(benchmark.train_stream[initial_exp:], benchmark.val_stream[initial_exp:]):
+        results = []
 
-        if 0 <= args.train_num_exp <= num_trained_exp_this_run:
-            break
+        if 0 <= args.train_num_exp <= initial_exp + num_trained_exp_this_run:
+            break       # initial_exp is num of exps have been done before the script.
 
         print("Start of experience ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
@@ -203,7 +204,7 @@ def continual_train(override_args=None):
         #     results.append(strategy.eval(benchmark.test_stream))
         #     image_similarity_plugin_metric.set_active(False)
 
-        strategy.train(experience, eval_streams=[val_task])
+        strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")
@@ -211,7 +212,7 @@ def continual_train(override_args=None):
         if image_similarity_plugin_metric is not None:
             image_similarity_plugin_metric.set_active(True)
 
-        results.append(strategy.eval(benchmark.test_stream))
+        results.append(strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10))
 
         if image_similarity_plugin_metric is not None:
             image_similarity_plugin_metric.set_active(False)
@@ -228,7 +229,7 @@ def continual_train(override_args=None):
         #     artifact.add_file(model_file, name=artifact_name)
         #     wandb_logger.wandb.run.log_artifact(artifact)
         if not args.do_not_store_checkpoint_per_exp:
-            model_file = os.path.join(checkpoint_path, f'model{experience.current_experience}.pth')
+            model_file = os.path.join(checkpoint_path, f'model-{experience.current_experience}.pth')
             print("Store checkpoint in", model_file)
             torch.save(model.state_dict(), model_file)
         model_file = os.path.join(checkpoint_path, 'model.pth')
@@ -245,7 +246,7 @@ def continual_train(override_args=None):
                 if 'ConfusionMatrix' not in key:
                     re[key] = item
             stored_results.append(re)
-        result_file = os.path.join(exp_path, f'results-{args.exp_name}.npy')
+        result_file = os.path.join(exp_path, f'results-{args.exp_name}-{experience.current_experience}.npy')
         print("Save results in", result_file)
         np.save(result_file, stored_results)
 
@@ -260,7 +261,7 @@ def continual_train(override_args=None):
         print("No training is performed, just computing accuracy on the whole test set.")
 
         results = []
-        results.append(strategy.eval(benchmark.test_stream))
+        results.append(strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10))
         stored_results = []
         for result in results:
             re = dict()
@@ -273,7 +274,10 @@ def continual_train(override_args=None):
         np.save(result_file, stored_results)
 
     '''print needed info'''
-    print('Average test acc:', get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream'))
+    avg_test_acc = get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream')
+    print('Average test acc:', avg_test_acc)
+    if wandb_logger is not None:
+        wandb_logger.wandb.log({'avg_test_acc': avg_test_acc})
     # average test accuracy for all tasks
 
     # finish wandb
