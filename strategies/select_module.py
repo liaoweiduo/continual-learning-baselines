@@ -196,7 +196,8 @@ class SelectionMetric(Metric):
 
         'norm to Euclidean dist = 1'
         select_matrix = select_matrix.unsqueeze(1)    # [n_samp, 1, 28]
-        select_matrix = select_matrix / torch.norm(select_matrix, dim=2, p=2, keepdim=True)
+        select_matrix = select_matrix / (torch.norm(select_matrix, dim=2, p=2, keepdim=True) + 1e-15)
+        # all 0 will have nan
 
         criterion = SupConLoss()
         structure_loss = criterion(select_matrix, labels)

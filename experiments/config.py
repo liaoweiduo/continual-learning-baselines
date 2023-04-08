@@ -111,7 +111,7 @@ parser.add_argument('--ewc_decay', type=float, default=0.0, metavar='EWC',
 # our args
 parser.add_argument('--ssc', type=float, default=1, metavar='REG',
                     help='SparseSelection coefficient.')
-parser.add_argument('--ssc_threshold', type=int, default=2, metavar='REG',
+parser.add_argument('--ssc_threshold', type=int, default=3, metavar='REG',
                     help='Number of maximal modules can be selected in each layer.'
                          'Larger than this threshold, ssc will penalize it.')
 parser.add_argument('--scc', type=float, default=1, metavar='REG',
