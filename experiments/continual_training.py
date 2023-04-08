@@ -139,7 +139,7 @@ def continual_train(override_args=None):
         # ####################
         if args.strategy == 'our':
             image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False)
-            selection_plugin_metric = SelectionPluginMetric()
+            selection_plugin_metric = SelectionPluginMetric(sparse_threshold=args.ssc_threshold)
         metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),

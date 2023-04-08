@@ -48,7 +48,6 @@ class SelectionMetric(Metric):
     def __init__(self, save_image=False):
         # todo: implement save_image=True
         self.save_image = save_image
-        self.sparse_threshold = 2
 
         self._select_matrix = []
         self._similarity_tensors = []
@@ -82,7 +81,8 @@ class SelectionMetric(Metric):
         self._labels.append(batch_labels)
 
     def result(
-            self, matrix=True, simi=False, sparse=True, supcon=True,
+            self, matrix=True, simi=False, sparse=True, sparse_threshold=2,
+            supcon=True,
             independent=False, consistent=False,
             return_float=True, **kwargs
     ):
@@ -112,7 +112,7 @@ class SelectionMetric(Metric):
                         ).cpu().numpy() if return_float else per_layer_per_proto
 
         if sparse:
-            sparse_loss = self.get_sparse_selection_loss()
+            sparse_loss = self.get_sparse_selection_loss(sparse_threshold)
             dic['Sparse'] = sparse_loss.item() if return_float else sparse_loss
 
         if supcon:
@@ -160,7 +160,9 @@ class SelectionMetric(Metric):
         select_matrix = select_matrix.reshape(bs, n_layers, n_modules)
         sum_over_layer = torch.sum(select_matrix, dim=-1)
         # mask out <= sparse_threshold+1, here +1 for identity module
-        sum_over_layer = torch.where(sum_over_layer > sparse_threshold + 1, sum_over_layer, 0)
+        # print(f'sum_over_layer: {sum_over_layer}: {sum_over_layer.shape}, {sum_over_layer.dtype}. ')
+        sum_over_layer = torch.where(sum_over_layer > sparse_threshold + 1,
+                                     sum_over_layer, torch.zeros_like(sum_over_layer))
 
         structure_loss = torch.sum(sum_over_layer) / (bs * n_layers * n_modules)
 
@@ -253,7 +255,8 @@ class SelectionPluginMetric(PluginMetric):
     """
 
     def __init__(self, mode='both', matrix=True, simi=False,
-                 sparse=True, supcon=True, independent=False, consistent=False):
+                 sparse=True, sparse_threshold=2,
+                 supcon=True, independent=False, consistent=False):
         super().__init__()
         assert (mode in ['both', 'train', 'eval']
                 ), f'Current mode is {mode}, should be one of [both, train, eval].'
@@ -262,6 +265,7 @@ class SelectionPluginMetric(PluginMetric):
         self.matrix = matrix
         self.simi = simi
         self.sparse = sparse
+        self.sparse_threshold = sparse_threshold
         self.supcon = supcon
         self.independent = independent
         self.consistent = consistent
@@ -291,7 +295,9 @@ class SelectionPluginMetric(PluginMetric):
         self._metric = SelectionMetric(self.save_image)
 
     def result(self, **kwargs):
-        dic = self._metric.result(matrix=self.matrix, simi=self.simi, sparse=self.sparse, supcon=self.supcon,
+        dic = self._metric.result(matrix=self.matrix, simi=self.simi,
+                                  sparse=self.sparse, sparse_threshold=self.sparse_threshold,
+                                  supcon=self.supcon,
                                   independent=self.independent, consistent=self.consistent)
 
         return dic
@@ -580,7 +586,8 @@ class SelectionPlugin(SupervisedPlugin):
         Consistent selection plugin:
             The selection of modules in each layer should be consistent for the same label.
     """
-    def __init__(self, sparse_alpha=1., supcon_alpha=1., independent_alpha=0., consistent_alpha=0.):
+    def __init__(self, sparse_alpha=1., sparse_threshold=2,
+                 supcon_alpha=1., independent_alpha=0., consistent_alpha=0.):
         """
         :param sparse_alpha: sparse reg coefficient.
         :param supcon_alpha: supcon reg coefficient.
@@ -589,6 +596,7 @@ class SelectionPlugin(SupervisedPlugin):
         """
         super().__init__()
         self.sparse_alpha = sparse_alpha
+        self.sparse_threshold = sparse_threshold
         self.supcon_alpha = supcon_alpha
         self.independent_alpha = independent_alpha
         self.consistent_alpha = consistent_alpha
@@ -611,7 +619,8 @@ class SelectionPlugin(SupervisedPlugin):
         structure_loss = 0
 
         if self.sparse_alpha > 0:
-            structure_loss = structure_loss + self.sparse_alpha * self._metric.get_sparse_selection_loss()
+            structure_loss = structure_loss + self.sparse_alpha * self._metric.get_sparse_selection_loss(
+                self.sparse_threshold)
         if self.supcon_alpha > 0:
             structure_loss = structure_loss + self.supcon_alpha * self._metric.get_sup_con_loss()
         if self.independent_alpha > 0:
@@ -631,6 +640,7 @@ class Algorithm(SupervisedTemplate):
         optimizer: Optimizer,
         criterion,
         ssc: Union[float, Sequence[float]],
+        ssc_threshold: Union[int, Sequence[int]],
         scc: Union[float, Sequence[float]],
         isc: Union[float, Sequence[float]],
         csc: Union[float, Sequence[float]],
@@ -671,7 +681,8 @@ class Algorithm(SupervisedTemplate):
         """
 
         rp = ReplayPlugin(mem_size)
-        sp = SelectionPlugin(sparse_alpha=ssc, supcon_alpha=scc, independent_alpha=isc, consistent_alpha=csc)
+        sp = SelectionPlugin(sparse_alpha=ssc, sparse_threshold=ssc_threshold,
+                             supcon_alpha=scc, independent_alpha=isc, consistent_alpha=csc)
 
         if plugins is None:
             plugins = [rp, sp]

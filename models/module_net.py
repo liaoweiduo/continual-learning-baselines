@@ -24,13 +24,13 @@ from models.resnet18_pnf import CatFilm
 class ModuleNetBackbone(nn.Module):
 
     def __init__(
-            self, args, backbone_arch='vit_ia3', selector_mode='prototype',
+            self, args, selector_mode='prototype',
             in_channels=3, init_modules=7,
     ):
         super(ModuleNetBackbone, self).__init__()
         self.args = args
+        self.backbone_arch = backbone_arch = 'vit_ia3' if args['model_backbone'] == 'vit' else 'resnet18_pnf'
         self.num_layers = args['vit_depth'] if 'vit' in backbone_arch else 4    # 4 for resnet18
-        self.backbone_arch = backbone_arch
         self.selector_mode = selector_mode
         self.image_size = args['image_size']
         self.in_channels = in_channels  # img channels

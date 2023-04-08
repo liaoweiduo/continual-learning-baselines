@@ -160,6 +160,7 @@ exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
 # common_args.update({
 #     'return_task_id': True,
 #     'strategy': 'our',
+#     'model_backbone': 'vit',
 #     'use_wandb': True,
 #     'train_num_exp': 1,
 #     'use_interactive_logger': True,
