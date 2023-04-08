@@ -94,7 +94,7 @@ def main(override_args=None):
         assert args.strategy == 'our'
         from models.module_net import get_module_net
         model = get_module_net(
-            args=args,
+            args=vars(args),
             multi_head=args.return_task_id,
             # pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth')
         )
