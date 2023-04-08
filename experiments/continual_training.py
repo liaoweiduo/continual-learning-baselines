@@ -92,6 +92,7 @@ def continual_train(override_args=None):
         if args.strategy == 'our':
             from models.module_net import get_module_net
             model = get_module_net(
+                args=args,
                 multi_head=args.return_task_id,
                 pretrained=pretrained, pretrained_model_path=pretrained_model_path)
         elif args.model_backbone == "resnet18":
