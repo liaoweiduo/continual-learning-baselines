@@ -351,8 +351,8 @@ class SelectorModule(nn.Module):
         background_dist = torch.sigmoid(background_dist)
         background_dist = 1 - background_dist
         background_dist = torch.logit(background_dist)      # sigmoid^(-1)
-        dist = torch.stack([dist, background_dist])     # [bs, n_proto, 2]
-        sm = F.gumbel_softmax(dist, dim=1, hard=True)[0]     # [bs, n_proto]
+        dist = torch.stack([dist, background_dist])     # [2, bs, n_proto]
+        sm = F.gumbel_softmax(dist, dim=0, hard=True)[0]     # [bs, n_proto]
 
         return sm
 

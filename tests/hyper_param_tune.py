@@ -158,8 +158,8 @@ exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
 #     # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
 #     # 'ssc': [0.01, 0.1, 1, 10],
 #     'learning_rate': [1e-4, 2e-4, 5e-4, 8e-4, 1e-3, 2e-3, 5e-3, 8e-3, 1e-2],
-#     'ssc': [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
-#     'scc': [0.5, 1, 5, 10],
+#     'ssc': [0, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+#     'scc': [0, 0.5, 1, 5, 10],
 # }
 # common_args.update({
 #     'return_task_id': True,
