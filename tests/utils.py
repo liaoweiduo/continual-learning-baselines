@@ -159,12 +159,41 @@ def template_sustech(name_list, cmd_path, path, device='v100'):
             f"#SBATCH --ntasks-per-node=10\n" \
             f"#SBATCH --gres=gpu:1\n" \
             f"ulimit -n 10000\n" \
-            f"cd ../datasets/continual-learning-baselines\n" \
+            f"cd ../../../continual-learning-baselines\n" \
             f"export WANDB_MODE=offline\n" \
             f"singularity exec --bind ~/datasets:/liaoweiduo --nv ~/sif/avalanche.sif sh {cmd_path}/{name}.sh\n"
 
         '''Write to file'''
         with open(os.path.join(path, f'{name}.slurm'), 'w', newline='') as f:
+            f.write(template_str)
+
+    '''Generate task.sh'''
+    with open(os.path.join(path, 'task.sh'), 'w', newline='') as f:
+        f.write(task_str)
+
+
+def template_hisao(name_list, cmd_path, path, **kwargs):
+    """
+    Generate bash for file_list and 1 sh contains all sh $run_id$.bash.
+    this bash is to cd the working path.
+    """
+    '''Make dir'''
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    task_str = f"#!/bin/sh"
+
+    '''Generate slurm bash'''
+    for idx, name in enumerate(name_list):
+        task_str += f"\nsh {name}.bash"
+
+        template_str = \
+            f"#!/bin/sh\n" \
+            f"cd ../../../continual-learning-baselines\n" \
+            f"sh {cmd_path}/{name}.sh\n"
+
+        '''Write to file'''
+        with open(os.path.join(path, f'{name}.bash'), 'w', newline='') as f:
             f.write(template_str)
 
     '''Generate task.sh'''

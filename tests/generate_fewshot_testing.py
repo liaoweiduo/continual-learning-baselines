@@ -12,7 +12,7 @@ import wandb
 import copy
 
 from experiments.continual_training import continual_train
-from tests.utils import template_exp_sh, template_tencent, return_time
+from tests.utils import template_exp_sh, template_hisao, return_time
 
 
 def generate_params(common_args, param_grid):
@@ -47,7 +47,7 @@ def generate_params(common_args, param_grid):
     return params
 
 
-def main(params):
+def main(params, fix_device=True):
     '''Run experiments in sequence'''
     # print('************************')
     # print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
@@ -88,28 +88,31 @@ def main(params):
                 name=iter,
                 params=params_temp,
                 # out_path=f"{exp_root}/out/{task_name}-{iter}.out",
+                cuda=0 if fix_device else iter,
             )
             names.append(iter)
             params_temp = []
             iter += 1
 
     '''Generate json and sh for Tencent servers'''
-    template_tencent(
+    template_hisao(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}')
 
 
 task_name = return_time()   # defined by time
-task_root = 'tests/tasks'        # path for sh file from code_root
-num_runs_1sh = 1       # num of runs in 1 sh file
+# task_root = 'tests/tasks'        # path for sh in the working path
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+num_runs_1sh = 22*5       # num of runs in 1 sh file
+fix_device = False      # cuda self-increase for each run if True, else use cuda:0
 common_args = {
     'use_wandb': False,
     'use_interactive_logger': True,
     'project_name': 'CGQA',
     'dataset': 'cgqa',
-    'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
-    'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
+    # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
+    # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
     'learning_rate': 0.001,
     'test_freeze_feature_extractor': True,
 }
@@ -117,24 +120,44 @@ common_args = {
 params = []
 
 """
-exp: baselines vit cgqa
+exp: assist with multi-concept learning head
 """
 common_args.update({
-    'model_backbone': 'vit',
-    'image_size': 224,
-    'train_mb_size': 32,
+    'strategy': 'naive',
+    'use_interactive_logger': True,
 })
 param_grid = {
     'exp_name': [
-        'ht-vit-naive-cls-lr0_0001', 'ht-vit-naive-tsk-lr0_0001',
-        'ht-vit-er-cls-lr0_0001', 'ht-vit-er-tsk-lr0_0001',
-        'ht-vit-gem-cls-lr5e-05', 'ht-vit-gem-tsk-lr1e-05',
-        'ht-vit-lwf-cls-lr0_0001', 'ht-vit-lwf-tsk-lr0_0001',
-        'ht-vit-ewc-cls-lr0_0001', 'ht-vit-ewc-tsk-lr0_0001',
+        f'concept-naive-tsk_{return_task_id}-lr{learning_rate}-w{multi_concept_weight}'
+        for learning_rate in ['0_0005', '0_0008', '0_001', '0_003', '0_005', '0_008', '0_01',
+                              '0_03', '0_05', '0_08', '0_1']
+        for multi_concept_weight in ['0_5', '1', '2']
+        for return_task_id in [True, False]
     ],
     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
 }
 params.extend(generate_params(common_args, param_grid))
+
+
+"""
+exp: baselines vit cgqa
+"""
+# common_args.update({
+#     'model_backbone': 'vit',
+#     'image_size': 224,
+#     'train_mb_size': 32,
+# })
+# param_grid = {
+#     'exp_name': [
+#         'ht-vit-naive-cls-lr0_0001', 'ht-vit-naive-tsk-lr0_0001',
+#         'ht-vit-er-cls-lr0_0001', 'ht-vit-er-tsk-lr0_0001',
+#         'ht-vit-gem-cls-lr5e-05', 'ht-vit-gem-tsk-lr1e-05',
+#         'ht-vit-lwf-cls-lr0_0001', 'ht-vit-lwf-tsk-lr0_0001',
+#         'ht-vit-ewc-cls-lr0_0001', 'ht-vit-ewc-tsk-lr0_0001',
+#     ],
+#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
+# }
+# params.extend(generate_params(common_args, param_grid))
 
 
 
@@ -258,4 +281,4 @@ exp: baselines resnet cgqa
 # params.extend(generate_params(common_args, param_grid))
 
 
-main(params)
+main(params, fix_device)

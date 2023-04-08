@@ -12,7 +12,7 @@ import wandb
 import copy
 
 from experiments.continual_training import continual_train
-from tests.utils import template_exp_sh, template_sustech, return_time
+from tests.utils import template_exp_sh, template_sustech, template_hisao, return_time
 
 
 def generate_params(common_args, param_grid, exp_name_template):
@@ -51,7 +51,7 @@ def generate_params(common_args, param_grid, exp_name_template):
     return params
 
 
-def main(params):
+def main(params, fix_device=True):
     '''Run experiments in sequence'''
     # print('************************')
     # print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
@@ -92,13 +92,15 @@ def main(params):
                 name=iter,
                 params=params_temp,
                 # out_path=f"{exp_root}/out/{task_name}-{iter}.out",
+                cuda=0 if fix_device else iter,
             )
             names.append(iter)
             params_temp = []
             iter += 1
 
-    '''Generate json and sh for Tencent servers'''
-    template_sustech(
+    '''Generate bash for server'''
+    # template_sustech(
+    template_hisao(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}',
@@ -107,8 +109,10 @@ def main(params):
 
 
 task_name = return_time()   # defined by time
-task_root = 'tests/tasks'        # path for sh
-num_runs_1sh = 1       # num of runs in 1 sh file
+# task_root = 'tests/tasks'        # path for sh in the working path
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+num_runs_1sh = 22       # num of runs in 1 sh file
+fix_device = False      # cuda self-increase for each run if True, else use cuda:0
 common_args = {
     'use_wandb': False,
     'use_interactive_logger': False,
@@ -780,4 +784,4 @@ baselines resnet
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 
-main(params)
+main(params, fix_device)
