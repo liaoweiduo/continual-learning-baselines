@@ -161,3 +161,27 @@ if __name__ == "__main__":
     _labels = torch.Tensor([0, 0, 1, 1, 2, 2, 2]).long().cuda()
     _loss5 = criterion(_features, _labels)
     # _loss5 = tensor(1.7191, device='cuda:0', grad_fn=<MeanBackward0>)
+
+    torch.random.manual_seed(0)
+    criterion = SupConLoss()
+    _features = torch.Tensor([
+        [[0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0]],
+        [[0, 0, 0, 0, 0, 0, 0]],
+    ]).cuda().requires_grad_(True)
+    _features = _features / (torch.norm(_features, dim=2, p=2, keepdim=True) + 1e-15)  # norm with Euclidean dis = 1
+    _labels = torch.Tensor([0, 0, 1, 1, 2, 2, 2]).long().cuda()
+    _loss6 = criterion(_features, _labels)
+    # _loss6 = tensor(1.7918, device='cuda:0', grad_fn=<MeanBackward0>)
+
+    torch.random.manual_seed(0)
+    criterion = SupConLoss()
+    _features = torch.zeros(100, 1, 7)
+    _features = _features / (torch.norm(_features, dim=2, p=2, keepdim=True) + 1e-15)  # norm with Euclidean dis = 1
+    _labels = torch.randint(10, (100,)).long()
+    _loss7 = criterion(_features, _labels)
+    # _loss7 = tensor(4.5951)
