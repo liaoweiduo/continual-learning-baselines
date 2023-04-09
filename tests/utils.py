@@ -134,7 +134,7 @@ def template_tencent(name_list, cmd_path, path):
         f.write(task_str)
 
 
-def template_sustech(name_list, cmd_path, path, device='v100'):
+def template_sustech(name_list, cmd_path, path):
     """
     Generate slurm bash for file_list and 1 sh contains all sbatch $run_id$.slurm
     """
@@ -146,25 +146,15 @@ def template_sustech(name_list, cmd_path, path, device='v100'):
 
     '''Generate slurm bash'''
     for idx, name in enumerate(name_list):
-        task_str += f"\nsbatch {name}.slurm"
+        task_str += f"\nsh slurm{name}.sh"
 
         template_str = \
             f"#!/bin/bash\n" \
-            f"#SBATCH --error=output/job.%j.err\n" \
-            f"#SBATCH --output output/job.%j.out\n" \
-            f"#SBATCH -p {device}\n" \
-            f"#SBATCH --qos={device}\n" \
-            f"#SBATCH -J l{name}\n" \
-            f"#SBATCH --nodes=1\n" \
-            f"#SBATCH --ntasks-per-node=10\n" \
-            f"#SBATCH --gres=gpu:1\n" \
-            f"ulimit -n 10000\n" \
-            f"cd ../../../continual-learning-baselines\n" \
-            f"export WANDB_MODE=offline\n" \
-            f"singularity exec --bind ~/datasets:/liaoweiduo --nv ~/sif/avalanche.sif sh {cmd_path}/{name}.sh\n"
+            f"cd ~\n" \
+            f"sbatch avalanche_bash.slurm {name} {path.split('/')[-1]}\n"
 
         '''Write to file'''
-        with open(os.path.join(path, f'{name}.slurm'), 'w', newline='') as f:
+        with open(os.path.join(path, f'slurm{name}.sh'), 'w', newline='') as f:
             f.write(template_str)
 
     '''Generate task.sh'''
@@ -172,7 +162,7 @@ def template_sustech(name_list, cmd_path, path, device='v100'):
         f.write(task_str)
 
 
-def template_hisao(name_list, cmd_path, path, **kwargs):
+def template_hisao(name_list, cmd_path, path):
     """
     Generate bash for file_list and 1 sh contains all sh $run_id$.bash.
     this bash is to cd the working path.

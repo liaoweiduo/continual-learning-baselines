@@ -186,9 +186,8 @@ def continual_train(override_args=None):
     # ####################
     print("Starting experiment...")
     num_trained_exp_this_run = 0
+    results = []
     for experience, val_task in zip(benchmark.train_stream[initial_exp:], benchmark.val_stream[initial_exp:]):
-        results = []
-
         if 0 <= args.train_num_exp <= initial_exp + num_trained_exp_this_run:
             break       # initial_exp is num of exps have been done before the script.
 
@@ -210,10 +209,11 @@ def continual_train(override_args=None):
 
         print("Computing accuracy on the whole test set.")
 
-        # if image_similarity_plugin_metric is not None:
-        #     image_similarity_plugin_metric.set_active(True)
+        if image_similarity_plugin_metric is not None:
+            image_similarity_plugin_metric.set_active(True)
 
-        results.append(strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10))
+        result = strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10)
+        results.append(result)
 
         if image_similarity_plugin_metric is not None:
             image_similarity_plugin_metric.set_active(False)
@@ -241,12 +241,13 @@ def continual_train(override_args=None):
         # STORE RESULTS
         # ####################
         stored_results = []
-        for result in results:
-            re = dict()
-            for key, item in result.items():
-                if 'ConfusionMatrix' not in key:
-                    re[key] = item
-            stored_results.append(re)
+
+        re = dict()
+        for key, item in result.items():
+            if 'ConfusionMatrix' not in key:
+                re[key] = item
+        stored_results.append(re)
+
         result_file = os.path.join(exp_path, f'results-{args.exp_name}-{experience.current_experience}.npy')
         print("Save results in", result_file)
         np.save(result_file, stored_results)
@@ -261,15 +262,14 @@ def continual_train(override_args=None):
     if num_trained_exp_this_run == 0:       # no training performed, only test
         print("No training is performed, just computing accuracy on the whole test set.")
 
-        results = []
-        results.append(strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10))
+        result = strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10)
+        results.append(result)
         stored_results = []
-        for result in results:
-            re = dict()
-            for key, item in result.items():
-                if 'ConfusionMatrix' not in key:
-                    re[key] = item
-            stored_results.append(re)
+        re = dict()
+        for key, item in result.items():
+            if 'ConfusionMatrix' not in key:
+                re[key] = item
+        stored_results.append(re)
         result_file = os.path.join(exp_path, f'results-{args.exp_name}-only-test.npy')
         print("Save results in", result_file)
         np.save(result_file, stored_results)

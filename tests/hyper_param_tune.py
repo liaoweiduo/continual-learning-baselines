@@ -103,14 +103,13 @@ def main(params, fix_device=True):
     template_sustech(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
-        path=f'../avalanche-experiments/tasks/{task_name}',
-        device='v100'
+        path=f'../avalanche-experiments/tasks/{task_name}'
     )
 
 
 task_name = return_time()   # defined by time
-# task_root = 'tests/tasks'        # path for sh in the working path
-task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+task_root = 'tests/tasks'        # path for sh in the working path
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
 num_runs_1sh = 9       # num of runs in 1 sh file
 fix_device = True      # cuda self-increase for each run if True, else use cuda:0
 common_args = {
@@ -165,6 +164,8 @@ common_args.update({
     'return_task_id': True,
     'strategy': 'our',
     'model_backbone': 'vit',
+    'image_size': 224,
+    'train_mb_size': 50,
     'use_wandb': True,
     'train_num_exp': 1,
     'use_interactive_logger': True,
