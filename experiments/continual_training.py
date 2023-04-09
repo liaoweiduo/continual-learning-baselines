@@ -210,8 +210,8 @@ def continual_train(override_args=None):
 
         print("Computing accuracy on the whole test set.")
 
-        if image_similarity_plugin_metric is not None:
-            image_similarity_plugin_metric.set_active(True)
+        # if image_similarity_plugin_metric is not None:
+        #     image_similarity_plugin_metric.set_active(True)
 
         results.append(strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10))
 

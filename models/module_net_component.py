@@ -219,8 +219,12 @@ class SelectorModule(nn.Module):
 
     def forward(self, x):
         if len(x.shape) == 3:       # forward on vit
-            # view (bs, 1+n_patches, dim) to (bs, dim, n_patches, 1)
-            x = rearrange(x[:, 1:, :], 'b n d -> b d n 1')
+            # # view (bs, 1+n_patches, dim) to (bs, dim, n_patches, 1)
+            # x = rearrange(x[:, 1:, :], 'b n d -> b d n 1')
+
+            # view (bs, 1+n_patches, dim) to (bs, dim, n_patches**0.5, n_patches**0.5)
+            nw = int((x.shape[1] - 1) ** 0.5)
+            x = rearrange(x[:, 1:, :], 'b (nh nw) d -> b d nh nw', nw=nw)
 
         if self.pooling_before:
             x = F.adaptive_avg_pool2d(x, (1, 1))

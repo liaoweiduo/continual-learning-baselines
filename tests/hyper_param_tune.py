@@ -128,24 +128,24 @@ params = []
 """
 exp: assist with multi-concept learning head
 """
-param_grid = {
-    'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],
-    'multi_concept_weight': [0.5, 1, 2],
-    'return_task_id': [True, False],
-}
-common_args.update({
-    'strategy': 'naive',
-    'use_wandb': True,
-    'use_interactive_logger': True,
-    'skip_fewshot_testing': False,
-})
-exp_name_template = 'concept-' + common_args['strategy'] + \
-                    '-tsk_{return_task_id}' + \
-                    '-lr{learning_rate}-w{multi_concept_weight}'
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-# for p in params_temp:
-#     p['scc'] = p['ssc']
-params.extend(params_temp)
+# param_grid = {
+#     'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],
+#     'multi_concept_weight': [0.5, 1, 2],
+#     'return_task_id': [True, False],
+# }
+# common_args.update({
+#     'strategy': 'naive',
+#     'use_wandb': True,
+#     'use_interactive_logger': True,
+#     'skip_fewshot_testing': False,
+# })
+# exp_name_template = 'concept-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-w{multi_concept_weight}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# # for p in params_temp:
+# #     p['scc'] = p['ssc']
+# params.extend(params_temp)
 
 
 
@@ -154,36 +154,36 @@ params.extend(params_temp)
 """
 exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
 """
-# param_grid = {
-#     # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
-#     # 'ssc': [0.01, 0.1, 1, 10],
-#     'learning_rate': [1e-4, 2e-4, 5e-4, 8e-4, 1e-3, 2e-3, 5e-3, 8e-3, 1e-2],
-#     'ssc': [0, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
-#     'scc': [0, 0.5, 1, 5, 10],
-# }
-# common_args.update({
-#     'return_task_id': True,
-#     'strategy': 'our',
-#     'model_backbone': 'vit',
-#     'use_wandb': True,
-#     'train_num_exp': 1,
-#     'use_interactive_logger': True,
-#     # 'disable_early_stop': True,
-#     'skip_fewshot_testing': True,
-#     'eval_every': 10,
-#     'eval_patience': 50,
-#     'epochs': 300,
-# })
-# exp_name_template = 'MNt1_lr_ssc_scc2-' + common_args['strategy'] + '-' + \
-#                     ('tsk' if common_args['return_task_id'] else 'cls') + \
-#                     '-lr{learning_rate}-ssc{ssc}-scc{scc}'
-# # MNt1_lr_reg- for early try
-# params_temp = generate_params(common_args, param_grid, exp_name_template)
-# # for p in params_temp:
-# #     p['scc'] = p['ssc']
-# #     # p['isc'] = p['ssc']
-# #     # p['csc'] = p['ssc']
-# params.extend(params_temp)
+param_grid = {
+    # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
+    # 'ssc': [0.01, 0.1, 1, 10],
+    'learning_rate': [1e-5, 1e-4, 1e-3],
+    'ssc': [0, 0.1, 0.5, 1, 5, 10],
+    'scc': [0, 0.5, 1, 5, 10],
+}
+common_args.update({
+    'return_task_id': True,
+    'strategy': 'our',
+    'model_backbone': 'vit',
+    'use_wandb': True,
+    'train_num_exp': 1,
+    'use_interactive_logger': True,
+    'skip_fewshot_testing': True,
+    # 'disable_early_stop': True,
+    'eval_every': 10,
+    'eval_patience': 50,
+    'epochs': 300,
+})
+exp_name_template = 'MNt1_vit-' + common_args['strategy'] + '-' + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}-ssc{ssc}-scc{scc}'
+# MNt1_lr_reg- for early try
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+# for p in params_temp:
+#     p['scc'] = p['ssc']
+#     # p['isc'] = p['ssc']
+#     # p['csc'] = p['ssc']
+params.extend(params_temp)
 
 
 
