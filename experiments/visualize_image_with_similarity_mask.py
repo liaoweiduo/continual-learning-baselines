@@ -119,7 +119,7 @@ def main(override_args=None):
 
         wandb_logger.wandb.watch(model)
 
-    image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=True)
+    image_similarity_plugin_metric = ImageSimilarityPluginMetric(image_size=args.image_size, wandb_log=True)
     # image_sample_plugin = ImagesSamplePlugin(mode='eval', n_cols=5, n_rows=4)
     metrics_list = [
         image_similarity_plugin_metric,

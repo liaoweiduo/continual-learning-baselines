@@ -354,7 +354,7 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
     This plugin is not recommended during training,
     since it load and forward extra images to the model.
     """
-    def __init__(self, active=False, wandb_log=False, image_size=128, num_samples=10, num_proto=28):
+    def __init__(self, image_size, active=False, wandb_log=False, num_samples=10, num_proto=28):
         super().__init__(mode="eval", n_cols=1, n_rows=num_samples)
         self.active = active        # since the eval during training is not needed for collecting masks
         self.wandb_log = wandb_log

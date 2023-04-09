@@ -100,7 +100,7 @@ def main(params, fix_device=True):
 
     '''Generate bash for server'''
     # template_sustech(
-    template_hisao(
+    template_sustech(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}',
@@ -111,8 +111,8 @@ def main(params, fix_device=True):
 task_name = return_time()   # defined by time
 # task_root = 'tests/tasks'        # path for sh in the working path
 task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 22       # num of runs in 1 sh file
-fix_device = False      # cuda self-increase for each run if True, else use cuda:0
+num_runs_1sh = 9       # num of runs in 1 sh file
+fix_device = True      # cuda self-increase for each run if True, else use cuda:0
 common_args = {
     'use_wandb': False,
     'use_interactive_logger': False,
@@ -158,8 +158,8 @@ param_grid = {
     # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
     # 'ssc': [0.01, 0.1, 1, 10],
     'learning_rate': [1e-5, 1e-4, 1e-3],
-    'ssc': [0, 0.1, 0.5, 1, 5, 10],
-    'scc': [0, 0.5, 1, 5, 10],
+    'ssc': [0, 0.1, 1, 10],
+    'scc': [0, 1, 10],
 }
 common_args.update({
     'return_task_id': True,
