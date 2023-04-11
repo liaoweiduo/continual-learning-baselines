@@ -115,7 +115,10 @@ class ModuleNetBackbone(nn.Module):
         similarity_tensor: n_layer*[bs, n_proto, Hl, Wl]
             since they have different shape in each layer, can not be stack
         """
-        selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)  # [64, 4, 8]
+        try:
+            selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)  # [64, 4, 8]
+        except:
+            print('debug (except):', selected_idxs_each_layer)
 
         self.selected_idxs_each_layer.append(selected_idxs_each_layer)
         self.similarity_tensor.append(similarity_tensor)
