@@ -62,10 +62,16 @@ class SelectionMetric(Metric):
         :param batch_labels: long tensor with shape [bs], labels.
         """
         selected_idxs_each_layer = strategy.model.backbone.selected_idxs_each_layer
-        # [n_layers* tensor[bs, n_modules]]: [4* tensor[64, 8]]
-        selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)     # [64, 4, 8]
+        # [n_task*[bs, n_layers, n_proto+1]]: [1* tensor[64, 4, 8]]
+
+        print(f'debug: len(selected_idxs_each_layer) n_task: {len(selected_idxs_each_layer)}')
+        selected_idxs_each_layer = torch.cat(selected_idxs_each_layer)  # [64, 4, 8]
         similarity_tensor = strategy.model.backbone.similarity_tensor
-        # n_layer*[bs, n_proto, Hl, Wl]     since they have different shape in each layer, can not be stack
+        # [n_task*[n_layer*[bs, n_proto, Hl, Wl]]]     since they have different shape in each layer, can not be stacked
+        similarity_tensor = [
+            torch.cat([similarity_tensor[task_idx][layer_idx] for task_idx in range(len(similarity_tensor))])
+            for layer_idx in range(len(similarity_tensor[0]))
+        ]   # [4* tensor[64, 7, Hl, Wl]]
         bs, n_layers, n_modules = selected_idxs_each_layer.shape
         selected_idxs = selected_idxs_each_layer.reshape(bs, -1)
         self.n_layers = n_layers
@@ -73,10 +79,17 @@ class SelectionMetric(Metric):
         dim = n_layers * n_modules
         # [bs, dim]: [64, 32]
 
+        # todo: clear backbone's selected_idxs_each_layer and similarity_tensor
+        strategy.model.clear_reg()
+
         '''labels for this batch'''
         batch_labels = strategy.mbatch[1]       # [bs,]: [64]
-        print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape[0]}')
-        print(f'debug: batch_labels: {batch_labels.shape[0]}')
+        print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape}')
+        print(f'debug: batch_samples: {strategy.mbatch[0].shape}')
+        print(f'debug: batch_labels: {batch_labels}')
+        print(f'debug: batch_task_id: {strategy.mbatch[2]}')
+
+        assert bs == batch_labels.shape[0]
 
         self._select_matrix.append(selected_idxs)
         self._similarity_tensors.append(similarity_tensor)
@@ -404,6 +417,7 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
 
         _ = model.backbone(batched_images)
         similarity_tensor = model.backbone.similarity_tensor    # n_layer*[bs, n_proto, Hl, Wl]
+        # todo: [num_task* [n_layer* [bs, n_proto, Hl, Wl]]]
 
         # reshape mask in each layer to image_size: Hl->H, Wl->W
         resize_trans = transforms.Compose([

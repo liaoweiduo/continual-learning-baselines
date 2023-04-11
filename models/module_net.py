@@ -102,8 +102,23 @@ class ModuleNetBackbone(nn.Module):
         self.init_selector()
 
         '''intermediate variables for reg'''
-        self.selected_idxs_each_layer = []      # reset every iteration.
-        self.similarity_tensor = []             # n_layer*[bs, n_proto, Hl, Wl]
+        self.selected_idxs_each_layer = self.similarity_tensor = []
+        self.clear_reg()
+
+    def clear_reg(self):
+        self.selected_idxs_each_layer = []      # [n_task*[bs, n_layers, n_proto+1]]
+        self.similarity_tensor = []             # [n_task*[n_layer*[bs, n_proto, Hl, Wl]]]
+
+    def update_reg(self, selected_idxs_each_layer, similarity_tensor):
+        """
+        selected_idxs_each_layer: [bs, n_layers, n_proto+1]
+        similarity_tensor: n_layer*[bs, n_proto, Hl, Wl]
+            since they have different shape in each layer, can not be stack
+        """
+        selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)  # [64, 4, 8]
+
+        self.selected_idxs_each_layer.append(selected_idxs_each_layer)
+        self.similarity_tensor.append(similarity_tensor)
 
     def init_backbone(self):
         self.backbone = nn.ModuleList()
@@ -162,17 +177,17 @@ class ModuleNetBackbone(nn.Module):
     def forward(self, x):
         """
         """
+        selected_idxs_each_layer = similarity_tensor = []
+
         x = self.encoder(x)
 
-        self.selected_idxs_each_layer = []
-        self.similarity_tensor = []
         for layer_idx in range(self.num_layers):
             # selector
             selected_idxs, sm, _, _ = self.selector[layer_idx](x)
             # selected_idxs [bs, n_modules + 1]
             # sm [bs, n_proto, Hl, Wl]
-            self.selected_idxs_each_layer.append(selected_idxs)
-            self.similarity_tensor.append(sm)
+            selected_idxs_each_layer.append(selected_idxs)
+            similarity_tensor.append(sm)
 
             # module
             out = self.backbone[layer_idx](x)
@@ -191,6 +206,8 @@ class ModuleNetBackbone(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+
+        self.update_reg(selected_idxs_each_layer, similarity_tensor)
 
         return x
 
