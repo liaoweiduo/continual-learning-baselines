@@ -273,11 +273,11 @@ __all__ = ['ModuleNetBackbone', 'ModuleNet', 'MTModuleNet', 'get_module_net']
 
 if __name__ == '__main__':
     _args = {
-        'image_size': 224,
+        'image_size': 128,
         'model_backbone': 'vit',
         'vit_patch_size': 16,
         'vit_dim': 384,
-        'vit_depth': 9,
+        'vit_depth': 4,
         'vit_heads': 16,
         'vit_mlp_dim': 1536,
         'vit_dropout': 0.1,
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     }
     model = ModuleNetBackbone(_args)
 
-    X = torch.randn((4, 3, 224, 224))
+    X = torch.randn((4, 3, 128, 128))
 
     _out = model(X)
 
@@ -298,3 +298,5 @@ if __name__ == '__main__':
           f'memory size: {_d["Total"] * 4 / 1024 / 1024:.2f}MB')
     print(f'Total number of trainable parameters: {_d["Trainable"] / 1024 / 1024:.2f}MB, '
           f'memory size: {_d["Trainable"] * 4 / 1024 / 1024:.2f}MB')
+
+    #

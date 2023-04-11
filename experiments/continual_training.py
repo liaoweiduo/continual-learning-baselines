@@ -118,7 +118,7 @@ def continual_train(override_args=None):
         # LOGGER
         # ####################
         loggers = [
-            avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
+            # avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
         ]
         if args.use_interactive_logger:
             loggers.append(avl.logging.InteractiveLogger())

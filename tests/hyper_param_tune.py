@@ -110,11 +110,11 @@ def main(params, fix_device=True):
 task_name = return_time()   # defined by time
 task_root = 'tests/tasks'        # path for sh in the working path
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 9       # num of runs in 1 sh file
+num_runs_1sh = 1       # num of runs in 1 sh file
 fix_device = True      # cuda self-increase for each run if True, else use cuda:0
 common_args = {
     'use_wandb': False,
-    'use_interactive_logger': False,
+    'use_interactive_logger': True,
     'project_name': 'CGQA',
     'dataset': 'cgqa',
 }
@@ -123,6 +123,8 @@ common_args = {
 # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
 
 params = []
+
+
 
 """
 exp: assist with multi-concept learning head
@@ -133,6 +135,7 @@ exp: assist with multi-concept learning head
 #     'return_task_id': [True, False],
 # }
 # common_args.update({
+#     'tag': 'concept',
 #     'strategy': 'naive',
 #     'use_wandb': True,
 #     'use_interactive_logger': True,
@@ -148,43 +151,75 @@ exp: assist with multi-concept learning head
 
 
 
-
-
 """
-exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
+exp: module-net, 10 tasks, tune lr and reg coeff (sparse, supcon)
 """
 param_grid = {
-    # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
-    # 'ssc': [0.01, 0.1, 1, 10],
-    'learning_rate': [1e-5, 1e-4, 1e-3],
-    'ssc': [0, 0.1, 1, 10],
-    'scc': [0, 1, 10],
+    'learning_rate': [1e-4],
+    'ssc': [0, 10, 50, 100],
 }
 common_args.update({
+    'tag': 'MNt1_vit2',
     'return_task_id': True,
     'strategy': 'our',
     'model_backbone': 'vit',
-    'image_size': 224,
-    'train_mb_size': 50,
+    'image_size': 128,
+    'vit_depth': 4,
     'use_wandb': True,
-    'train_num_exp': 1,
-    'use_interactive_logger': True,
-    'skip_fewshot_testing': True,
+    'train_num_exp': 10,
+    # 'skip_fewshot_testing': True,
     # 'disable_early_stop': True,
     'eval_every': 10,
     'eval_patience': 50,
     'epochs': 300,
 })
-exp_name_template = 'MNt1_vit-' + common_args['strategy'] + '-' + \
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
                     '-tsk_{return_task_id}' + \
-                    '-lr{learning_rate}-ssc{ssc}-scc{scc}'
-# MNt1_lr_reg- for early try
+                    '-r{ssc}'
 params_temp = generate_params(common_args, param_grid, exp_name_template)
-# for p in params_temp:
-#     p['scc'] = p['ssc']
-#     # p['isc'] = p['ssc']
-#     # p['csc'] = p['ssc']
+for p in params_temp:
+    p['scc'] = p['ssc']
 params.extend(params_temp)
+
+
+
+"""
+exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
+"""
+# param_grid = {
+#     # 'learning_rate': [0.00001, 0.0001, 0.001, 0.01],
+#     # 'ssc': [0.01, 0.1, 1, 10],
+#     'learning_rate': [1e-5, 1e-4, 1e-3],
+#     'ssc': [0, 0.1, 1, 10],
+#     'scc': [0, 1, 10],
+# }
+# common_args.update({
+#     'tag': 'MNt1_vit',
+#     'return_task_id': True,
+#     'strategy': 'our',
+#     'model_backbone': 'vit',
+#     'image_size': 128,
+#     'vit_depth': 4,
+#     # 'train_mb_size': 32,
+#     'use_wandb': True,
+#     'train_num_exp': 1,
+#     'use_interactive_logger': True,
+#     'skip_fewshot_testing': True,
+#     # 'disable_early_stop': True,
+#     'eval_every': 10,
+#     'eval_patience': 50,
+#     'epochs': 300,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-' + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-ssc{ssc}-scc{scc}'
+# # MNt1_lr_reg- for early try
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# # for p in params_temp:
+# #     p['scc'] = p['ssc']
+# #     # p['isc'] = p['ssc']
+# #     # p['csc'] = p['ssc']
+# params.extend(params_temp)
 
 
 

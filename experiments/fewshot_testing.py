@@ -73,7 +73,15 @@ def fewshot_test(override_args=None):
         task_offset=task_offset,
         seed=args.seed, fixed_class_order=fixed_class_order,
         dataset_root=args.dataset_root)
-    if args.model_backbone == "resnet18":
+
+    if args.strategy == 'our':
+        from models.module_net import get_module_net
+        model = get_module_net(
+            args=vars(args),
+            multi_head=args.return_task_id,
+            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
+            fix=args.test_freeze_feature_extractor)
+    elif args.model_backbone == "resnet18":
         origin_model = get_resnet(
             multi_head=True,
             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
@@ -85,6 +93,7 @@ def fewshot_test(override_args=None):
             image_size=args.image_size,
             multi_head=True,
             pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
+            fix=args.test_freeze_feature_extractor,
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
             mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
         )
