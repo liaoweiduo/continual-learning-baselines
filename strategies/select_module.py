@@ -79,9 +79,6 @@ class SelectionMetric(Metric):
         dim = n_layers * n_modules
         # [bs, dim]: [64, 32]
 
-        # todo: clear backbone's selected_idxs_each_layer and similarity_tensor
-        strategy.model.clear_reg()
-
         '''labels for this batch'''
         batch_labels = strategy.mbatch[1]       # [bs,]: [64]
         print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape}')
@@ -314,8 +311,8 @@ class SelectionPluginMetric(PluginMetric):
 
         return metrics
 
-    def reset(self) -> None:
-        self._metric = SelectionMetric(self.save_image)
+    def reset(self, strategy) -> None:
+        self._metric.reset()
 
     def result(self, **kwargs):
         dic = self._metric.result(matrix=self.matrix, simi=self.simi,
@@ -331,20 +328,20 @@ class SelectionPluginMetric(PluginMetric):
     def before_training_iteration(self, strategy: "SupervisedTemplate"):
         super().before_training_iteration(strategy)
         if self.mode in ["train", "both"]:
-            self.reset()
+            self.reset(strategy)
 
     def after_training_iteration(self, strategy: "SupervisedTemplate"):
         super().after_training_iteration(strategy)
         if self.mode in ["train", "both"]:
             self.update(strategy)
             result = self._package_result(strategy)
-            self.reset()
+            self.reset(strategy)
             return result
 
     def before_eval_exp(self, strategy: "SupervisedTemplate"):
         super().before_eval_exp(strategy)
         if self.mode in ["eval", "both"]:
-            self.reset()
+            self.reset(strategy)
 
     def after_eval_iteration(self, strategy: "SupervisedTemplate"):
         super().after_eval_iteration(strategy)
@@ -355,7 +352,7 @@ class SelectionPluginMetric(PluginMetric):
         super().after_eval_exp(strategy)
         if self.mode in ["eval", "both"]:
             result = self._package_result(strategy)
-            self.reset()
+            self.reset(strategy)
             return result
 
     def __str__(self):
@@ -415,9 +412,14 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
         batched_images_no_norm = torch.stack(self.images_no_norm)
         c = batched_images_no_norm.shape[-3]
 
+        model.backbone.clear_reg()
         _ = model.backbone(batched_images)
-        similarity_tensor = model.backbone.similarity_tensor    # n_layer*[bs, n_proto, Hl, Wl]
-        # todo: [num_task* [n_layer* [bs, n_proto, Hl, Wl]]]
+        similarity_tensor = model.backbone.similarity_tensor    # n_task*[n_layer*[bs, n_proto, Hl, Wl]]
+        similarity_tensor = [
+            torch.cat([similarity_tensor[task_idx][layer_idx] for task_idx in range(len(similarity_tensor))])
+            for layer_idx in range(len(similarity_tensor[0]))
+        ]   # [4* tensor[64, 7, Hl, Wl]]
+        model.backbone.clear_reg()
 
         # reshape mask in each layer to image_size: Hl->H, Wl->W
         resize_trans = transforms.Compose([
@@ -627,17 +629,25 @@ class SelectionPlugin(SupervisedPlugin):
 
         self._metric = SelectionMetric(save_image=False)
 
-    def reset(self) -> None:
-        self._metric = SelectionMetric(save_image=False)
+    def reset(self, strategy) -> None:
+        self._metric.reset()
+
+        '''reset backbone's selected_idxs_each_layer and similarity_tensor'''
+        strategy.model.backbone.clear_reg()
 
     def update(self, strategy, **kwargs):
         self._metric.update(strategy)
+
+    def before_forward(self, strategy, **kwargs):
+        self.reset(strategy)
+
+    def before_eval_forward(self, strategy, **kwargs):
+        self.reset(strategy)
 
     def before_backward(self, strategy, **kwargs):
         """
         Apply regs on loss, if the corresponding alpha > 0
         """
-        self.reset()
         self.update(strategy)       # collect select matrix for this batch
 
         structure_loss = 0
