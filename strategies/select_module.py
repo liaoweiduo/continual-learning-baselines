@@ -75,6 +75,8 @@ class SelectionMetric(Metric):
 
         '''labels for this batch'''
         batch_labels = strategy.mbatch[1]       # [bs,]: [64]
+        print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape[0]}')
+        print(f'debug: batch_labels: {batch_labels.shape[0]}')
 
         self._select_matrix.append(selected_idxs)
         self._similarity_tensors.append(similarity_tensor)
@@ -189,6 +191,7 @@ class SelectionMetric(Metric):
         bs = select_matrix.shape[0]
         n_layers = self.n_layers
         n_modules = self.n_modules
+        assert bs == labels.shape[0]
         assert select_matrix.shape[1] == n_layers * n_modules
         select_matrix = select_matrix.reshape(bs, n_layers, n_modules)
         select_matrix = select_matrix[:, :, :-1]        # [bs, n_layers, n_modules - 1]
