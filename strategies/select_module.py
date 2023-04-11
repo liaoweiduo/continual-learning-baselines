@@ -64,7 +64,7 @@ class SelectionMetric(Metric):
         selected_idxs_each_layer = strategy.model.backbone.selected_idxs_each_layer
         # [n_task*[bs, n_layers, n_proto+1]]: [1* tensor[64, 4, 8]]
 
-        print(f'debug: len(selected_idxs_each_layer) n_task: {len(selected_idxs_each_layer)}')
+        # print(f'debug: len(selected_idxs_each_layer) n_task: {len(selected_idxs_each_layer)}')
         selected_idxs_each_layer = torch.cat(selected_idxs_each_layer)  # [64, 4, 8]
         similarity_tensor = strategy.model.backbone.similarity_tensor
         # [n_task*[n_layer*[bs, n_proto, Hl, Wl]]]     since they have different shape in each layer, can not be stacked
@@ -81,10 +81,10 @@ class SelectionMetric(Metric):
 
         '''labels for this batch'''
         batch_labels = strategy.mbatch[1]       # [bs,]: [64]
-        print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape}')
-        print(f'debug: batch_samples: {strategy.mbatch[0].shape}')
-        print(f'debug: batch_labels: {batch_labels}')
-        print(f'debug: batch_task_id: {strategy.mbatch[2]}')
+        # print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape}')
+        # print(f'debug: batch_samples: {strategy.mbatch[0].shape}')
+        # print(f'debug: batch_labels: {batch_labels}')
+        # print(f'debug: batch_task_id: {strategy.mbatch[2]}')
 
         assert bs == batch_labels.shape[0]
 
