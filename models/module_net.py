@@ -102,7 +102,8 @@ class ModuleNetBackbone(nn.Module):
         self.init_selector()
 
         '''intermediate variables for reg'''
-        self.selected_idxs_each_layer = self.similarity_tensor = []
+        self.selected_idxs_each_layer = []
+        self.similarity_tensor = []
         self.clear_reg()
 
     def clear_reg(self):
@@ -115,10 +116,7 @@ class ModuleNetBackbone(nn.Module):
         similarity_tensor: n_layer*[bs, n_proto, Hl, Wl]
             since they have different shape in each layer, can not be stack
         """
-        try:
-            selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)  # [64, 4, 8]
-        except:
-            print('debug (except):', selected_idxs_each_layer)
+        selected_idxs_each_layer = torch.stack(selected_idxs_each_layer, dim=1)  # [64, 4, 8]
 
         self.selected_idxs_each_layer.append(selected_idxs_each_layer)
         self.similarity_tensor.append(similarity_tensor)
@@ -180,7 +178,8 @@ class ModuleNetBackbone(nn.Module):
     def forward(self, x):
         """
         """
-        selected_idxs_each_layer = similarity_tensor = []
+        selected_idxs_each_layer = []
+        similarity_tensor = []
 
         x = self.encoder(x)
 
