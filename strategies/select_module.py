@@ -1,6 +1,7 @@
 from typing import Optional, Sequence, List, Union, Dict, Tuple
 from collections import Counter
 import math
+import numpy as np
 
 import torch
 from torch import Tensor
@@ -45,7 +46,16 @@ class SelectionMetric(Metric):
             The selection of modules in each layer should be consistent for the same label.
     """
 
-    def __init__(self, save_image=False):
+    def __init__(self, benchmark, save_image=False):
+        self.benchmark = benchmark
+        self.original_classes_in_exp = self.benchmark.original_classes_in_exp
+        self.classes_in_exp = self.benchmark.classes_in_exp
+        self.map_related_class_to_origin = dict()   # {task_id: {related_cls: origin_cls}}
+        for task_id in range(len(self.classes_in_exp)):
+            self.map_related_class_to_origin[task_id] = dict()
+            for cls_id, cls in enumerate(self.classes_in_exp[task_id]):
+                self.map_related_class_to_origin[task_id][cls] = self.original_classes_in_exp[task_id, cls_id].item()
+
         # todo: implement save_image=True
         self.save_image = save_image
 
@@ -81,16 +91,24 @@ class SelectionMetric(Metric):
 
         '''labels for this batch'''
         batch_labels = strategy.mbatch[1]       # [bs,]: [64]
+        batch_task_ids = strategy.mbatch[2]     # [bs,]: [64]
         # print(f'debug: selected_idxs_each_layer: {selected_idxs_each_layer.shape}')
         # print(f'debug: batch_samples: {strategy.mbatch[0].shape}')
         # print(f'debug: batch_labels: {batch_labels}')
         # print(f'debug: batch_task_id: {strategy.mbatch[2]}')
 
+        '''map back to origin label'''
+        original_labels = torch.tensor([
+            self.map_related_class_to_origin[task_id][re_label]
+            for re_label, task_id in zip(
+                batch_labels.tolist(), batch_task_ids.tolist())
+        ]).long().to(batch_labels.device)
+
         assert bs == batch_labels.shape[0]
 
         self._select_matrix.append(selected_idxs)
         self._similarity_tensors.append(similarity_tensor)
-        self._labels.append(batch_labels)
+        self._labels.append(original_labels)
 
     def result(
             self, matrix=True, simi=False, sparse=True, sparse_threshold=2,
@@ -274,12 +292,13 @@ class SelectionPluginMetric(PluginMetric):
     """Metric used to output selected modules on all layers.
     """
 
-    def __init__(self, mode='both', matrix=True, simi=False,
+    def __init__(self, benchmark, mode='both', matrix=True, simi=False,
                  sparse=True, sparse_threshold=2,
                  supcon=True, independent=False, consistent=False):
         super().__init__()
         assert (mode in ['both', 'train', 'eval']
                 ), f'Current mode is {mode}, should be one of [both, train, eval].'
+        self.benchmark = benchmark
         self.mode = mode
         self.save_image = False
         self.matrix = matrix
@@ -290,7 +309,7 @@ class SelectionPluginMetric(PluginMetric):
         self.independent = independent
         self.consistent = consistent
 
-        self._metric = SelectionMetric(self.save_image)
+        self._metric = SelectionMetric(benchmark, self.save_image)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         dic = self.result()
@@ -374,6 +393,7 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
         self.image_size = image_size
         self.num_samples = num_samples
         self.num_proto = num_proto      # 4*7
+        self.seed = 1234
 
         self.wandb = None
         if wandb_log:
@@ -534,13 +554,19 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
         self, strategy: "SupervisedTemplate"
     ) -> Tuple[List[Tensor], List[Tensor], List[int], List[int]]:
         """Modify: apply norm transform on images. provide w/ and w/o norm versions of images"""
+
+        torch.manual_seed(self.seed)
+
+        # todo: num_img for (label, task)
+
+
+
         dataloader = self._make_dataloader(
             strategy.adapted_dataset, strategy.eval_mb_size
         )
 
         images, images_no_norm, labels, tasks = [], [], [], []
 
-        # todo: num_img for (label, task)
         for batch_images, batch_labels, batch_tasks in dataloader:
             n_missing_images = self.n_wanted_images - len(images)
             labels.extend(batch_labels[:n_missing_images].tolist())
@@ -612,7 +638,7 @@ class SelectionPlugin(SupervisedPlugin):
         Consistent selection plugin:
             The selection of modules in each layer should be consistent for the same label.
     """
-    def __init__(self, sparse_alpha=1., sparse_threshold=2,
+    def __init__(self, benchmark, sparse_alpha=1., sparse_threshold=2,
                  supcon_alpha=1., independent_alpha=0., consistent_alpha=0.):
         """
         :param sparse_alpha: sparse reg coefficient.
@@ -621,13 +647,14 @@ class SelectionPlugin(SupervisedPlugin):
         :param consistent_alpha: consistent reg coefficient.
         """
         super().__init__()
+        self.benchmark = benchmark
         self.sparse_alpha = sparse_alpha
         self.sparse_threshold = sparse_threshold
         self.supcon_alpha = supcon_alpha
         self.independent_alpha = independent_alpha
         self.consistent_alpha = consistent_alpha
 
-        self._metric = SelectionMetric(save_image=False)
+        self._metric = SelectionMetric(benchmark, save_image=False)
 
     def reset(self, strategy) -> None:
         self._metric.reset()
@@ -673,6 +700,7 @@ class Algorithm(SupervisedTemplate):
         model: ModuleNet,
         optimizer: Optimizer,
         criterion,
+        benchmark,
         ssc: Union[float, Sequence[float]],
         ssc_threshold: Union[int, Sequence[int]],
         scc: Union[float, Sequence[float]],
@@ -715,7 +743,7 @@ class Algorithm(SupervisedTemplate):
         """
 
         rp = ReplayPlugin(mem_size)
-        sp = SelectionPlugin(sparse_alpha=ssc, sparse_threshold=ssc_threshold,
+        sp = SelectionPlugin(benchmark, sparse_alpha=ssc, sparse_threshold=ssc_threshold,
                              supcon_alpha=scc, independent_alpha=isc, consistent_alpha=csc)
 
         if plugins is None:

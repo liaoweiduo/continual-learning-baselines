@@ -123,7 +123,7 @@ def main(override_args=None):
     # image_sample_plugin = ImagesSamplePlugin(mode='eval', n_cols=5, n_rows=4)
     metrics_list = [
         image_similarity_plugin_metric,
-        SelectionPluginMetric(),
+        SelectionPluginMetric(benchmark=benchmark),
         # image_sample_plugin,
     ]
     evaluation_plugin = EvaluationPlugin(

@@ -59,13 +59,15 @@ def multi_task_training(override_args=None):
         eval_transform = build_transform_for_vit((args.image_size, args.image_size), False)
     else:
         train_transform, eval_transform = None, None    # default transform
+
     benchmark = continual_training_benchmark(
         n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
         return_task_id=args.return_task_id,
         seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
         dataset_root=args.dataset_root,
         train_transform=train_transform, eval_transform=eval_transform,
-        num_samples_each_label=args.num_samples_each_label
+        num_samples_each_label=args.num_samples_each_label,
+        multi_task=True
     )
 
     # ####################
@@ -139,7 +141,7 @@ def multi_task_training(override_args=None):
         # ####################
         if args.strategy == 'our':
             image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False, image_size=args.image_size)
-            selection_plugin_metric = SelectionPluginMetric(sparse_threshold=args.ssc_threshold)
+            selection_plugin_metric = SelectionPluginMetric(benchmark=benchmark, sparse_threshold=args.ssc_threshold)
         metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
@@ -187,27 +189,14 @@ def multi_task_training(override_args=None):
     print("Starting experiment...")
     num_trained_exp_this_run = 0
     results = []
-    cat_exps = None
-    cat_val_exps = None
     for experience, val_task in zip(benchmark.train_stream[initial_exp:], benchmark.val_stream[initial_exp:]):
         if 0 <= args.train_num_exp <= initial_exp + num_trained_exp_this_run:
             break       # initial_exp is num of exps have been done before the script.
 
-        print("Collect experience ", experience.current_experience)
-        print("Current Classes: ", experience.classes_in_this_experience)
-        print("Current Classes: ", [
-            benchmark.label_info[2][cls_idx]
-            for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
-        ])
+        strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
 
-        if cat_exps is None:
-            cat_exps = experience
-            cat_val_exps = val_task
-        else:
-            cat_exps = cat_exps.concat(cat_exps)
-            cat_val_exps = cat_val_exps.concat(cat_val_exps)
+        num_trained_exp_this_run += 1
 
-    strategy.train(cat_exps, eval_streams=[cat_val_exps], pin_memory=False, num_workers=10)
     print("Training completed")
 
     print("Computing accuracy on the whole test set.")
@@ -251,11 +240,9 @@ def multi_task_training(override_args=None):
             re[key] = item
     stored_results.append(re)
 
-    result_file = os.path.join(exp_path, f'results-{args.exp_name}-{experience.current_experience}.npy')
+    result_file = os.path.join(exp_path, f'results-{args.exp_name}.npy')
     print("Save results in", result_file)
     np.save(result_file, stored_results)
-
-    num_trained_exp_this_run += len(benchmark.train_stream) - initial_exp
 
     # print("Final results:")
     # print(results)

@@ -33,18 +33,28 @@ class MultiConceptClassifier(SupervisedPlugin):
         self.num_concepts = len(self.concept_set)
         self.concept_map = {concept: idx for idx, concept in enumerate(self.concept_set)}
 
+        self.original_classes_in_exp = self.benchmark.original_classes_in_exp
+        self.classes_in_exp = self.benchmark.classes_in_exp
+        self.map_related_class_to_origin = dict()   # {task_id: {related_cls: origin_cls}}
+        for task_id in range(len(self.classes_in_exp)):
+            self.map_related_class_to_origin[task_id] = dict()
+            for cls_id, cls in enumerate(self.classes_in_exp[task_id]):
+                self.map_related_class_to_origin[task_id][cls] = self.original_classes_in_exp[task_id, cls_id].item()
+
     def map_label_to_origin(self, batched_label, batched_task_id):
         """Map related label back to its original value.
         :param batched_label: cuda Long Tensor [bs,]
         :param batched_task_id: cuda Long Tensor [bs,]
         """
-        original_classes_in_exp = self.benchmark.original_classes_in_exp
-        classes_in_exp = self.benchmark.classes_in_exp
-
+        # original_labels = [
+        #     original_classes_in_exp[
+        #         task_id, np.where(classes_in_exp[task_id] == re_label)[0][0]
+        #     ] for re_label, task_id in zip(batched_label.tolist(), batched_task_id.tolist())]
         original_labels = [
-            original_classes_in_exp[
-                task_id, np.where(classes_in_exp[task_id] == re_label)[0][0]
-            ] for re_label, task_id in zip(batched_label.tolist(), batched_task_id.tolist())]
+            self.map_related_class_to_origin[task_id][re_label]
+            for re_label, task_id in zip(
+                batched_label.tolist(), batched_task_id.tolist())
+        ]
 
         concept_comb_strs = [self.map_int_label_to_tuple[cls_idx] for cls_idx in original_labels]
         # [('leaves', 'shirt'), ('grass', 'table')]

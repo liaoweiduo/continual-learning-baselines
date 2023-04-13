@@ -253,7 +253,8 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
                  fix=False, load_classifier=False):
         super().__init__()
         self.backbone = ModuleNetBackbone(args)
-        self.classifier = MultiHeadClassifier(self.backbone.output_size, initial_out_features=initial_out_features)
+        self.classifier = MultiHeadClassifier(self.backbone.output_size, initial_out_features=initial_out_features,
+                                              masking=False)
 
         if pretrained:
             print('Load pretrained ModuleNet model from {}.'.format(pretrained_model_path))

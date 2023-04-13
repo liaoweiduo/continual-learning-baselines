@@ -230,7 +230,8 @@ class MTResNet18(MultiTaskModule, DynamicModule):
                  fix=False, load_classifier=False):
         super().__init__()
         self.resnet = resnet18(pretrained, pretrained_model_path, fix)
-        self.classifier = MultiHeadClassifier(self.resnet.output_size, initial_out_features=initial_out_features)
+        self.classifier = MultiHeadClassifier(self.resnet.output_size, initial_out_features=initial_out_features,
+                                              masking=False)
 
         # if pretrained:
         #     print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))

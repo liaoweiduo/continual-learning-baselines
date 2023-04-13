@@ -370,7 +370,8 @@ class MTViT(MultiTaskModule, DynamicModule):
             dropout=dropout,
             emb_dropout=emb_dropout
         )
-        self.classifier = MultiHeadClassifier(self.vit.output_size, initial_out_features=initial_out_features)
+        self.classifier = MultiHeadClassifier(self.vit.output_size, initial_out_features=initial_out_features,
+                                              masking=False)
 
         if pretrained:
             print('Load pretrained ViT model from {}'.format(pretrained_model_path))

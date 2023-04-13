@@ -87,7 +87,7 @@ def main(params, fix_device=True):
         if len(params_temp) == num_runs_1sh or idx == len(params) - 1:  # every num_runs_1sh or last runs
             print(f'Generate {iter}.sh with params: {params_temp}.')
             template_exp_sh(
-                target='experiments/continual_training.py',
+                target=target,
                 path=f'../avalanche-experiments/tasks/{task_name}',
                 name=iter,
                 params=params_temp,
@@ -99,18 +99,20 @@ def main(params, fix_device=True):
             iter += 1
 
     '''Generate bash for server'''
-    # template_sustech(
-    template_sustech(
+    # template_sustech, template_hisao
+    template_hisao(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}'
     )
 
 
+target = 'experiments/continual_training.py'
 task_name = return_time()   # defined by time
+print(task_name)
 task_root = 'tests/tasks'        # path for sh in the working path
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 1       # num of runs in 1 sh file
+num_runs_1sh = 2       # num of runs in 1 sh file
 fix_device = True      # cuda self-increase for each run if True, else use cuda:0
 common_args = {
     'use_wandb': False,
@@ -123,6 +125,29 @@ common_args = {
 # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
 
 params = []
+
+
+"""
+exp: multi-task baselines
+"""
+target = 'experiments/multi_task_training.py'
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+fix_device = False      # cuda self-increase for each run if True, else use cuda:0
+param_grid = {
+    'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1],
+    'return_task_id': [True, False],
+}
+common_args.update({
+    'tag': 'MT',
+    'strategy': 'naive',
+    'use_interactive_logger': True,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+
 
 
 
@@ -154,32 +179,32 @@ exp: assist with multi-concept learning head
 """
 exp: module-net, 10 tasks, tune lr and reg coeff (sparse, supcon)
 """
-param_grid = {
-    'learning_rate': [1e-4],
-    'ssc': [0, 10, 50, 100],
-}
-common_args.update({
-    'tag': 'MNt1_vit2',
-    'return_task_id': True,
-    'strategy': 'our',
-    'model_backbone': 'vit',
-    'image_size': 128,
-    'vit_depth': 4,
-    'use_wandb': True,
-    'train_num_exp': 10,
-    # 'skip_fewshot_testing': True,
-    # 'disable_early_stop': True,
-    'eval_every': 10,
-    'eval_patience': 50,
-    'epochs': 300,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
-                    '-tsk_{return_task_id}' + \
-                    '-r{ssc}'
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-for p in params_temp:
-    p['scc'] = p['ssc']
-params.extend(params_temp)
+# param_grid = {
+#     'learning_rate': [1e-4],
+#     'ssc': [0, 10, 50, 100],
+# }
+# common_args.update({
+#     'tag': 'MNt1_vit2',
+#     'return_task_id': True,
+#     'strategy': 'our',
+#     'model_backbone': 'vit',
+#     'image_size': 128,
+#     'vit_depth': 4,
+#     'use_wandb': True,
+#     'train_num_exp': 10,
+#     # 'skip_fewshot_testing': True,
+#     # 'disable_early_stop': True,
+#     'eval_every': 10,
+#     'eval_patience': 50,
+#     'epochs': 300,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-r{ssc}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# for p in params_temp:
+#     p['scc'] = p['ssc']
+# params.extend(params_temp)
 
 
 

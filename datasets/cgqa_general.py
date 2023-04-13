@@ -636,7 +636,7 @@ class PathsDataset(torch.utils.data.Dataset):
         return len(self.imgs)
 
 
-class Subset(torch.utils.data.Dataset):
+class Subset(torch.utils.data.dataset.Dataset):
     """
     subset with class mapping
     """
