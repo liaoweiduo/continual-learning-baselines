@@ -189,11 +189,11 @@ def multi_task_training(override_args=None):
     print("Starting experiment...")
     num_trained_exp_this_run = 0
     results = []
-    for experience, val_task in zip(benchmark.train_stream[initial_exp:], benchmark.val_stream[initial_exp:]):
+    for experience in benchmark.train_stream[initial_exp:]:
         if 0 <= args.train_num_exp <= initial_exp + num_trained_exp_this_run:
             break       # initial_exp is num of exps have been done before the script.
 
-        strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
+        strategy.train(experience, eval_streams=[benchmark.val_stream], pin_memory=False, num_workers=10)
 
         num_trained_exp_this_run += 1
 

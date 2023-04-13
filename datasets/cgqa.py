@@ -222,18 +222,18 @@ def continual_training_benchmark(
         #
         # return sub_data
 
-        return classification_subset(
-            dataset,
-            indices=indices,
-            class_mapping=class_mappings[exp_idx],
-            task_labels=task_labels)
+        # return classification_subset(
+        #     dataset,
+        #     indices=indices,
+        #     class_mapping=class_mappings[exp_idx],
+        #     task_labels=task_labels)
 
-        # mapped_targets = np.array([class_mappings[exp_idx][idx] for idx in np.array(t)[indices]])
-        # return make_classification_dataset(
-        #     MySubset(dataset, indices=indices, class_mapping=class_mappings[exp_idx]),
-        #     targets=mapped_targets,
-        #     task_labels=task_labels,
-        # )
+        mapped_targets = np.array([class_mappings[exp_idx][idx] for idx in np.array(t)[indices]])
+        return make_classification_dataset(
+            MySubset(dataset, indices=indices, class_mapping=class_mappings[exp_idx]),
+            targets=mapped_targets,
+            task_labels=task_labels,
+        )
 
     train_subsets = [
         obtain_subset(train_set, expidx, memory_size)
@@ -256,47 +256,40 @@ def continual_training_benchmark(
         # for expidx in range(1, n_experiences):
         #     multi_task_train_dataset = multi_task_train_dataset.concat(train_subsets[expidx])
         #     multi_task_val_dataset = multi_task_val_dataset.concat(val_subsets[expidx])
-        multi_task_train_dataset = concat_classification_datasets(
-            train_subsets,
-            # transform_groups={'val': (None, None)},
-        )
-
-        benchmark_instance = dataset_benchmark(
-            train_datasets=[multi_task_train_dataset],
-            test_datasets=test_subsets,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-
-    else:
-        benchmark_instance = dataset_benchmark(
-            train_datasets=train_subsets,
-            test_datasets=test_subsets,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-
-    val_stream = dataset_benchmark(
-        train_datasets=train_subsets,
-        test_datasets=val_subsets,
-        train_transform=train_transform,
-        eval_transform=eval_transform,
-    )
+        train_subsets = [
+            concat_classification_datasets(
+                train_subsets,
+                # transform_groups={'val': (None, None)},
+        )]
 
     # benchmark_instance = dataset_benchmark(
     #     train_datasets=train_subsets,
     #     test_datasets=test_subsets,
-    #     other_streams_datasets={'val': val_subsets},
     #     train_transform=train_transform,
     #     eval_transform=eval_transform,
-    #     other_streams_transforms={'val': (eval_transform, None)},
     # )
+    #
+    # val_stream = dataset_benchmark(
+    #     train_datasets=train_subsets,
+    #     test_datasets=val_subsets,
+    #     train_transform=train_transform,
+    #     eval_transform=eval_transform,
+    # )
+    # benchmark_instance.val_stream = val_stream
+
+    benchmark_instance = dataset_benchmark(
+        train_datasets=train_subsets,
+        test_datasets=test_subsets,
+        other_streams_datasets={'val': val_subsets},
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+        other_streams_transforms={'val': (eval_transform, None)},
+    )
     benchmark_instance.original_classes_in_exp = original_classes_in_exp
     benchmark_instance.classes_in_exp = classes_in_exp
     benchmark_instance.class_mappings = class_mappings
     benchmark_instance.n_classes = num_classes
     benchmark_instance.label_info = label_info
-    benchmark_instance.val_stream = val_stream
 
     return benchmark_instance
 
