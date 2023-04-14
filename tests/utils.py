@@ -175,7 +175,7 @@ def template_hisao(name_list, cmd_path, path):
 
     '''Generate slurm bash'''
     for idx, name in enumerate(name_list):
-        task_str += f"\nsh {name}.bash"
+        task_str += f"\nsh {name}.bash >> {name}.out 2>&1"
 
         template_str = \
             f"#!/bin/sh\n" \

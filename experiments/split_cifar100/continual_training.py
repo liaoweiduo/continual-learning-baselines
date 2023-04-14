@@ -104,7 +104,7 @@ def continual_train(override_args=None):
     # ####################
     # STRATEGY INSTANCE
     # ####################
-    cl_strategy = get_strategy(args.strategy, model, device, evaluation_plugin, args, early_stop=False)
+    cl_strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args, early_stop=False)
 
     # ####################
     # TRAINING LOOP

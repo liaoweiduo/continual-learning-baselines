@@ -122,6 +122,8 @@ parser.add_argument('--csc', type=float, default=0.0, metavar='REG',
                     help='ConsistentSelection coefficient.')
 
 # multi_concept_classifier
+parser.add_argument('--mask_origin_loss', action='store_true',
+                    help='Whether to only use multi concept classifier.')
 parser.add_argument('--multi_concept_weight', type=float, default=1., metavar='WEIGHT',
                     help='Weight for multi_concept loss.')
 

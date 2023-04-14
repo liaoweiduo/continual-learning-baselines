@@ -292,7 +292,7 @@ class SelectionPluginMetric(PluginMetric):
     """Metric used to output selected modules on all layers.
     """
 
-    def __init__(self, benchmark, mode='both', matrix=True, simi=False,
+    def __init__(self, benchmark, mode='both', matrix=False, simi=False,
                  sparse=True, sparse_threshold=2,
                  supcon=True, independent=False, consistent=False):
         super().__init__()
@@ -386,7 +386,8 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
     This plugin is not recommended during training,
     since it load and forward extra images to the model.
     """
-    def __init__(self, image_size, active=False, wandb_log=False, num_samples=10, num_proto=28):
+    def __init__(self, image_size, active=False, wandb_log=False,
+                 num_samples=10, num_proto=28):
         super().__init__(mode="eval", n_cols=1, n_rows=num_samples)
         self.active = active        # since the eval during training is not needed for collecting masks
         self.wandb_log = wandb_log
@@ -491,7 +492,7 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
                     grid_mask = make_grid(
                         list(masks[:, layer_idx, proto_idx].unsqueeze(1)), normalize=False, nrow=n_col)[0]
                     # [0] for convert [3, HH, WW] to [HH, WW]
-                    binarized_grid_mask = (grid_mask > 0.2).int()       # threshold 0.5
+                    binarized_grid_mask = (grid_mask > 0.2).int()       # threshold 0.2
 
                     mask_dict[f'proto{proto_idx}'] = {
                         "mask_data": binarized_grid_mask.numpy(),

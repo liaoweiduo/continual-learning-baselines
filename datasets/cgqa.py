@@ -230,7 +230,7 @@ def continual_training_benchmark(
 
         mapped_targets = np.array([class_mappings[exp_idx][idx] for idx in np.array(t)[indices]])
         return make_classification_dataset(
-            MySubset(dataset, indices=indices, class_mapping=class_mappings[exp_idx]),
+            MySubset(dataset, indices=list(indices), class_mapping=class_mappings[exp_idx]),
             targets=mapped_targets,
             task_labels=task_labels,
         )
@@ -290,6 +290,7 @@ def continual_training_benchmark(
     benchmark_instance.class_mappings = class_mappings
     benchmark_instance.n_classes = num_classes
     benchmark_instance.label_info = label_info
+    benchmark_instance.return_task_id = return_task_id
 
     return benchmark_instance
 
@@ -445,6 +446,7 @@ def fewshot_testing_benchmark(
     benchmark_instance.class_mappings = np.array(class_mappings)
     benchmark_instance.n_classes = num_classes
     benchmark_instance.label_info = label_info
+    benchmark_instance.return_task_id = True
 
     return benchmark_instance
 
@@ -616,7 +618,7 @@ class MySubset(Subset):
     """
     subset with class mapping
     """
-    def __init__(self, dataset, indices, class_mapping, transform=None):
+    def __init__(self, dataset, indices: list, class_mapping, transform=None):
         super().__init__(dataset, indices)
         # self._dataset = dataset
         # self._indices = indices

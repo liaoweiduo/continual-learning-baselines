@@ -80,7 +80,7 @@ def continual_train(override_args=None):
     strategy, initial_exp = checkpoint_plugin.load_checkpoint_if_exists()
 
     wandb_logger = None
-    image_similarity_plugin_metric = None
+    # image_similarity_plugin_metric = None
     selection_plugin_metric = None
     if strategy is None:
         # '''Check resume'''
@@ -118,7 +118,7 @@ def continual_train(override_args=None):
         # LOGGER
         # ####################
         loggers = [
-            # avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
+            avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
         ]
         if args.use_interactive_logger:
             loggers.append(avl.logging.InteractiveLogger())
@@ -138,7 +138,7 @@ def continual_train(override_args=None):
         # EVALUATION PLUGIN
         # ####################
         if args.strategy == 'our':
-            image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False, image_size=args.image_size)
+            # image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False, image_size=args.image_size)
             selection_plugin_metric = SelectionPluginMetric(benchmark, sparse_threshold=args.ssc_threshold)
         metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
@@ -155,7 +155,7 @@ def continual_train(override_args=None):
         if args.strategy == 'our':
             metrics_list.extend([
                 selection_plugin_metric,
-                image_similarity_plugin_metric,
+                # image_similarity_plugin_metric,
             ])
         # if args.dataset_mode == 'continual':
         #     metrics_list.extend([
@@ -187,7 +187,11 @@ def continual_train(override_args=None):
     print("Starting experiment...")
     num_trained_exp_this_run = 0
     results = []
-    for experience, val_task in zip(benchmark.train_stream[initial_exp:], benchmark.val_stream[initial_exp:]):
+    for exp_idx, (experience, val_task) in enumerate(
+            zip(benchmark.train_stream, benchmark.val_stream)):
+        if exp_idx < initial_exp:
+            continue    # when initial_exp == len(train_stream), ValueError raises for train_stream[initial_exp:]
+
         if 0 <= args.train_num_exp <= initial_exp + num_trained_exp_this_run:
             break       # initial_exp is num of exps have been done before the script.
 
@@ -209,14 +213,14 @@ def continual_train(override_args=None):
 
         print("Computing accuracy on the whole test set.")
 
-        if image_similarity_plugin_metric is not None:
-            image_similarity_plugin_metric.set_active(True)
+        # if image_similarity_plugin_metric is not None:
+        #     image_similarity_plugin_metric.set_active(True)
 
         result = strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10)
         results.append(result)
 
-        if image_similarity_plugin_metric is not None:
-            image_similarity_plugin_metric.set_active(False)
+        # if image_similarity_plugin_metric is not None:
+        #     image_similarity_plugin_metric.set_active(False)
 
         # ####################
         # STORE CHECKPOINT
@@ -259,27 +263,30 @@ def continual_train(override_args=None):
 
     print("Experiments completed")
 
-    if num_trained_exp_this_run == 0:       # no training performed, only test
-        print("No training is performed, just computing accuracy on the whole test set.")
+    # if num_trained_exp_this_run == 0:       # no training performed, only test
+    #     print("No training is performed, just computing accuracy on the whole test set.")
+    #
+    #     result = strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10)
+    #     results.append(result)
+    #     stored_results = []
+    #     re = dict()
+    #     for key, item in result.items():
+    #         if 'ConfusionMatrix' not in key:
+    #             re[key] = item
+    #     stored_results.append(re)
+    #     result_file = os.path.join(exp_path, f'results-{args.exp_name}-only-test.npy')
+    #     print("Save results in", result_file)
+    #     np.save(result_file, stored_results)
+    ## RuntimeError: Checkpoint file /liaoweiduo/avalanche-experiments/CGQA/
+    ## Multi_Label-concept-tsk_True-lr0_0001/Checkpoints/10/checkpoint.pth already exists.
 
-        result = strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10)
-        results.append(result)
-        stored_results = []
-        re = dict()
-        for key, item in result.items():
-            if 'ConfusionMatrix' not in key:
-                re[key] = item
-        stored_results.append(re)
-        result_file = os.path.join(exp_path, f'results-{args.exp_name}-only-test.npy')
-        print("Save results in", result_file)
-        np.save(result_file, stored_results)
-
-    '''print needed info'''
-    avg_test_acc = get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream')
-    print('Average test acc:', avg_test_acc)
-    if wandb_logger is not None:
-        wandb_logger.wandb.log({'avg_test_acc': avg_test_acc})
-    # average test accuracy for all tasks
+    if len(results) > 0:
+        '''print needed info'''
+        avg_test_acc = get_average_metric(results[-1], 'Top1_Acc_Stream/eval_phase/test_stream')
+        print('Average test acc:', avg_test_acc)
+        if wandb_logger is not None:
+            wandb_logger.wandb.log({'avg_test_acc': avg_test_acc})
+        # average test accuracy for all tasks
 
     # finish wandb
     if wandb_logger is not None:

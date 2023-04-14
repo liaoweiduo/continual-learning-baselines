@@ -47,7 +47,7 @@ def generate_params(common_args, param_grid):
     return params
 
 
-def main(params, fix_device=True):
+def main(params, fix_device=True, start_iter=0):
     '''Run experiments in sequence'''
     # print('************************')
     # print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
@@ -75,7 +75,7 @@ def main(params, fix_device=True):
     '''Or, generate sh files'''
     names = []
     params_temp = []
-    iter = 0
+    iter = start_iter
     for idx, param in enumerate(params):
         if len(params_temp) < num_runs_1sh:
             params_temp.append(param)
@@ -101,11 +101,14 @@ def main(params, fix_device=True):
         path=f'../avalanche-experiments/tasks/{task_name}')
 
 
+target = 'experiments/fewshot_testing.py'
 task_name = return_time()   # defined by time
-# task_root = 'tests/tasks'        # path for sh in the working path
-task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+print(task_name)
+task_root = 'tests/tasks'        # path for sh in the working path
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
 num_runs_1sh = 22*5       # num of runs in 1 sh file
-fix_device = False      # cuda self-increase for each run if True, else use cuda:0
+fix_device = True      # cuda self-increase for each run if True, else use cuda:0
+start_iter = 0
 common_args = {
     'use_wandb': False,
     'use_interactive_logger': True,
@@ -281,4 +284,4 @@ exp: baselines resnet cgqa
 # params.extend(generate_params(common_args, param_grid))
 
 
-main(params, fix_device)
+main(params, fix_device, start_iter)

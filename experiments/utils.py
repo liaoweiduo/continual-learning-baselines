@@ -122,12 +122,15 @@ def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=Tru
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
     elif name == 'er':
-        from avalanche.training import Replay
-        return Replay(
+        from avalanche.training import Naive
+        from avalanche.training.plugins import ReplayPlugin
+
+        plugins.append(ReplayPlugin(args.er_mem_size, task_balanced_dataloader=True))
+
+        return Naive(
             model,
             optimizer,
             CrossEntropyLoss(),
-            mem_size=args.er_mem_size,
             train_mb_size=args.train_mb_size,
             train_epochs=args.epochs,
             eval_mb_size=args.eval_mb_size,
@@ -170,7 +173,9 @@ def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=Tru
         from avalanche.training import Naive
         from strategies.multi_concept_classifier import MultiConceptClassifier
 
-        plugins.append(MultiConceptClassifier(model, benchmark, weight=args.multi_concept_weight))
+        plugins.append(MultiConceptClassifier(model, benchmark,
+                                              weight=args.multi_concept_weight,
+                                              mask_origin_loss=args.mask_origin_loss))
 
         return Naive(
             model,
