@@ -2,7 +2,6 @@ from typing import Optional, Sequence, List, Union, Dict, Tuple
 from collections import Counter
 import math
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 import torch
@@ -324,6 +323,7 @@ class SelectionPluginMetric(PluginMetric):
         dic = self.result()
 
         if self.wandb_log:
+            import seaborn as sns
             metric_name = get_metric_name(
                 self,
                 strategy,
