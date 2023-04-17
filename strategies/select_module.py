@@ -2,8 +2,11 @@ from typing import Optional, Sequence, List, Union, Dict, Tuple
 from collections import Counter
 import math
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 import torch
+import wandb
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer, SGD
@@ -292,7 +295,8 @@ class SelectionPluginMetric(PluginMetric):
     """Metric used to output selected modules on all layers.
     """
 
-    def __init__(self, benchmark, mode='both', matrix=False, simi=False,
+    def __init__(self, benchmark, mode='both', matrix=False, wandb_log=False,
+                 simi=False,
                  sparse=True, sparse_threshold=2,
                  supcon=True, independent=False, consistent=False):
         super().__init__()
@@ -300,7 +304,7 @@ class SelectionPluginMetric(PluginMetric):
                 ), f'Current mode is {mode}, should be one of [both, train, eval].'
         self.benchmark = benchmark
         self.mode = mode
-        self.save_image = False
+        self.wandb_log = wandb_log
         self.matrix = matrix
         self.simi = simi
         self.sparse = sparse
@@ -309,10 +313,28 @@ class SelectionPluginMetric(PluginMetric):
         self.independent = independent
         self.consistent = consistent
 
-        self._metric = SelectionMetric(benchmark, self.save_image)
+        self._metric = SelectionMetric(benchmark)
+
+        self.wandb = None
+        if wandb_log:
+            import wandb
+            self.wandb = wandb
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         dic = self.result()
+
+        if self.wandb_log:
+            metric_name = get_metric_name(
+                self,
+                strategy,
+                add_experience=True,        # self.mode in ["eval", "both"],
+                add_task=True,
+            ) + f'/Matrix_Labels'
+            matrix, labels = dic['Matrix'], dic['Labels'] / dic['Labels'].max()
+            # here the Labels is origin label, map to [0-1]
+            ax = sns.heatmap(np.concatenate([labels[:, np.newaxis], matrix], axis=1))
+            fig = ax.get_figure()
+            self.wandb.log({f"{metric_name}": wandb.Image(fig)})
 
         metrics = []
         for k, v in dic.items():
@@ -386,13 +408,24 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
     This plugin is not recommended during training,
     since it load and forward extra images to the model.
     """
-    def __init__(self, image_size, active=False, wandb_log=False,
-                 num_samples=10, num_proto=28):
-        super().__init__(mode="eval", n_cols=1, n_rows=num_samples)
+    def __init__(self, image_size, benchmark, active=False, wandb_log=False,
+                 num_samples=1, target=0, num_proto=28):
+        """
+        :param image_size: 128
+        :param benchmark: target benchmark to get samples.
+        :param active: False will not activate this plugin.
+        :param wandb_log: True will upload image and mask to wand.
+        :param num_samples: num_samples for each class in the specific task specified as ``target''.
+        :param target: target task to sample images. default 0.
+        :param num_proto: num of masks which should be consistent with the model.
+        """
+        super().__init__(mode="eval", n_cols=1, n_rows=10)
         self.active = active        # since the eval during training is not needed for collecting masks
+        self.benchmark = benchmark
         self.wandb_log = wandb_log
         self.image_size = image_size
         self.num_samples = num_samples
+        self.target = target
         self.num_proto = num_proto      # 4*7
         self.seed = 1234
 
@@ -556,32 +589,60 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
     ) -> Tuple[List[Tensor], List[Tensor], List[int], List[int]]:
         """Modify: apply norm transform on images. provide w/ and w/o norm versions of images"""
 
-        torch.manual_seed(self.seed)
+        dataset = self.benchmark.test_stream[self.target].dataset.replace_current_transform_group(
+            self.eval_transform_no_norm)
 
-        # todo: num_img for (label, task)
-
-
-
-        dataloader = self._make_dataloader(
-            strategy.adapted_dataset, strategy.eval_mb_size
-        )
+        # dataloader = self._make_dataloader(
+        #     dataset, mb_size=1
+        # )   # strategy.adapted_dataset
 
         images, images_no_norm, labels, tasks = [], [], [], []
+        task_label_image_dict = {}
 
-        for batch_images, batch_labels, batch_tasks in dataloader:
-            n_missing_images = self.n_wanted_images - len(images)
-            labels.extend(batch_labels[:n_missing_images].tolist())
-            tasks.extend(batch_tasks[:n_missing_images].tolist())
-            raw_images = batch_images[:n_missing_images]
-            images_no_norm.extend([
-                img for img in raw_images
-            ])
-            images.extend([
-                self.norm_transform(img)
-                for img in raw_images
-            ])
-            if len(images) == self.n_wanted_images:
-                return images, images_no_norm, labels, tasks
+        '''collect images in the dataset'''
+        # for batch_images, batch_labels, batch_tasks in dataloader:
+        #     task, label, image = batch_tasks[0], batch_labels[0], batch_images[0]
+        for item in dataset:
+            image, label, task = item
+            if not isinstance(label, int):
+                label = label.item()
+            if not isinstance(task, int):
+                task = task.item()
+            if task not in task_label_image_dict.keys():
+                task_label_image_dict[task] = {}
+            if label not in task_label_image_dict[task].keys():
+                task_label_image_dict[task][label] = []
+
+            task_label_image_dict[task][label].append(image)
+
+            # n_missing_images = self.n_wanted_images - len(images)
+            # labels.extend(batch_labels[:n_missing_images].tolist())
+            # tasks.extend(batch_tasks[:n_missing_images].tolist())
+            # raw_images = batch_images[:n_missing_images]
+            # images_no_norm.extend([
+            #     img for img in raw_images
+            # ])
+            # images.extend([
+            #     self.norm_transform(img)
+            #     for img in raw_images
+            # ])
+            # if len(images) == self.n_wanted_images:
+            #     return images, images_no_norm, labels, tasks
+
+        '''sample self.num_samples images for each label-task pair'''
+        # torch.manual_seed(self.seed)
+        rng = np.random.RandomState(self.seed)
+        for task in task_label_image_dict.keys():
+            for label in task_label_image_dict[task].keys():
+                image_list = task_label_image_dict[task][label]
+                selected_idxs = rng.choice(np.arange(len(image_list)), self.num_samples)
+                for idx in selected_idxs:
+                    images_no_norm.append(image_list[idx])
+                    images.append(self.norm_transform(image_list[idx]))
+                    labels.append(label)
+                    tasks.append(task)
+
+        return images, images_no_norm, labels, tasks
 
     def _sort_images(self, labels: List[int], tasks: List[int]):
         """Modify: also change self.labels and self.tasks and image_no_norm"""
@@ -655,7 +716,7 @@ class SelectionPlugin(SupervisedPlugin):
         self.independent_alpha = independent_alpha
         self.consistent_alpha = consistent_alpha
 
-        self._metric = SelectionMetric(benchmark, save_image=False)
+        self._metric = SelectionMetric(benchmark)
 
     def reset(self, strategy) -> None:
         self._metric.reset()

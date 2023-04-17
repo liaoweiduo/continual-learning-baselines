@@ -140,7 +140,7 @@ def multi_task_training(override_args=None):
         # EVALUATION PLUGIN
         # ####################
         if args.strategy == 'our':
-            image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False, image_size=args.image_size)
+            # image_similarity_plugin_metric = ImageSimilarityPluginMetric(wandb_log=False, image_size=args.image_size)
             selection_plugin_metric = SelectionPluginMetric(benchmark=benchmark, sparse_threshold=args.ssc_threshold)
         metrics_list = [
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
@@ -157,7 +157,7 @@ def multi_task_training(override_args=None):
         if args.strategy == 'our':
             metrics_list.extend([
                 selection_plugin_metric,
-                image_similarity_plugin_metric,
+                # image_similarity_plugin_metric,
             ])
         # if args.dataset_mode == 'continual':
         #     metrics_list.extend([
@@ -177,10 +177,10 @@ def multi_task_training(override_args=None):
                                 early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
     else:
         model = strategy.model
-        if args.strategy == 'our':
-            image_similarity_plugin_metric = [
-                metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
-            ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
+        # if args.strategy == 'our':
+        #     image_similarity_plugin_metric = [
+        #         metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
+        #     ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
 
 
     # ####################
@@ -201,14 +201,14 @@ def multi_task_training(override_args=None):
 
     print("Computing accuracy on the whole test set.")
 
-    if image_similarity_plugin_metric is not None:
-        image_similarity_plugin_metric.set_active(True)
+    # if image_similarity_plugin_metric is not None:
+    #     image_similarity_plugin_metric.set_active(True)
 
     result = strategy.eval(benchmark.test_stream, pin_memory=False, num_workers=10)
     results.append(result)
 
-    if image_similarity_plugin_metric is not None:
-        image_similarity_plugin_metric.set_active(False)
+    # if image_similarity_plugin_metric is not None:
+    #     image_similarity_plugin_metric.set_active(False)
 
     # ####################
     # STORE CHECKPOINT

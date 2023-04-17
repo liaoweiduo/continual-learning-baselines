@@ -262,7 +262,11 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
             if 'state_dict' in ckpt_dict:
                 self.backbone.load_state_dict(ckpt_dict['state_dict'])
             else:   # load backbone and classifier
-                self.load_state_dict(ckpt_dict)
+                d = OrderedDict()
+                for key, item in ckpt_dict.items():
+                    if key.startswith('backbone'):
+                        d['.'.join(key.split('.')[1:])] = item
+                self.backbone.load_state_dict(d)
 
             # Freeze the parameters of the feature extractor
             if fix:

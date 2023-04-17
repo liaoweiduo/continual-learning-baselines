@@ -106,7 +106,7 @@ task_name = return_time()   # defined by time
 print(task_name)
 task_root = 'tests/tasks'        # path for sh in the working path
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 22*5       # num of runs in 1 sh file
+num_runs_1sh = 2       # num of runs in 1 sh file
 fix_device = True      # cuda self-increase for each run if True, else use cuda:0
 start_iter = 0
 common_args = {
@@ -125,17 +125,21 @@ params = []
 """
 exp: assist with multi-concept learning head
 """
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+fix_device = False
 common_args.update({
-    'strategy': 'naive',
     'use_interactive_logger': True,
 })
 param_grid = {
+    # 'exp_name': [
+    #     f'concept-concept-tsk_{return_task_id}-lr{learning_rate}-w{multi_concept_weight}'
+    #     for learning_rate in ['0_0001', '0_001', '0_01', '0_1']
+    #     for multi_concept_weight in ['0_5', '1', '2']
+    #     for return_task_id in [True, False]
+    # ],
     'exp_name': [
-        f'concept-naive-tsk_{return_task_id}-lr{learning_rate}-w{multi_concept_weight}'
-        for learning_rate in ['0_0005', '0_0008', '0_001', '0_003', '0_005', '0_008', '0_01',
-                              '0_03', '0_05', '0_08', '0_1']
-        for multi_concept_weight in ['0_5', '1', '2']
-        for return_task_id in [True, False]
+        f'concept-concept-tsk_True-lr0_01-w1',
+        f'concept-concept-tsk_False-lr0_001-w0_5',
     ],
     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
 }

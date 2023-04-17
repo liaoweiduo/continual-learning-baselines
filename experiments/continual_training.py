@@ -117,9 +117,9 @@ def continual_train(override_args=None):
         # ####################
         # LOGGER
         # ####################
-        loggers = [
-            avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-        ]
+        loggers = []
+        if args.use_text_logger:
+            loggers.append(avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a')))
         if args.use_interactive_logger:
             loggers.append(avl.logging.InteractiveLogger())
         if args.use_wandb:
@@ -175,10 +175,10 @@ def continual_train(override_args=None):
                                 early_stop=not args.disable_early_stop, plugins=[checkpoint_plugin])
     else:
         model = strategy.model
-        if args.strategy == 'our':
-            image_similarity_plugin_metric = [
-                metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
-            ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
+        # if args.strategy == 'our':
+        #     image_similarity_plugin_metric = [
+        #         metric for metric in strategy.evaluator.metrics if isinstance(metric, ImageSimilarityPluginMetric)
+        #     ][0]        # will raise exception if ImageSimilarityPluginMetric not in strategy.evaluator.metrics
 
 
     # ####################
@@ -313,6 +313,7 @@ if __name__ == "__main__":
         common_args = {
             'use_wandb': False,
             'learning_rate': 0.001,
+            'epochs': 10,
             'test_freeze_feature_extractor': True,
             'strategy': default_args['strategy'] if default_args['strategy'] in ['our'] else 'naive',
         }

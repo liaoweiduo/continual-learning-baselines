@@ -176,6 +176,8 @@ parser.add_argument('--exp_name', type=str, metavar='EXP_NAME',
                     help='Name of the experiment. TIME for automatically assign according to the time.')
 parser.add_argument('--use_interactive_logger', action='store_true',
                     help="Using interactive_logger.")
+parser.add_argument('--use_text_logger', action='store_true',
+                    help="Using text_logger. may cause trouble if do checkpointing on different devices.")
 parser.add_argument('--do_not_store_checkpoint_per_exp', action='store_true',
                     help="Trigger do not store model{exp_id}.pth after each exp.")
 parser.add_argument('--tag', type=str, default="")

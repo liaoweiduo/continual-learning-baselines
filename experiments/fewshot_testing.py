@@ -137,7 +137,7 @@ def fewshot_test(override_args=None):
     # ####################
     print("Starting experiment...")
     results, accs = [], []
-    for experience, val_task in zip(benchmark.train_stream, benchmark.val_stream):
+    for experience in benchmark.train_stream:
         current_experience = experience.current_experience
         print("Start of experience ", current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
@@ -150,9 +150,9 @@ def fewshot_test(override_args=None):
         # ####################
         # STRATEGY INSTANCE
         # ####################
-        cl_strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args, early_stop=True)
+        cl_strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args, early_stop=False)
 
-        cl_strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
+        cl_strategy.train(experience, pin_memory=False, num_workers=10)
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")

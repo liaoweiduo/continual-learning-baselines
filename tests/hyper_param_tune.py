@@ -118,6 +118,7 @@ start_iter = 0
 common_args = {
     'project_name': 'CGQA',
     'dataset': 'cgqa',
+    'use_interactive_logger': True,
 }
 # for tencent server:
 # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
@@ -205,18 +206,18 @@ exp: module-net, 10 tasks, tune lr and reg coeff (sparse, supcon)
 """
 param_grid = {
     'learning_rate': [1e-4],
-    'ssc': [0, 10, 50, 100],
+    'ssc': [0.2, 0.4, 0.6, 0.8],
 }
 common_args.update({
-    'tag': 'MNt10',
+    'tag': 'MNt1_vit3',
     'return_task_id': True,
     'strategy': 'our',
     'model_backbone': 'vit',
     'image_size': 128,
     'vit_depth': 4,
     'use_wandb': True,
-    'train_num_exp': 10,
-    # 'skip_fewshot_testing': True,
+    'train_num_exp': 1,
+    'skip_fewshot_testing': True,
     'eval_every': 10,
     'eval_patience': 50,
     'epochs': 300,
