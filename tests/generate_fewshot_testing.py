@@ -128,26 +128,26 @@ params = []
 """
 exp: do fewshot testing on random model
 """
-task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-fix_device = False
-common_args.update({
-    'use_interactive_logger': False,
-    'use_text_logger': True,
-    'test_on_random_model': True,
-})
-param_grid = {
-    # 'exp_name': [
-    #     f'concept-concept-tsk_{return_task_id}-lr{learning_rate}-w{multi_concept_weight}'
-    #     for learning_rate in ['0_0001', '0_001', '0_01', '0_1']
-    #     for multi_concept_weight in ['0_5', '1', '2']
-    #     for return_task_id in [True, False]
-    # ],
-    'exp_name': [
-        f'random-naive-tsk_False',
-    ],
-    'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
-}
-params.extend(generate_params(common_args, param_grid))
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# fix_device = False
+# common_args.update({
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'test_on_random_model': True,
+# })
+# param_grid = {
+#     # 'exp_name': [
+#     #     f'concept-concept-tsk_{return_task_id}-lr{learning_rate}-w{multi_concept_weight}'
+#     #     for learning_rate in ['0_0001', '0_001', '0_01', '0_1']
+#     #     for multi_concept_weight in ['0_5', '1', '2']
+#     #     for return_task_id in [True, False]
+#     # ],
+#     'exp_name': [
+#         f'random-naive-tsk_False',
+#     ],
+#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
+# }
+# params.extend(generate_params(common_args, param_grid))
 
 """
 exp: assist with multi-concept learning head
@@ -198,18 +198,26 @@ exp: baselines vit cgqa
 """
 exp: fresh or old concepts
 """
-# param_grid = {
-#     'train_class_order': ['fixed'],
-#     'test_n_way': [2],
-#     'dataset_mode': ['nonf', 'nono', 'sysf', 'syso'],
-#     'exp_name': ['naive-cls-lr0_003', 'naive-tsk-lr0_008',
-#                  'er-cls-lr0_003', 'er-tsk-lr0_0008',
-#                  'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
-#                  'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
-#                  'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2'],
-# }
-# params.extend(generate_params(common_args, param_grid))
-
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+fix_device = False
+common_args.update({
+    'use_interactive_logger': False,
+    'use_text_logger': True,
+})
+param_grid = {
+    'train_class_order': ['fixed'],
+    'test_n_way': [2],
+    'dataset_mode': ['nonf', 'nono', 'sysf', 'syso'],
+    'exp_name': [
+        # 'naive-cls-lr0_003', 'naive-tsk-lr0_008',
+        # 'er-cls-lr0_003', 'er-tsk-lr0_0008',
+        # 'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
+        # 'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
+        # 'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2',
+        'MT-naive-tsk_False-lr0_005', 'MT-naive-tsk_True-lr0_001',
+    ],
+}
+params.extend(generate_params(common_args, param_grid))
 
 """
 exp: different training size

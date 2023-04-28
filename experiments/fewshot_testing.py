@@ -141,8 +141,8 @@ def fewshot_test(override_args=None):
 
         task_id_str = '%03d' % (task_offset + current_experience)    # 010, 011  -> 309
         print(f"Top1_Acc_Stream/eval_phase/test_stream/Task{task_id_str}: ",
-              results[current_experience][f'Top1_Acc_Stream/eval_phase/test_stream/Task{task_id_str}'])
-        accs.append(results[current_experience][f'Top1_Acc_Stream/eval_phase/test_stream/Task{task_id_str}'])
+              results[-1][f'Top1_Acc_Stream/eval_phase/test_stream/Task{task_id_str}'])
+        accs.append(results[-1][f'Top1_Acc_Stream/eval_phase/test_stream/Task{task_id_str}'])
 
     # ####################
     # STORE RESULTS
@@ -154,7 +154,11 @@ def fewshot_test(override_args=None):
             if 'ConfusionMatrix' not in key:
                 re[key] = item
         stored_results.append(re)
-    np.save(os.path.join(exp_path, f'results-{args.exp_name}.npy'), stored_results)
+    if args.test_task_id == -1:
+        file_name = f'results-{args.exp_name}.npy'
+    else:
+        file_name = f'results-{args.exp_name}-{args.test_task_id}.npy'
+    np.save(os.path.join(exp_path, file_name), stored_results)
 
     print('###################################')
     print('accs:', accs)

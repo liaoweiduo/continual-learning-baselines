@@ -1,5 +1,5 @@
 #!/bin/sh
-export WANDB_MODE=offline     # online, offline
+export WANDB_MODE=online     # online, offline
 abs_path=`pwd`
 echo abs_path:$abs_path
 export PYTHONPATH=${PYTHONPATH}:${abs_path}
@@ -10,7 +10,7 @@ export PYTHONPATH=${PYTHONPATH}:${abs_path}
 #CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name concept --use_wandb --strategy concept --use_interactive_logger --multi_concept_weight 1.
 
 # naive vit (128img+4layer) 1 task
-CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name naive-vit-small-1task --strategy naive --use_interactive_logger --use_text_logger --train_num_exp 1 --model_backbone vit --image_size 128 --vit_depth 4 --learning_rate 0.0001 --lr_schedule cos --epochs 200 --skip_fewshot_testing
+#CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name naive-vit-small-1task --strategy naive --use_interactive_logger --use_text_logger --train_num_exp 1 --model_backbone vit --image_size 128 --vit_depth 4 --learning_rate 0.0001 --lr_schedule cos --epochs 200 --skip_fewshot_testing
 
 
 # er test
@@ -18,5 +18,22 @@ CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name naiv
 
 # multi_task test
 #CUDA_VISIBLE_DEVICES=0 python3 experiments/multi_task_training.py --exp_name mt_test --return_task_id --strategy naive --use_interactive_logger
+
+# CAM
+# naive-tsk-lr0_008; naive-cls-lr0_003; MT-naive-tsk_True-lr0_001; MT-naive-tsk_False-lr0_005
+#for mode in 'sys' 'pro' 'sub' 'non' 'noc'
+#do
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode $mode --exp_name naive-tsk-lr0_008 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode $mode --exp_name naive-cls-lr0_003 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode $mode --exp_name MT-naive-tsk_True-lr0_001 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode $mode --exp_name MT-naive-tsk_False-lr0_005 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#done
+for mode in 'nonf' 'nono' 'sysf' 'syso'
+do
+CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name naive-tsk-lr0_008 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name naive-cls-lr0_003 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name MT-naive-tsk_True-lr0_001 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name MT-naive-tsk_False-lr0_005 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+done
 
 echo FINISH!

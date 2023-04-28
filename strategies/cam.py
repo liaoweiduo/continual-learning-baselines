@@ -173,7 +173,7 @@ class CAMPluginMetric(ImagesSamplePlugin):
         batched_images = torch.stack(self.images).to(strategy.device)       # [bs, 3, H, W]
         batched_images_no_norm = torch.stack(self.images_no_norm)
         with torch.no_grad():
-            _, hidden_features = model.backbone.get_layer_output(batched_images, -1)    # [BS, 512, Hl, Wl]
+            _, hidden_features = model.resnet.get_layer_output(batched_images, -1)    # [BS, 512, Hl, Wl]
 
         # another method use hook
         # feature_map = []  # 建立列表容器，用于盛放输出特征图
@@ -181,9 +181,9 @@ class CAMPluginMetric(ImagesSamplePlugin):
         # def forward_hook(module, inp, outp):  # 定义hook
         #     feature_map.append(outp)  # 把输出装入字典feature_map
         #
-        # model.backbone.layer4.register_forward_hook(forward_hook)  # 对net.layer4这一层注册前向传播
+        # model.resnet.layer4.register_forward_hook(forward_hook)  # 对net.layer4这一层注册前向传播
         # with torch.no_grad():
-        #     _ = model.backbone(batched_images)  # 前向传播
+        #     _ = model.resnet(batched_images)  # 前向传播
         #
         # print(feature_map[0].size())
 
@@ -196,7 +196,7 @@ class CAMPluginMetric(ImagesSamplePlugin):
         for hidden_feature, images_no_norm, related_label, task_id in zip(
                 hidden_features, batched_images_no_norm, self.labels, self.tasks):
             mask = self.apply_cam(hidden_feature, weights[task_id], related_label)      # PIL.Image
-            orign_img = to_pil_image(images_no_norm.numpy(), mode='RGB')
+            orign_img = to_pil_image(images_no_norm, mode='RGB')
             masked_images.append(trans(self.overlay_mask(orign_img, mask)))       # tensor
 
         n_col = self.n_cols
@@ -262,7 +262,8 @@ class CAMPluginMetric(ImagesSamplePlugin):
         for task in task_label_image_dict.keys():
             for label in task_label_image_dict[task].keys():
                 image_list = task_label_image_dict[task][label]
-                selected_idxs = rng.choice(np.arange(len(image_list)), self.num_samples)
+                selected_idxs = rng.permutation(np.arange(len(image_list)))[:self.num_samples]
+                # selected_idxs = rng.choice(np.arange(len(image_list)), self.num_samples)
                 for idx in selected_idxs:
                     images_no_norm.append(image_list[idx])
                     images.append(self.norm_transform(image_list[idx]))
