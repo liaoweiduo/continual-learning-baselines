@@ -57,6 +57,58 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
     return exp_path, checkpoint_path
 
 
+def get_model(args, checkpoint_path=None, multi_task_baseline=False):
+    # '''Check resume'''
+    # if os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
+    #     pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
+    # else:
+    #     pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
+    if args.dataset_mode == 'continual':
+        pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
+        multi_head = args.return_task_id
+        fix = False
+    elif args.test_on_random_model:
+        pretrained, pretrained_model_path = False, args.pretrained_model_path
+        multi_head = True
+        fix = args.test_freeze_feature_extractor
+    else:
+        assert checkpoint_path is not None
+        pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
+        multi_head = True
+        fix = args.test_freeze_feature_extractor
+
+    if args.strategy == 'our':
+        from models.module_net import get_module_net
+        model = get_module_net(
+            args=vars(args),
+            multi_head=multi_head,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path,
+            masking=True if not multi_task_baseline else False,
+            fix=fix)
+    elif args.model_backbone == "resnet18":
+        from models.resnet import get_resnet
+        model = get_resnet(
+            multi_head=multi_head,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path,
+            masking=True if not multi_task_baseline else False,
+            add_multi_class_classifier=True if args.strategy == 'concept' else False,
+            fix=fix)
+    elif args.model_backbone == "vit":
+        from models.vit import get_vit
+        model = get_vit(
+            image_size=args.image_size,
+            multi_head=multi_head,
+            pretrained=pretrained, pretrained_model_path=pretrained_model_path,
+            fix=fix,
+            masking=True if not multi_task_baseline else False,
+            patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
+            mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout)
+    else:
+        raise Exception(f"Un-recognized model structure {args.model_backbone}.")
+
+    return model
+
+
 def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=True, plugins=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -190,3 +242,59 @@ def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=Tru
         )
     else:
         raise Exception(f"Un-implemented strategy: {name}.")
+
+
+def get_benchmark(args, task_offset=0, multi_task=False):
+    from experiments.config import FIXED_CLASS_ORDER
+
+    shuffle = True if args.train_class_order == 'shuffle' else False
+    fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
+
+    if args.dataset_mode == 'continual':
+
+        if args.dataset == 'cgqa':
+            from datasets.cgqa import continual_training_benchmark
+        elif args.dataset == 'cpin':
+            from datasets.cpin import continual_training_benchmark
+        elif args.dataset == 'cobj':
+            from datasets.cobj import continual_training_benchmark
+        else:
+            raise Exception(f'Un-implemented dataset: {args.dataset}.')
+
+        if args.model_backbone == 'vit':
+            from datasets.cgqa import build_transform_for_vit
+
+            train_transform = build_transform_for_vit((args.image_size, args.image_size), True)
+            eval_transform = build_transform_for_vit((args.image_size, args.image_size), False)
+        else:
+            train_transform, eval_transform = None, None    # default transform
+
+        benchmark = continual_training_benchmark(
+            n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
+            return_task_id=args.return_task_id,
+            seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
+            dataset_root=args.dataset_root,
+            train_transform=train_transform, eval_transform=eval_transform,
+            num_samples_each_label=args.num_samples_each_label,
+            multi_task=multi_task
+        )
+
+    else:
+        if args.dataset == 'cgqa':
+            from datasets.cgqa import fewshot_testing_benchmark
+        elif args.dataset == 'cpin':
+            from datasets.cpin import fewshot_testing_benchmark
+        elif args.dataset == 'cobj':
+            from datasets.cobj import fewshot_testing_benchmark
+        else:
+            raise Exception(f'Un-implemented dataset: {args.dataset}.')
+
+        benchmark = fewshot_testing_benchmark(
+            n_experiences=args.test_n_experiences, image_size=(args.image_size, args.image_size),
+            mode=args.dataset_mode,
+            n_way=args.test_n_way, n_shot=args.test_n_shot, n_val=args.test_n_val, n_query=args.test_n_query,
+            task_offset=task_offset,
+            seed=args.seed, fixed_class_order=fixed_class_order,
+            dataset_root=args.dataset_root)
+
+    return benchmark

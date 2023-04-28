@@ -94,7 +94,8 @@ def main(params, fix_device=True, start_iter=0):
             params_temp = []
             iter += 1
 
-    '''Generate json and sh for Tencent servers'''
+    '''Generate bash for server'''
+    # template_sustech, template_hisao
     template_hisao(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
@@ -106,7 +107,7 @@ task_name = return_time()   # defined by time
 print(task_name)
 task_root = 'tests/tasks'        # path for sh in the working path
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 2       # num of runs in 1 sh file
+num_runs_1sh = 1       # num of runs in 1 sh file
 fix_device = True      # cuda self-increase for each run if True, else use cuda:0
 start_iter = 0
 common_args = {
@@ -117,18 +118,22 @@ common_args = {
     # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
     # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
     'learning_rate': 0.001,
+    'epochs': 20,
     'test_freeze_feature_extractor': True,
+    'eval_every': -1,   # do not enable eval during training
 }
 
 params = []
 
 """
-exp: assist with multi-concept learning head
+exp: do fewshot testing on random model
 """
 task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
 fix_device = False
 common_args.update({
-    'use_interactive_logger': True,
+    'use_interactive_logger': False,
+    'use_text_logger': True,
+    'test_on_random_model': True,
 })
 param_grid = {
     # 'exp_name': [
@@ -138,12 +143,34 @@ param_grid = {
     #     for return_task_id in [True, False]
     # ],
     'exp_name': [
-        f'concept-concept-tsk_True-lr0_01-w1',
-        f'concept-concept-tsk_False-lr0_001-w0_5',
+        f'random-naive-tsk_False',
     ],
     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
 }
 params.extend(generate_params(common_args, param_grid))
+
+"""
+exp: assist with multi-concept learning head
+"""
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# fix_device = False
+# common_args.update({
+#     'use_interactive_logger': True,
+# })
+# param_grid = {
+#     # 'exp_name': [
+#     #     f'concept-concept-tsk_{return_task_id}-lr{learning_rate}-w{multi_concept_weight}'
+#     #     for learning_rate in ['0_0001', '0_001', '0_01', '0_1']
+#     #     for multi_concept_weight in ['0_5', '1', '2']
+#     #     for return_task_id in [True, False]
+#     # ],
+#     'exp_name': [
+#         f'concept-concept-tsk_True-lr0_01-w1',
+#         f'concept-concept-tsk_False-lr0_001-w0_5',
+#     ],
+#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
+# }
+# params.extend(generate_params(common_args, param_grid))
 
 
 """

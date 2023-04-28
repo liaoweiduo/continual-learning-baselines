@@ -221,10 +221,12 @@ class ModuleNetBackbone(nn.Module):
 class ModuleNet(DynamicModule):
     """ ModuleNet with incremental classifier.
     """
-    def __init__(self, args, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+    def __init__(self, args, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False,
+                 masking=True):
         super().__init__()
         self.backbone = ModuleNetBackbone(args)
-        self.classifier = IncrementalClassifier(self.backbone.output_size, initial_out_features=initial_out_features)
+        self.classifier = IncrementalClassifier(self.backbone.output_size, initial_out_features=initial_out_features,
+                                                masking=masking)
 
         if pretrained:
             print('Load pretrained ModuleNet model from {}.'.format(pretrained_model_path))
@@ -234,10 +236,10 @@ class ModuleNet(DynamicModule):
             else:   # load backbone and classifier
                 self.load_state_dict(ckpt_dict)
 
-            # Freeze the parameters of the feature extractor
-            if fix:
-                for param in self.backbone.parameters():
-                    param.requires_grad = False
+        # Freeze the parameters of the feature extractor
+        if fix:
+            for param in self.backbone.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         out = self.backbone(x)
@@ -250,11 +252,12 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
     """
 
     def __init__(self, args, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None,
-                 fix=False, load_classifier=False):
+                 fix=False, load_classifier=False,
+                 masking=True):
         super().__init__()
         self.backbone = ModuleNetBackbone(args)
         self.classifier = MultiHeadClassifier(self.backbone.output_size, initial_out_features=initial_out_features,
-                                              masking=False)
+                                              masking=masking)
 
         if pretrained:
             print('Load pretrained ModuleNet model from {}.'.format(pretrained_model_path))
@@ -268,10 +271,10 @@ class MTModuleNet(MultiTaskModule, DynamicModule):
                         d['.'.join(key.split('.')[1:])] = item
                 self.backbone.load_state_dict(d)
 
-            # Freeze the parameters of the feature extractor
-            if fix:
-                for param in self.backbone.parameters():
-                    param.requires_grad = False
+        # Freeze the parameters of the feature extractor
+        if fix:
+            for param in self.backbone.parameters():
+                param.requires_grad = False
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
         out = self.backbone(x)
@@ -283,11 +286,12 @@ def get_module_net(
         args,
         multi_head: bool = False,
         initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False,
+        masking=True
         ):
     if multi_head:
-        model = MTModuleNet(args, initial_out_features, pretrained, pretrained_model_path, fix)
+        model = MTModuleNet(args, initial_out_features, pretrained, pretrained_model_path, fix, masking=masking)
     else:
-        model = ModuleNet(args, initial_out_features, pretrained, pretrained_model_path, fix)
+        model = ModuleNet(args, initial_out_features, pretrained, pretrained_model_path, fix, masking=masking)
 
     return model
 

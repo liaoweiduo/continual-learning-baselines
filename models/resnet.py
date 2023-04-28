@@ -143,19 +143,37 @@ class ResNet(nn.Module):
         return x
 
     def get_layer_output(self, x, layer_to_return):
+        hidden_features = None
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        if self.initial_pool:
+            x = self.maxpool(x)
+
         if layer_to_return == 0:
-            x = self.conv1(x)
-            x = self.bn1(x)
-            x = self.relu(x)
-            if self.initial_pool:
-                x = self.maxpool(x)
-            return x
-        else:
-            resnet_layers = [self.layer1, self.layer2, self.layer3, self.layer4]
-            layer = layer_to_return - 1
-            for block in range(self.layers[layer]):
-                x = resnet_layers[layer][block](x)
-            return x
+            hidden_features = x
+
+        x = self.layer1(x)
+        if layer_to_return == 1:
+            hidden_features = x
+
+        x = self.layer2(x)
+        if layer_to_return == 2:
+            hidden_features = x
+
+        x = self.layer3(x)
+        if layer_to_return == 3:
+            hidden_features = x
+
+        x = self.layer4(x)
+        if layer_to_return in [4, -1]:
+            hidden_features = x
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+
+        return x, hidden_features
 
     @property
     def output_size(self):
@@ -180,10 +198,11 @@ def resnet18(pretrained=False, pretrained_model_path=None, fix=False, **kwargs) 
                     d['.'.join(key.split('.')[1:])] = item
             feature_extractor.load_state_dict(d)
 
-        # Freeze the parameters of the feature extractor
-        if fix:
-            for param in feature_extractor.parameters():
-                param.requires_grad = False
+    # Freeze the parameters of the feature extractor
+    if fix:
+        for param in feature_extractor.parameters():
+            param.requires_grad = False
+
     return feature_extractor
 
 
@@ -197,10 +216,12 @@ class ResNet18(DynamicModule):
         ResNet18 with classifier.
 
     """
-    def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False):
+    def __init__(self, initial_out_features: int = 2,
+                 pretrained=False, pretrained_model_path=None, fix=False, masking=True):
         super().__init__()
         self.resnet = resnet18()
-        self.classifier = IncrementalClassifier(self.resnet.output_size, initial_out_features=initial_out_features)
+        self.classifier = IncrementalClassifier(self.resnet.output_size, initial_out_features=initial_out_features,
+                                                masking=masking)
         if pretrained:
             print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
             ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
@@ -209,10 +230,10 @@ class ResNet18(DynamicModule):
             else:   # load resnet and classifier
                 self.load_state_dict(ckpt_dict)
 
-            # Freeze the parameters of the feature extractor
-            if fix:
-                for param in self.resnet.parameters():
-                    param.requires_grad = False
+        # Freeze the parameters of the feature extractor
+        if fix:
+            for param in self.resnet.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         out = self.resnet(x)
@@ -227,11 +248,11 @@ class MTResNet18(MultiTaskModule, DynamicModule):
     """
 
     def __init__(self, initial_out_features: int = 2, pretrained=False, pretrained_model_path=None,
-                 fix=False, load_classifier=False):
+                 fix=False, load_classifier=False, masking=True):
         super().__init__()
         self.resnet = resnet18(pretrained, pretrained_model_path, fix)
         self.classifier = MultiHeadClassifier(self.resnet.output_size, initial_out_features=initial_out_features,
-                                              masking=False)
+                                              masking=masking)
 
         # if pretrained:
         #     print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
@@ -241,10 +262,10 @@ class MTResNet18(MultiTaskModule, DynamicModule):
         #     else:   # load resnet and classifier
         #         self.load_state_dict(ckpt_dict)
         #
-        #     # Freeze the parameters of the feature extractor
-        #     if fix:
-        #         for param in self.resnet.parameters():
-        #             param.requires_grad = False
+        # # Freeze the parameters of the feature extractor
+        # if fix:
+        #     for param in self.resnet.parameters():
+        #         param.requires_grad = False
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
         out = self.resnet(x)
@@ -255,12 +276,13 @@ class MTResNet18(MultiTaskModule, DynamicModule):
 def get_resnet(
         multi_head: bool = False,
         initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False,
+        masking=True,
         add_multi_class_classifier=False, num_classes_in_multi_class_classifier=21
 ):
     if multi_head:
-        model = MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+        model = MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix, masking=masking)
     else:
-        model = ResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
+        model = ResNet18(initial_out_features, pretrained, pretrained_model_path, fix, masking=masking)
 
     if add_multi_class_classifier:
         model.multi_class_classifier = nn.Linear(model.resnet.output_size, num_classes_in_multi_class_classifier)
@@ -300,3 +322,7 @@ if __name__ == '__main__':
     print(f'Total number of trainable parameters: {d["Trainable"] / 1024 / 1024:.2f}MB, '
           f'memory size: {d["Trainable"] * 4 / 1024 / 1024:.2f}MB')
 
+    get_resnet_model = get_resnet(multi_head=True)
+
+    for key, params in get_resnet_model.classifier.named_parameters():
+        print(f'{key}: {params.shape}')

@@ -100,7 +100,7 @@ def main(params, fix_device=True, start_iter=0):
 
     '''Generate bash for server'''
     # template_sustech, template_hisao
-    template_sustech(
+    template_hisao(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}'
@@ -119,12 +119,87 @@ common_args = {
     'project_name': 'CGQA',
     'dataset': 'cgqa',
     'use_interactive_logger': True,
+    'use_text_logger': False,
 }
 # for tencent server:
 # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
 # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
 
 params = []
+
+"""
+baselines resnet cobj
+"""
+# # Multi-task
+# target = 'experiments/multi_task_training.py'
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# fix_device = False
+# param_grid = {
+#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+#     'return_task_id': [False, True],
+# }
+# common_args.update({
+#     'tag': 'MT',
+#     'strategy': 'naive',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'test_n_way': 2,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
+target = 'experiments/continual_training.py'
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+fix_device = False
+# naive
+param_grid = {
+    'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+    'return_task_id': [False, True],
+}
+common_args.update({
+    'tag': 'res_cl',
+    'strategy': 'naive',
+    'model_backbone': 'resnet18',
+    'use_interactive_logger': False,
+    'use_text_logger': True,
+    'project_name': 'COBJ',
+    'dataset': 'cobj',
+    'test_n_way': 2,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+# # er
+# param_grid = {
+#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+#     'return_task_id': [False, True],
+# }
+# common_args.update({
+#     'tag': 'res_cl',
+#     'strategy': 'er',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'test_n_way': 2,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# gem
+# lwf
+# ewc
 
 
 """
@@ -134,13 +209,16 @@ exp: multi-task baselines
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
 # fix_device = False
 # param_grid = {
-#     'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1],
-#     'return_task_id': [True, False],
+#     # 'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1],
+#     # 'return_task_id': [True, False],
+#     'learning_rate': [0.001],
+#     'return_task_id': [False],
 # }
 # common_args.update({
 #     'tag': 'MT',
 #     'strategy': 'naive',
-#     'use_interactive_logger': True,
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
 # })
 # exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
 #                     '-tsk_{return_task_id}' + \
@@ -204,31 +282,33 @@ exp: assist with multi-concept learning head
 """
 exp: module-net, 10 tasks, tune lr and reg coeff (sparse, supcon)
 """
-param_grid = {
-    'learning_rate': [1e-4],
-    'ssc': [0.2, 0.4, 0.6, 0.8],
-}
-common_args.update({
-    'tag': 'MNt1_vit3',
-    'return_task_id': True,
-    'strategy': 'our',
-    'model_backbone': 'vit',
-    'image_size': 128,
-    'vit_depth': 4,
-    'use_wandb': True,
-    'train_num_exp': 1,
-    'skip_fewshot_testing': True,
-    'eval_every': 10,
-    'eval_patience': 50,
-    'epochs': 300,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
-                    '-tsk_{return_task_id}' + \
-                    '-r{ssc}'
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-for p in params_temp:
-    p['scc'] = p['ssc']
-params.extend(params_temp)
+# param_grid = {
+#     'learning_rate': [1e-4],
+#     'ssc': [0],
+#     'scc': [0.00001, 0.0001, 0.001, 0.01],
+# }
+# common_args.update({
+#     'tag': 'MNt1_tn',
+#     'return_task_id': True,
+#     'strategy': 'our',
+#     'model_backbone': 'vit',
+#     'image_size': 128,
+#     'vit_depth': 4,
+#     'use_wandb': True,
+#     'train_num_exp': 1,
+#     'skip_fewshot_testing': True,
+#     'eval_every': 10,
+#     'eval_patience': 50,
+#     'epochs': 300,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-r{scc}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# # for p in params_temp:
+# #     p['scc'] = p['ssc']
+# params.extend(params_temp)
 
 
 
@@ -258,6 +338,7 @@ exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
 #     'eval_every': 10,
 #     'eval_patience': 50,
 #     'epochs': 300,
+#     'lr_schedule': 'cos',
 # })
 # exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-' + \
 #                     '-tsk_{return_task_id}' + \

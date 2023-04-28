@@ -63,6 +63,7 @@ class WandBDatasetAnalyzer(WandBLogger):
         '''Number of samples'''
         print('Calculate number of samples.')
         num_samples = {key: len(items) for key, items in samples.items()}
+        print(num_samples)
 
         '''Sample some images with transformation'''
         rng = np.random.RandomState(seed)
@@ -98,60 +99,67 @@ class WandBDatasetAnalyzer(WandBLogger):
         self.wandb.log({visual_name: train_table})
 
 
-def log_sys_gqa():
-    from cgqa import _get_sys_gqa_datasets
+def log_gqa():
+    from cgqa import _get_gqa_datasets
 
-    _train_set, _test_set, label_info = _get_sys_gqa_datasets('../../datasets', shuffle=False, novel_combination=False)
+    wandb_dataset_analyzer = WandBDatasetAnalyzer(
+        project_name="Benchmarks",
+        run_name="CGQA", dir='../../avalanche-experiments')
 
-    label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
+    # continual
+    _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='continual')
+
+    label_map = {key: ', '.join(item) for key, item in _label_info[2].items()}
     # {0: 'building, sign', 1: 'building, sky',...
 
+    wandb_dataset_analyzer.log_dataset(
+        _dataset['train'], label_map, visual_name="Train samples")  #, num_samples_each_label=200)
+    wandb_dataset_analyzer.log_dataset(_dataset['val'], label_map, visual_name="Eval samples")
+    wandb_dataset_analyzer.log_dataset(_dataset['test'], label_map, visual_name="Test samples")
+
+    # fewshot test
+    for mode in ['sys', 'pro', 'sub', 'non', 'noc']:
+        _dataset, _label_info = _get_gqa_datasets('../../datasets', mode=mode)
+
+        label_map = {key: ', '.join(item) for key, item in _label_info[2].items()}
+        # {20: 'building, hair', 1: 'car, sky',...
+
+        wandb_dataset_analyzer.log_dataset(_dataset['dataset'], label_map, visual_name=f"{mode} samples")
+
+
+def log_obj(only_fewshot=False):
+    from cobj import _get_obj365_datasets
+
     wandb_dataset_analyzer = WandBDatasetAnalyzer(
-        project_name="Split_Sys_VQA",
-        run_name="Systematicity_GQA_datasets", dir='../../avalanche-experiments')
+        project_name="Benchmarks",
+        run_name="COBJ", dir='../../avalanche-experiments')
 
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Train samples")  #, num_samples_each_label=200)
-    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Test samples")
+    if not only_fewshot:
+        # continual
+        _dataset, _label_info = _get_obj365_datasets('../../datasets', mode='continual')
 
-    _train_set, _test_set, label_info = _get_sys_gqa_datasets('../../datasets', shuffle=False, novel_combination=True)
+        label_map = {key: ', '.join(item) for key, item in _label_info[2].items()}
+        # {0: 'building, sign', 1: 'building, sky',...
 
-    label_map = {key: ', '.join(item) for key, item in label_info[2].items()}
-    # {20: 'building, hair', 1: 'car, sky',...
+        wandb_dataset_analyzer.log_dataset(
+            _dataset['train'], label_map, visual_name="Train samples")  #, num_samples_each_label=200)
+        wandb_dataset_analyzer.log_dataset(_dataset['val'], label_map, visual_name="Eval samples")
+        wandb_dataset_analyzer.log_dataset(_dataset['test'], label_map, visual_name="Test samples")
 
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples")
-    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples")
+    # fewshot test
+    for mode in ['sys', 'pro', 'non', 'noc']:
+        _dataset, _label_info = _get_obj365_datasets('../../datasets', mode=mode)
 
+        label_map = {key: ', '.join(item) for key, item in _label_info[2].items()}
+        # {20: 'building, hair', 1: 'car, sky',...
 
-def log_sub_gqa():
-    from cgqa import _get_sub_gqa_datasets
-
-    wandb_dataset_analyzer = WandBDatasetAnalyzer(
-        project_name="Split_Sub_VQA",
-        run_name="Substitutivity_GQA_datasets", dir='../../avalanche-experiments')
-
-    '''Log training phase'''
-    _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=False)
-
-    label_map = {key: item for key, item in label_info[2].items()}
-
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Train samples")  #, num_samples_each_label=200)
-    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Test samples")
-
-    '''Log novel testing phase'''
-    _train_set, _test_set, label_info = _get_sub_gqa_datasets('../../datasets', shuffle=False, novel_combination=True)
-
-    label_map = {key: item for key, item in label_info[2].items()}
-    label_attr_map = {key: item for key, item in label_info[3].items()}
-
-    wandb_dataset_analyzer.log_dataset(_train_set, label_map, visual_name="Novel Train samples",
-                                       label_attr_map=label_attr_map)
-    wandb_dataset_analyzer.log_dataset(_test_set, label_map, visual_name="Novel Test samples",
-                                       label_attr_map=label_attr_map)
+        wandb_dataset_analyzer.log_dataset(_dataset['dataset'], label_map, visual_name=f"{mode} samples")
 
 
 if __name__ == '__main__':
-    # log_sys_gqa()
-    log_sub_gqa()
+    # log_gqa()
+    log_obj(only_fewshot=False)
+
 
     # from matplotlib import pyplot as plt
     # x = test_set[1][0]

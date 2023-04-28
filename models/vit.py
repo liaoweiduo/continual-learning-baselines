@@ -317,7 +317,8 @@ class DViT(DynamicModule):
     def __init__(self, image_size=128,
                  patch_size=16, dim=1024, depth=9, heads=16, mlp_dim=2048, dropout=0.1, emb_dropout=0.1,
                  initial_out_features: int = 2,
-                 pretrained=False, pretrained_model_path=None, fix=False):
+                 pretrained=False, pretrained_model_path=None, fix=False,
+                 masking=True):
         super().__init__()
         self.vit = ViT(
             image_size=image_size,
@@ -329,7 +330,8 @@ class DViT(DynamicModule):
             dropout=dropout,
             emb_dropout=emb_dropout
         )
-        self.classifier = IncrementalClassifier(self.vit.output_size, initial_out_features=initial_out_features)
+        self.classifier = IncrementalClassifier(self.vit.output_size, initial_out_features=initial_out_features,
+                                                masking=masking)
 
         if pretrained:
             print('Load pretrained ViT model from {}'.format(pretrained_model_path))
@@ -339,10 +341,10 @@ class DViT(DynamicModule):
             else:   # load vit and classifier
                 self.load_state_dict(ckpt_dict)
 
-            # Freeze the parameters of the feature extractor
-            if fix:
-                for param in self.vit.parameters():
-                    param.requires_grad = False
+        # Freeze the parameters of the feature extractor
+        if fix:
+            for param in self.vit.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         out = self.vit(x)
@@ -358,7 +360,8 @@ class MTViT(MultiTaskModule, DynamicModule):
     def __init__(self, image_size=128,
                  patch_size=16, dim=1024, depth=9, heads=16, mlp_dim=2048, dropout=0.1, emb_dropout=0.1,
                  initial_out_features: int = 2,
-                 pretrained=False, pretrained_model_path=None, fix=False):
+                 pretrained=False, pretrained_model_path=None, fix=False,
+                 masking=True):
         super().__init__()
         self.vit = ViT(
             image_size=image_size,
@@ -371,7 +374,7 @@ class MTViT(MultiTaskModule, DynamicModule):
             emb_dropout=emb_dropout
         )
         self.classifier = MultiHeadClassifier(self.vit.output_size, initial_out_features=initial_out_features,
-                                              masking=False)
+                                              masking=masking)
 
         if pretrained:
             print('Load pretrained ViT model from {}'.format(pretrained_model_path))
@@ -386,10 +389,10 @@ class MTViT(MultiTaskModule, DynamicModule):
                 self.vit.load_state_dict(d)
                 # self.load_state_dict(ckpt_dict)
 
-            # Freeze the parameters of the feature extractor
-            if fix:
-                for param in self.vit.parameters():
-                    param.requires_grad = False
+        # Freeze the parameters of the feature extractor
+        if fix:
+            for param in self.vit.parameters():
+                param.requires_grad = False
 
     def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
         out = self.vit(x)
@@ -401,18 +404,21 @@ def get_vit(
         image_size=128,
         multi_head: bool = False,
         initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False,
+        masking=True,
         patch_size=16, dim=1024, depth=9, heads=16, mlp_dim=2048, dropout=0.1, emb_dropout=0.1
 ):
     if multi_head:
         return MTViT(image_size, patch_size=patch_size, dim=dim, depth=depth, heads=heads, mlp_dim=mlp_dim,
                      dropout=dropout, emb_dropout=emb_dropout,
                      initial_out_features=initial_out_features,
-                     pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix)
+                     pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix,
+                     masking=masking)
     else:
         return DViT(image_size, patch_size=patch_size, dim=dim, depth=depth, heads=heads, mlp_dim=mlp_dim,
                     dropout=dropout, emb_dropout=emb_dropout,
                     initial_out_features=initial_out_features,
-                    pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix)
+                    pretrained=pretrained, pretrained_model_path=pretrained_model_path, fix=fix,
+                    masking=masking)
 
 
 __all__ = ['DViT', 'MTViT', 'get_vit', 'Encoder', 'pair', 'TBlockIA3']

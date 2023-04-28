@@ -7,7 +7,11 @@ export PYTHONPATH=${PYTHONPATH}:${abs_path}
 #CUDA_VISIBLE_DEVICES=0 python3 experiments/continual_training.py --exp_name our_test --use_wandb --strategy our --model_backbone vit --image_size 224 --train_num_exp 1 --use_interactive_logger --epochs 300 --ssc 1 --scc 1 --learning_rate 1e-5 --skip_fewshot_testing --eval_every 10 --eval_patience 50
 #CUDA_VISIBLE_DEVICES=7 python3 experiments/visualize_image_with_similarity_mask.py --exp_name random_model --use_wandb --strategy our --use_interactive_logger
 # MNt1_lr_reg2-our-tsk-lr0_005-reg1; random_model
-CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name concept --use_wandb --strategy concept --use_interactive_logger --multi_concept_weight 1.
+#CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name concept --use_wandb --strategy concept --use_interactive_logger --multi_concept_weight 1.
+
+# naive vit (128img+4layer) 1 task
+CUDA_VISIBLE_DEVICES=7 python3 experiments/continual_training.py --exp_name naive-vit-small-1task --strategy naive --use_interactive_logger --use_text_logger --train_num_exp 1 --model_backbone vit --image_size 128 --vit_depth 4 --learning_rate 0.0001 --lr_schedule cos --epochs 200 --skip_fewshot_testing
+
 
 # er test
 #CUDA_VISIBLE_DEVICES=0 python3 experiments/continual_training.py --exp_name er_test_3 --use_wandb --strategy er --use_interactive_logger --train_num_exp 3 --skip_fewshot_testing

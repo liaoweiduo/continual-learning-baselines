@@ -4,9 +4,11 @@ import argparse
 parser = argparse.ArgumentParser(description='Train prototypical networks')
 
 # data args
-parser.add_argument('--dataset', type=str, default='cgqa', choices=['cgqa', 'cpin', 'scifar100'], metavar='DATASET',
+parser.add_argument('--dataset', type=str, default='cgqa', metavar='DATASET',
+                    choices=['cgqa', 'cpin', 'cobj', 'scifar100'],
                     help='Compositional GQA dataset: cgqa, '
                          'Compositional PIN dataset: cpin, '
+                         'Compositional Objects365 dataset: cobj, '
                          'Split cifar100: scifar100')
 parser.add_argument('--dataset_mode', type=str, default='continual', metavar='DATASET_MODE',
                     choices=['continual', 'sys', 'pro', 'sub', 'non', 'noc',
@@ -46,7 +48,7 @@ parser.add_argument('--epochs', type=int, default=100, metavar='EPOCHS',
                     help='Number of epochs to train.')
 parser.add_argument('--learning_rate', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01).')
-parser.add_argument('--lr_schedule', type=str, default='cos', metavar='LR_SCHEDULE',
+parser.add_argument('--lr_schedule', type=str, default='none', metavar='LR_SCHEDULE',
                     choices=['step', 'cos', 'none'],
                     help='learning rate schedule.')
 parser.add_argument('--lr_schedule_step_size', type=int, default=20, metavar='STEP_SIZE',
@@ -140,10 +142,18 @@ parser.add_argument('--eval_patience', type=int, default=5, metavar='PATIENCE',
 # test args
 parser.add_argument('--skip_fewshot_testing', action='store_true',
                     help='Whether to do fewshot testing after the continual training.')
+parser.add_argument('--test_on_random_model', action='store_true',
+                    help='Whether to do fewshot testing on a random model.')
 parser.add_argument('--ignore_finished_testing', action='store_true',
                     help='Whether to check if have done the specific few-shot testing True not check.')
+parser.add_argument('--use_cam_visualization', action='store_true',
+                    help='Whether to use CAM for visualizing activated region for correct label.'
+                         'Needs to be resnet18 backbone.')
+
 parser.add_argument('--test_n_experiences', type=int, default=300, metavar='NEXPERIENCES',
                     help='Number of few-shot tasks.')
+parser.add_argument('--test_task_id', type=int, default=-1, metavar='NEXPERIENCES',
+                    help='If it is not -1, test only on the specific task_id.')
 parser.add_argument('--test_n_way', type=int, default=10, metavar='WAY',
                     help='Number of way in few-shot tasks.')
 parser.add_argument('--test_n_shot', type=int, default=10, metavar='SHOT',
@@ -224,7 +234,7 @@ FIXED_CLASS_ORDER = {
     'sub': None,
     'non': None,
     'noc': None,
-    # for fresh and old concepts; 2-way; generated in datasets/process.ipynb
+    # for fresh and old concepts; 2-way; generated in experiments/analysis/process_concept.ipynb
     'nonf': [26, 43, 67, 17, 49, 19, 76, 66, 70, 50, 81, 86, 22, 51, 84, 75, 66, 42, 25, 94, 26, 47, 75, 44, 15, 52, 76, 96, 67, 76, 36, 70, 83, 48, 15, 81, 17, 85, 76, 47, 85, 66, 96, 46, 36, 76, 73, 50, 26, 36, 51, 38, 46, 70, 48, 73, 84, 49, 88, 44, 86, 40, 43, 53, 84, 51, 15, 19, 51, 48, 89, 34, 66, 97, 83, 73, 19, 23, 76, 26, 53, 88, 19, 70, 34, 36, 64, 15, 66, 20, 64, 51, 89, 42, 81, 66, 15, 67, 96, 48, 51, 94, 89, 81, 25, 23, 94, 46, 97, 51, 64, 86, 53, 86, 88, 84, 69, 83, 44, 38, 17, 96, 96, 50, 46, 25, 34, 50, 49, 89, 69, 49, 85, 97, 23, 83, 20, 48, 75, 36, 81, 17, 66, 81, 53, 48, 26, 51, 43, 89, 50, 24, 73, 97, 49, 38, 94, 50, 22, 64, 40, 44, 36, 22, 19, 43, 38, 67, 86, 49, 48, 69, 36, 96, 46, 49, 15, 70, 40, 53, 72, 15, 69, 75, 49, 67, 25, 22, 66, 86, 52, 15, 38, 40, 94, 22, 36, 44, 97, 64, 15, 89, 66, 76, 17, 94, 36, 50, 52, 75, 88, 43, 72, 38, 38, 40, 83, 49, 67, 75, 85, 26, 46, 67, 20, 46, 48, 72, 83, 97, 34, 76, 20, 24, 23, 46, 53, 26, 96, 86, 20, 38, 83, 47, 20, 72, 86, 42, 84, 38, 69, 26, 52, 96, 24, 70, 46, 25, 19, 40, 66, 97, 81, 75, 94, 22, 38, 76, 38, 24, 47, 43, 89, 50, 94, 19, 88, 89, 38, 23, 38, 51, 81, 85, 40, 72, 64, 88, 48, 36, 43, 40, 96, 43, 64, 97, 19, 81, 89, 69, 76, 42, 96, 22, 23, 49, 47, 69, 47, 73, 49, 26, 66, 76, 23, 76, 42, 67, 53, 26, 94, 24, 23, 19, 46, 25, 70, 69, 94, 76, 88, 48, 48, 44, 85, 70, 50, 75, 47, 73, 94, 49, 66, 34, 49, 69, 75, 17, 44, 51, 75, 66, 23, 40, 46, 86, 97, 85, 96, 15, 42, 17, 84, 25, 23, 17, 75, 49, 66, 64, 24, 52, 53, 66, 89, 24, 36, 34, 43, 89, 22, 42, 94, 34, 85, 38, 64, 26, 46, 64, 17, 96, 64, 97, 46, 86, 64, 38, 66, 88, 25, 66, 50, 43, 34, 43, 26, 48, 51, 73, 94, 23, 96, 44, 83, 50, 97, 43, 43, 47, 25, 89, 69, 89, 36, 50, 70, 15, 20, 94, 69, 38, 53, 22, 76, 67, 24, 84, 50, 85, 83, 24, 48, 49, 81, 86, 24, 42, 22, 70, 85, 75, 86, 25, 75, 76, 38, 26, 83, 42, 15, 70, 67, 23, 84, 17, 17, 85, 76, 73, 25, 73, 43, 42, 49, 50, 49, 26, 44, 42, 43, 51, 83, 86, 25, 50, 34, 64, 69, 81, 25, 44, 40, 47, 76, 50, 52, 20, 20, 88, 72, 84, 42, 48, 49, 50, 73, 69, 42, 44, 48, 20, 34, 42, 34, 25, 36, 72, 36, 47, 52, 86, 73, 52, 42, 47, 84, 67, 89, 25, 83, 51, 53, 69, 97, 46, 19, 40, 23, 97, 81, 88, 69, 20, 48, 84, 69, 34, 73, 50, 76, 50, 19, 83, 73, 42, 89, 42, 15, 19, 76, 22, 36, 83, 97, 73, 75, 85, 44, 66, 40, 73, 83, 94, 66, 38, 24, 67, 22, 84, 69, 20, 22, 75, 70, 42, 19, 48, 83, 48, 85, 47, 94, 44, 84, 15, 24, 50, 73, 66],
     # nonf class: [('building', 'hat'), ('building', 'leaves'), ('car', 'flower'), ('car', 'helmet'), ('car', 'leaves'), ('car', 'pants'), ('car', 'shirt'), ('car', 'shorts'), ('car', 'sign'), ('door', 'fence'), ('door', 'leaves'), ('door', 'pole'), ('fence', 'flower'), ('fence', 'helmet'), ('fence', 'leaves'), ('fence', 'pants'), ('fence', 'pole'), ('fence', 'shorts'), ('fence', 'wall'), ('flower', 'helmet'), ('flower', 'pants'), ('flower', 'pole'), ('flower', 'shirt'), ('flower', 'wall'), ('hat', 'shirt'), ('hat', 'shorts'), ('hat', 'sign'), ('hat', 'wall'), ('helmet', 'leaves'), ('helmet', 'pole'), ('helmet', 'shirt'), ('helmet', 'shorts'), ('helmet', 'sign'), ('leaves', 'shirt'), ('leaves', 'shorts'), ('leaves', 'sign'), ('leaves', 'wall'), ('pants', 'shirt'), ('pants', 'shorts'), ('pants', 'wall'), ('pole', 'shirt'), ('pole', 'wall'), ('shirt', 'wall')]
     'nono': [58, 11, 58, 27, 58, 5, 32, 79, 61, 1, 61, 11, 58, 11, 54, 1, 1, 58, 27, 5, 61, 32, 79, 32, 54, 27, 1, 61, 5, 57, 27, 54, 32, 54, 57, 79, 61, 11, 58, 54, 11, 57, 61, 58, 11, 32, 1, 32, 79, 32, 79, 57, 11, 79, 61, 32, 57, 61, 5, 11, 11, 54, 1, 79, 1, 61, 57, 58, 58, 32, 58, 1, 79, 54, 5, 54, 27, 32, 27, 57, 32, 58, 5, 57, 1, 58, 57, 5, 32, 1, 61, 11, 1, 27, 1, 32, 57, 5, 54, 61, 11, 1, 1, 57, 32, 58, 27, 58, 58, 11, 1, 58, 32, 11, 27, 11, 58, 79, 54, 57, 54, 32, 57, 5, 1, 61, 1, 58, 32, 1, 58, 11, 79, 1, 1, 11, 11, 1, 57, 27, 27, 1, 57, 32, 79, 1, 11, 79, 32, 54, 61, 11, 27, 58, 1, 5, 5, 61, 79, 11, 27, 1, 57, 32, 57, 11, 79, 1, 57, 27, 54, 79, 5, 32, 57, 11, 1, 32, 61, 54, 57, 32, 57, 58, 32, 79, 5, 61, 61, 58, 57, 1, 57, 1, 1, 61, 11, 27, 57, 1, 5, 61, 61, 5, 27, 61, 1, 58, 27, 32, 58, 5, 27, 1, 58, 57, 27, 58, 5, 58, 32, 5, 79, 5, 5, 58, 1, 11, 27, 57, 1, 54, 61, 58, 61, 54, 57, 27, 61, 27, 32, 58, 79, 58, 1, 58, 61, 27, 32, 11, 5, 61, 27, 79, 32, 57, 27, 61, 1, 5, 58, 11, 79, 32, 54, 5, 57, 27, 11, 5, 5, 54, 32, 5, 27, 32, 5, 32, 54, 11, 32, 61, 79, 54, 61, 27, 58, 57, 5, 79, 32, 58, 61, 57, 58, 61, 58, 61, 61, 58, 58, 5, 54, 79, 57, 61, 57, 5, 54, 58, 61, 1, 58, 54, 32, 79, 79, 58, 54, 58, 32, 11, 54, 1, 58, 54, 32, 11, 5, 54, 5, 54, 54, 79, 54, 11, 11, 54, 32, 11, 32, 79, 32, 58, 11, 61, 1, 11, 27, 79, 54, 79, 5, 79, 79, 32, 1, 58, 57, 11, 32, 57, 58, 32, 5, 27, 5, 61, 58, 5, 1, 11, 54, 61, 57, 54, 1, 54, 32, 27, 57, 1, 32, 5, 11, 58, 79, 58, 5, 58, 27, 32, 5, 79, 79, 57, 5, 27, 11, 1, 11, 32, 79, 27, 32, 54, 79, 1, 32, 58, 79, 61, 1, 54, 1, 11, 54, 27, 11, 5, 1, 32, 27, 11, 11, 61, 79, 5, 57, 5, 58, 27, 5, 54, 79, 58, 32, 79, 27, 1, 61, 1, 27, 1, 54, 32, 57, 11, 58, 79, 32, 27, 79, 61, 1, 79, 27, 5, 32, 61, 11, 58, 11, 79, 32, 1, 79, 54, 54, 32, 58, 27, 57, 32, 58, 54, 11, 58, 58, 11, 11, 5, 57, 58, 58, 1, 32, 1, 61, 58, 79, 61, 58, 61, 5, 32, 5, 79, 54, 11, 61, 5, 27, 79, 57, 27, 11, 54, 58, 54, 61, 11, 11, 54, 1, 32, 11, 61, 5, 11, 11, 79, 61, 11, 79, 61, 57, 61, 1, 79, 61, 32, 1, 61, 1, 54, 1, 5, 1, 54, 11, 27, 27, 58, 57, 11, 58, 61, 58, 32, 61, 1, 79, 61, 57, 79, 79, 61, 5, 79, 54, 11, 11, 5, 5, 79, 11, 1, 58, 61, 32, 54, 11, 61, 5, 11, 79, 32, 61, 5, 79, 11, 79, 61, 58, 61, 1, 54, 58, 79, 11, 54, 57, 27, 11, 27, 11, 1, 27, 57],

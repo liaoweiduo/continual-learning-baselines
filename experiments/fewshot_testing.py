@@ -18,7 +18,9 @@ from avalanche.evaluation import metrics as metrics
 from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
 
 from models.resnet import get_resnet
-from experiments.utils import set_seed, create_default_args, create_experiment_folder, get_strategy
+from experiments.utils import set_seed, create_default_args, create_experiment_folder, \
+    get_strategy, get_benchmark, get_model
+from strategies.cam import CAMPluginMetric
 
 from experiments.config import default_args, FIXED_CLASS_ORDER
 
@@ -56,56 +58,22 @@ def fewshot_test(override_args=None):
             return None
 
     # ####################
-    # BENCHMARK & MODEL
+    # BENCHMARK
     # ####################
-    shuffle = True if args.train_class_order == 'shuffle' else False
-    fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
     task_offset = 10 if args.return_task_id else 1
-    if args.dataset == 'cgqa':
-        from datasets.cgqa import fewshot_testing_benchmark
-    elif args.dataset == 'cpin':
-        from datasets.cpin import fewshot_testing_benchmark
-    else:
-        raise Exception(f'Un-implemented dataset: {args.dataset}.')
-    benchmark = fewshot_testing_benchmark(
-        n_experiences=args.test_n_experiences, image_size=(args.image_size, args.image_size), mode=args.dataset_mode,
-        n_way=args.test_n_way, n_shot=args.test_n_shot, n_val=args.test_n_val, n_query=args.test_n_query,
-        task_offset=task_offset,
-        seed=args.seed, fixed_class_order=fixed_class_order,
-        dataset_root=args.dataset_root)
+    benchmark = get_benchmark(args, task_offset=task_offset)
 
-    if args.strategy == 'our':
-        from models.module_net import get_module_net
-        model = get_module_net(
-            args=vars(args),
-            multi_head=args.return_task_id,
-            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
-            fix=args.test_freeze_feature_extractor)
-    elif args.model_backbone == "resnet18":
-        origin_model = get_resnet(
-            multi_head=True,
-            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
-            fix=args.test_freeze_feature_extractor,
-        )
-    elif args.model_backbone == "vit":
-        from models.vit import get_vit
-        origin_model = get_vit(
-            image_size=args.image_size,
-            multi_head=True,
-            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
-            fix=args.test_freeze_feature_extractor,
-            patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
-            mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
-        )
-    else:
-        raise Exception(f"Un-recognized model structure {args.model_backbone}.")
+    # ####################
+    # MODEL
+    # ####################
+    origin_model = get_model(args, checkpoint_path=checkpoint_path)
 
     # ####################
     # LOGGER
     # ####################
-    loggers = [
-        avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-    ]
+    loggers = []
+    if args.use_text_logger:
+        loggers.append(avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a')))
     if args.use_interactive_logger:
         loggers.append(avl.logging.InteractiveLogger())
 
@@ -127,6 +95,15 @@ def fewshot_test(override_args=None):
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
     ]
+    if args.use_cam_visualization:
+        assert (-1 < args.test_task_id < args.test_n_experiences
+                ), f"error specify test_task_id: {args.test_task_id}"
+        metrics_list.append(CAMPluginMetric(args.image_size,
+                                            benchmark=benchmark,
+                                            wandb_log=args.use_wandb,
+                                            num_samples=5,
+                                            target=args.test_task_id))
+
     evaluation_plugin = EvaluationPlugin(
         *metrics_list,
         # benchmark=benchmark,
@@ -137,7 +114,11 @@ def fewshot_test(override_args=None):
     # ####################
     print("Starting experiment...")
     results, accs = [], []
-    for experience in benchmark.train_stream:
+    if args.test_task_id == -1:
+        tasks = benchmark.train_stream
+    else:
+        tasks = [benchmark.train_stream[args.test_task_id]]
+    for experience in tasks:
         current_experience = experience.current_experience
         print("Start of experience ", current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)

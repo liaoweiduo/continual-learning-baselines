@@ -19,7 +19,7 @@ from avalanche.training.plugins import EvaluationPlugin, EarlyStoppingPlugin
 from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
     FileSystemCheckpointStorage
 
-from experiments.utils import create_default_args, create_experiment_folder, get_strategy
+from experiments.utils import create_default_args, create_experiment_folder, get_strategy, get_benchmark, get_model
 from experiments.config import default_args, FIXED_CLASS_ORDER
 from experiments.fewshot_testing import fewshot_test
 from tests.utils import get_average_metric
@@ -42,33 +42,9 @@ def multi_task_training(override_args=None):
                           args.cuda >= 0 else "cpu")
 
     # ####################
-    # BENCHMARK & MODEL
+    # BENCHMARK
     # ####################
-    shuffle = True if args.train_class_order == 'shuffle' else False
-    fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
-    if args.dataset == 'cgqa':
-        from datasets.cgqa import continual_training_benchmark
-    elif args.dataset == 'cpin':
-        from datasets.cpin import continual_training_benchmark
-    else:
-        raise Exception(f'Un-implemented dataset: {args.dataset}.')
-    if args.model_backbone == 'vit':
-        from datasets.cgqa import build_transform_for_vit
-
-        train_transform = build_transform_for_vit((args.image_size, args.image_size), True)
-        eval_transform = build_transform_for_vit((args.image_size, args.image_size), False)
-    else:
-        train_transform, eval_transform = None, None    # default transform
-
-    benchmark = continual_training_benchmark(
-        n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
-        return_task_id=args.return_task_id,
-        seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
-        dataset_root=args.dataset_root,
-        train_transform=train_transform, eval_transform=eval_transform,
-        num_samples_each_label=args.num_samples_each_label,
-        multi_task=True
-    )
+    benchmark = get_benchmark(args, multi_task=True)
 
     # ####################
     # CHECKPOINTING
@@ -85,43 +61,17 @@ def multi_task_training(override_args=None):
     image_similarity_plugin_metric = None
     selection_plugin_metric = None
     if strategy is None:
-        # '''Check resume'''
-        # if os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
-        #     pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
-        # else:
-        #     pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
-        pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
-        if args.strategy == 'our':
-            from models.module_net import get_module_net
-            model = get_module_net(
-                args=vars(args),
-                multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path)
-        elif args.model_backbone == "resnet18":
-            from models.resnet import get_resnet
-            model = get_resnet(
-                multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path,
-                add_multi_class_classifier=True if args.strategy == 'concept' else False
-            )
-        elif args.model_backbone == "vit":
-            from models.vit import get_vit
-            model = get_vit(
-                image_size=args.image_size,
-                multi_head=args.return_task_id,
-                pretrained=pretrained, pretrained_model_path=pretrained_model_path,
-                patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
-                mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout
-            )
-        else:
-            raise Exception(f"Un-recognized model structure {args.model_backbone}.")
+        # ####################
+        # MODEL
+        # ####################
+        model = get_model(args, multi_task_baseline=True)
 
         # ####################
         # LOGGER
         # ####################
-        loggers = [
-            # avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a'))
-        ]
+        loggers = []
+        if args.use_text_logger:
+            loggers.append(avl.logging.TextLogger(open(os.path.join(exp_path, f'log_{args.exp_name}.txt'), 'a')))
         if args.use_interactive_logger:
             loggers.append(avl.logging.InteractiveLogger())
         if args.use_wandb:
@@ -281,9 +231,12 @@ if __name__ == "__main__":
         common_args = {
             'use_wandb': False,
             'learning_rate': 0.001,
+            'epochs': 20,
+            'eval_every': -1,
             'test_freeze_feature_extractor': True,
             'strategy': default_args['strategy'] if default_args['strategy'] in ['our'] else 'naive',
         }
+        # exp_name should be fixed.
         for dataset_mode in ['sys', 'pro', 'sub', 'non', 'noc']:
             common_args['dataset_mode'] = dataset_mode
             fewshot_test(common_args)

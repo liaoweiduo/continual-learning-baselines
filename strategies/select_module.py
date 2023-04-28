@@ -663,7 +663,9 @@ class ImageSimilarityPluginMetric(ImagesSamplePlugin):
     def _make_dataloader(
         self, data: "make_classification_dataset", mb_size: int
     ) -> DataLoader:
-        """Modify: use transform without norm"""
+        """Modify: use transform without norm
+        Finally do not use dataloader.
+        """
         data = data.replace_current_transform_group(self.eval_transform_no_norm)
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(

@@ -22,7 +22,7 @@ from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
     FileSystemCheckpointStorage
 from avalanche.evaluation.metrics.images_samples import ImagesSamplePlugin
 
-from experiments.utils import create_default_args, create_experiment_folder, get_strategy
+from experiments.utils import create_default_args, create_experiment_folder, get_strategy, get_benchmark, get_model
 from experiments.config import default_args, FIXED_CLASS_ORDER
 from experiments.fewshot_testing import fewshot_test
 from tests.utils import get_average_metric
@@ -45,31 +45,9 @@ def main(override_args=None):
                           args.cuda >= 0 else "cpu")
 
     # ####################
-    # BENCHMARK & MODEL
+    # BENCHMARK
     # ####################
-    shuffle = True if args.train_class_order == 'shuffle' else False
-    fixed_class_order = None if shuffle else FIXED_CLASS_ORDER[args.dataset_mode]
-    if args.dataset == 'cgqa':
-        from datasets.cgqa import continual_training_benchmark
-    elif args.dataset == 'cpin':
-        from datasets.cpin import continual_training_benchmark
-    else:
-        raise Exception(f'Un-implemented dataset: {args.dataset}.')
-    if args.model_backbone == 'vit':
-        from datasets.cgqa import build_transform_for_vit
-
-        train_transform = build_transform_for_vit((args.image_size, args.image_size), True)
-        eval_transform = build_transform_for_vit((args.image_size, args.image_size), False)
-    else:
-        train_transform, eval_transform = None, None    # default transform
-    benchmark = continual_training_benchmark(
-        n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
-        return_task_id=args.return_task_id,
-        seed=args.seed, fixed_class_order=fixed_class_order, shuffle=shuffle,
-        dataset_root=args.dataset_root,
-        train_transform=train_transform, eval_transform=eval_transform,
-        num_samples_each_label=args.num_samples_each_label
-    )
+    benchmark = get_benchmark(args)
 
     # ####################
     # CHECKPOINTING
@@ -91,12 +69,17 @@ def main(override_args=None):
 
     wandb_logger = None
     if strategy is None:
+        # ####################
+        # MODEL
+        # ####################
         assert args.strategy == 'our'
+        # model = get_model(args, checkpoint_path=checkpoint_path)
+
         from models.module_net import get_module_net
         model = get_module_net(
             args=vars(args),
             multi_head=args.return_task_id,
-            # pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth')
+            pretrained=True, pretrained_model_path=os.path.join(checkpoint_path, 'model.pth'),
         )
     else:
         model = strategy.model
