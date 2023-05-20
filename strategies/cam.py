@@ -42,7 +42,7 @@ class CAMPluginMetric(ImagesSamplePlugin):
     since it load and forward extra images to the model.
     """
     def __init__(self, image_size, benchmark, wandb_log=False,
-                 num_samples=1, target=0):
+                 num_samples=1, target=0, stream='test', log_label_str=True):
         """
         :param image_size: 128
         :param benchmark: target benchmark to get samples.
@@ -50,6 +50,10 @@ class CAMPluginMetric(ImagesSamplePlugin):
         :param num_samples: num_samples for each class in the specific task specified as ``target''.
         :param target: target task index for benchmark's test stream to sample images. default 0.
                         note that this is not task_id, since for fewshot test, it usually has task_offset.
+        :param stream: train or test.
+        :param log_label_str: True if also log label string.
+                                Note that images are sorted based on original int labels
+                                (which is based on label strings).
         """
         self.original_classes = benchmark.original_classes_in_exp[target]
         self.related_classes = benchmark.classes_in_exp[target]
@@ -60,6 +64,8 @@ class CAMPluginMetric(ImagesSamplePlugin):
         self.benchmark = benchmark
         self.wandb_log = wandb_log
         self.target = target
+        self.stream = stream
+        self.log_label_str = log_label_str
         self.seed = 1234        # for selecting samples for each class
 
         self.wandb = None
@@ -73,13 +79,20 @@ class CAMPluginMetric(ImagesSamplePlugin):
         ])
         self.norm_transform = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-        self.images, self.images_no_norm, self.labels, self.tasks = [], [], [], []
+        self.classes_in_exp = self.benchmark.classes_in_exp[self.target]        # [10]
+        self.original_classes_in_exp = self.benchmark.original_classes_in_exp[self.target]      # [10]
+        if isinstance(self.classes_in_exp, np.ndarray):
+            self.classes_in_exp: list = self.classes_in_exp.tolist()
+        if isinstance(self.original_classes_in_exp, np.ndarray):
+            self.original_classes_in_exp: list = self.original_classes_in_exp.tolist()
+
+        self.images, self.images_no_norm, self.labels, self.original_labels, self.tasks = [], [], [], [], []
 
     def result(self, **kwargs):
-        return self.images, self.images_no_norm, self.labels, self.tasks
+        return self.images, self.images_no_norm, self.labels, self.original_labels, self.tasks
 
     def reset(self):
-        self.images, self.images_no_norm, self.labels, self.tasks = [], [], [], []
+        self.images, self.images_no_norm, self.labels, self.original_labels, self.tasks = [], [], [], [], []
 
     def get_weights(
         self, strategy: "SupervisedTemplate"
@@ -202,6 +215,16 @@ class CAMPluginMetric(ImagesSamplePlugin):
         n_col = self.n_cols
         grid_img = make_grid(masked_images, normalize=False, nrow=n_col)
 
+        '''class string'''
+        label_text = None
+        if self.log_label_str:
+            label_collect = []
+            for label in self.original_labels:
+                if label not in label_collect:
+                    label_collect.append(label)
+            label_text = [[str(self.benchmark.label_info[2][label])] for label in label_collect]
+            # [['label 1'], ['label 2']]
+
         metric_name = get_metric_name(
                     self,
                     strategy,
@@ -210,12 +233,16 @@ class CAMPluginMetric(ImagesSamplePlugin):
                 )
 
         if self.wandb_log:
-            wandb_image = self.wandb.Image(grid_img)
-            self.wandb.log({metric_name: wandb_image})
+            log_dict = {metric_name: self.wandb.Image(grid_img)}
+            self.wandb.log(log_dict)
+            if label_text is not None:
+                log_dict = {f'{metric_name}/label_string': self.wandb.Table(
+                    columns=["label"], data=label_text)}
+                self.wandb.log(log_dict)
 
         self.reset()
 
-        return [
+        return_metrics = [
             MetricValue(
                 self,
                 name=metric_name,
@@ -224,22 +251,24 @@ class CAMPluginMetric(ImagesSamplePlugin):
             ),
         ]
 
+        return return_metrics
+
     def _load_sorted_images(self, strategy: "SupervisedTemplate"):
         """Modify: labels and tasks as instance variables"""
         self.reset()
-        self.images, self.images_no_norm, self.labels, self.tasks = self._load_data(strategy)
+        self.images, self.images_no_norm, self.labels, self.original_labels, self.tasks = self._load_data(strategy)
         if self.group:
-            self._sort_images(self.labels, self.tasks)
+            self._sort_images_with_labels()
 
     def _load_data(
         self, strategy: "SupervisedTemplate"
-    ) -> Tuple[List[Tensor], List[Tensor], List[int], List[int]]:
+    ) -> Tuple[List[Tensor], List[Tensor], List[int], List[int], List[int]]:
         """Modify: apply norm transform on images. provide w/ and w/o norm versions of images"""
-
-        dataset = self.benchmark.test_stream[self.target].dataset.replace_current_transform_group(
+        stream = self.benchmark.test_stream if self.stream == 'test' else self.benchmark.train_stream
+        dataset = stream[self.target].dataset.replace_current_transform_group(
             self.eval_transform_no_norm)
 
-        images, images_no_norm, labels, tasks = [], [], [], []
+        images, images_no_norm, labels, original_labels, tasks = [], [], [], [], []
         task_label_image_dict = {}
 
         '''collect images in the dataset'''
@@ -270,22 +299,27 @@ class CAMPluginMetric(ImagesSamplePlugin):
                     labels.append(label)
                     tasks.append(task)
 
-        return images, images_no_norm, labels, tasks
+                    label_index = self.classes_in_exp.index(label)
+                    original_labels.append(self.original_classes_in_exp[label_index])
 
-    def _sort_images(self, labels: List[int], tasks: List[int]):
+        return images, images_no_norm, labels, original_labels, tasks
+
+    def _sort_images_with_labels(self):
         """Modify: also change self.labels and self.tasks and image_no_norm"""
-        ts, ls, ims, imns = [], [], [], []
-        for task, label, image, image_no_norm in sorted(
-                zip(tasks, labels, self.images, self.images_no_norm),
-                key=lambda t: (t[0], t[1]),
+        ts, ls, ols, ims, imns = [], [], [], [], []
+        for task, label, origin_label, image, image_no_norm in sorted(
+                zip(self.tasks, self.labels, self.original_labels, self.images, self.images_no_norm),
+                key=lambda t: (t[0], t[1]),     # sort by task and label
         ):
             ts.append(task)
             ls.append(label)
+            ols.append(origin_label)
             ims.append(image)
             imns.append(image_no_norm)
         self.images = ims
         self.images_no_norm = imns
         self.labels = ls
+        self.original_labels = ols
         self.tasks = ts
 
     def after_train_dataset_adaptation(

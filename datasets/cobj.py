@@ -140,7 +140,7 @@ def continual_training_benchmark(
         with train_stream, val_stream, test_stream.
     """
     if dataset_root is None:
-        dataset_root = default_dataset_location("gqa")
+        dataset_root = default_dataset_location("obj")
 
     if train_transform is None:
         train_transform = _build_default_transform(image_size, True)
@@ -323,7 +323,7 @@ def fewshot_testing_benchmark(
     :param n_shot: Number of support image instances for each class.
     :param n_val: Number of evaluation image instances for each class.
     :param n_query: Number of query image instances for each class.
-    :param mode: Option [sys, pro, sub, non, noc].
+    :param mode: Option [sys, pro, non, noc].
     :param task_offset: Offset for tasks not start from 0 in task-IL.
         Default to 10 since continual training consists of 10 tasks.
         You need to specify to 1 for class-IL.
@@ -352,7 +352,7 @@ def fewshot_testing_benchmark(
     :returns: A properly initialized instance: `GenericCLScenario`.
     """
     if dataset_root is None:
-        dataset_root = default_dataset_location("gqa")
+        dataset_root = default_dataset_location("obj")
 
     if train_transform is None:
         train_transform = _build_default_transform(image_size, True)
@@ -489,15 +489,15 @@ def _get_obj365_datasets(
 
     :return data_sets defined by json file and label information.
     """
-    img_folder_path = os.path.join(dataset_root, "Objects365")
+    img_folder_path = os.path.join(dataset_root, "Objects365", "annotations")
 
     # for modified mode
     if mode in ['nonf', 'nono', 'sysf', 'syso']:
         mode = mode[:3]     # recover to its original mode
 
-    def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
+    def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int, prefix=''):
         for item in img_info:
-            item['image'] = item['imageName']
+            item['image'] = f"{prefix}{item['imageId']}.jpg"
             item['label'] = mapping_tuple_label_to_int[tuple(sorted(item['label']))]
 
     def formulate_img_tuples(images):
@@ -509,9 +509,9 @@ def _get_obj365_datasets(
         return img_tuples
 
     if mode == 'continual':
-        train_json_path = os.path.join(img_folder_path, "O365_annotations", "O365_continual_train.json")
-        val_json_path = os.path.join(img_folder_path, "O365_annotations", "O365_continual_val.json")
-        test_json_path = os.path.join(img_folder_path, "O365_annotations", "O365_continual_test.json")
+        train_json_path = os.path.join(img_folder_path, "O365_continual_train_crop.json")
+        val_json_path = os.path.join(img_folder_path, "O365_continual_val_crop.json")
+        test_json_path = os.path.join(img_folder_path, "O365_continual_test_crop.json")
 
         with open(train_json_path, 'r') as f:
             train_img_info = json.load(f)
@@ -530,9 +530,9 @@ def _get_obj365_datasets(
         map_int_label_to_tuple = dict((idx + label_offset, item) for idx, item in enumerate(label_set))
         # {0: ('Bench', 'Person'), 1: ('Boat', 'Person'),...}
 
-        preprocess_label_to_integer(train_img_info, map_tuple_label_to_int)
-        preprocess_label_to_integer(val_img_info, map_tuple_label_to_int)
-        preprocess_label_to_integer(test_img_info, map_tuple_label_to_int)
+        preprocess_label_to_integer(train_img_info, map_tuple_label_to_int, prefix='continual/train/')
+        preprocess_label_to_integer(val_img_info, map_tuple_label_to_int, prefix='continual/val/')
+        preprocess_label_to_integer(test_img_info, map_tuple_label_to_int, prefix='continual/test/')
 
         '''if num_samples_each_label provided, sample images to balance each class for train set'''
         selected_train_images = []
@@ -587,15 +587,15 @@ def _get_obj365_datasets(
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
     elif mode in ['sys', 'pro', 'non', 'noc']:   # no sub
-        json_name = {'sys': 'O365_sys_fewshot.json', 'pro': 'O365_pro_fewshot.json',
-                     'non': 'O365_non_fewshot.json', 'noc': 'O365_noc_fewshot.json'}[mode]
-        json_path = os.path.join(img_folder_path, "O365_annotations", json_name)
+        json_name = {'sys': 'O365_sys_fewshot_crop.json', 'pro': 'O365_pro_fewshot_crop.json',
+                     'non': 'O365_non_fewshot_crop.json', 'noc': 'O365_noc_fewshot_crop.json'}[mode]
+        json_path = os.path.join(img_folder_path, json_name)
         with open(json_path, 'r') as f:
             img_info = json.load(f)
         label_set = sorted(list(set([tuple(sorted(item['label'])) for item in img_info])))
         map_tuple_label_to_int = dict((item, idx + label_offset) for idx, item in enumerate(label_set))
         map_int_label_to_tuple = dict((idx + label_offset, item) for idx, item in enumerate(label_set))
-        preprocess_label_to_integer(img_info, map_tuple_label_to_int)
+        preprocess_label_to_integer(img_info, map_tuple_label_to_int, prefix=f'fewshot/{mode}/')
         img_list = formulate_img_tuples(img_info)
         dataset = PathsDataset(
             root=img_folder_path,
@@ -667,11 +667,11 @@ if __name__ == "__main__":
     #  [('Person', 'Tie'), ('Hat', 'Person')],
     #  [('Chair', 'Desk'), ('Necklace', 'Person')]]
 
-    '''Sys'''
+    '''fewshot'''
     # _dataset, _label_info = _get_obj365_datasets('../../datasets', mode='sys')
 
     _benchmark_instance = fewshot_testing_benchmark(
-        n_experiences=300, n_way=2, n_shot=10, n_query=10, mode='noc',
+        n_experiences=300, n_way=10, n_shot=10, n_query=10, mode='noc',
         task_offset=10,
         seed=1234, dataset_root='../../datasets',
     )
@@ -679,8 +679,10 @@ if __name__ == "__main__":
     class_exp = _benchmark_instance.original_classes_in_exp
     maps = _benchmark_instance.label_info[2]
     str_class_exp = []
-    for classes in class_exp:
-        str_class_exp.append([maps[c] for c in classes])
+    for exp_idx, classes in enumerate(class_exp):
+        if exp_idx == 20:      # the 20-th fewshot task
+            str_class_exp.append([maps[c] for c in classes])
+    print(str_class_exp)
 
     # from torchvision.transforms import ToPILImage
     # from matplotlib import pyplot as plt

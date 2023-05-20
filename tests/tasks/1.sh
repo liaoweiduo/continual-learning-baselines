@@ -28,12 +28,34 @@ export PYTHONPATH=${PYTHONPATH}:${abs_path}
 #CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode $mode --exp_name MT-naive-tsk_True-lr0_001 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
 #CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode $mode --exp_name MT-naive-tsk_False-lr0_005 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
 #done
-for mode in 'nonf' 'nono' 'sysf' 'syso'
+#for mode in 'nonf' 'nono' 'sysf' 'syso'
+#do
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name naive-tsk-lr0_008 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name naive-cls-lr0_003 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name MT-naive-tsk_True-lr0_001 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name MT-naive-tsk_False-lr0_005 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+#done
+
+# scifar ewc class-il lr 0.001, lambda 1
+#CUDA_VISIBLE_DEVICES=0 python3 experiments/continual_training.py --learning_rate '0.001' --ewc_lambda '1' --project_name 'SCIFAR100' --dataset 'scifar100' --use_text_logger --tag 'HT' --strategy 'ewc' --model_backbone 'resnet18' --image_size '32' --epochs '100' --skip_fewshot_testing --exp_name 'HT-ewc-tsk_False-lr0_001-lambda1-rerun'
+#CUDA_VISIBLE_DEVICES=1 python3 experiments/continual_training.py --learning_rate '0.001' --ewc_lambda '1' --project_name 'SCIFAR100' --dataset 'scifar100' --use_text_logger --tag 'HT' --strategy 'ewc' --model_backbone 'resnet18' --image_size '32' --epochs '100' --skip_fewshot_testing --disable_early_stop --eval_every -1 --exp_name 'HT-ewc-tsk_False-lr0_001-lambda1-rerun-noearlystop'
+
+#icarl
+#CUDA_VISIBLE_DEVICES=1 python3 experiments/split_cifar100/icarl.py
+
+# CAM COBJ
+# 'HT-MT-naive-tsk_True-lr0_00231', 'HT-MT-naive-tsk_False-lr0_00123',
+# 'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
+#  --eval_every -1
+for mode in 'sys' 'pro' 'non' 'noc'
 do
-CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name naive-tsk-lr0_008 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
-CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name naive-cls-lr0_003 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
-CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name MT-naive-tsk_True-lr0_001 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
-CUDA_VISIBLE_DEVICES=0 python3 experiments/fewshot_testing.py --tag CAM --train_class_order fixed --test_n_way 2 --dataset_mode $mode --exp_name MT-naive-tsk_False-lr0_005 --strategy naive --epochs 20 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --eval_every -1 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=7 python3 experiments/fewshot_testing.py --test_n_way 3 --tag CAM --dataset_mode $mode --exp_name HT-10tasks-naive-tsk_True-lr1e-05 --project_name COBJ --dataset cobj --strategy naive --epochs 100 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=7 python3 experiments/fewshot_testing.py --test_n_way 3 --tag CAM --dataset_mode $mode --exp_name HT-10tasks-naive-tsk_False-lr0_001 --project_name COBJ --dataset cobj --strategy naive --epochs 100 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=7 python3 experiments/fewshot_testing.py --test_n_way 3 --tag CAM --dataset_mode $mode --exp_name HT-MT-naive-tsk_True-lr0_00231 --project_name COBJ --dataset cobj --strategy naive --epochs 100 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+CUDA_VISIBLE_DEVICES=7 python3 experiments/fewshot_testing.py --test_n_way 3 --tag CAM --dataset_mode $mode --exp_name HT-MT-naive-tsk_False-lr0_00123 --project_name COBJ --dataset cobj --strategy naive --epochs 100 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
 done
+#CUDA_VISIBLE_DEVICES=7 python3 experiments/fewshot_testing.py --tag CAM --dataset_mode sys --exp_name HT-naive-tsk_True-lr0_001 --project_name COBJ --dataset cobj --strategy naive --epochs 100 --test_task_id 20 --use_cam_visualization --learning_rate 0.001 --test_freeze_feature_extractor --ignore_finished_testing --use_wandb
+
 
 echo FINISH!
+

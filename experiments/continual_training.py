@@ -149,10 +149,11 @@ def continual_train(override_args=None):
 
         print("Start of experience ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
-        print("Current Classes: ", [
-            benchmark.label_info[2][cls_idx]
-            for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
-        ])
+        if hasattr(benchmark, 'label_info'):
+            print("Current Classes: ", [
+                benchmark.label_info[2][cls_idx]
+                for cls_idx in benchmark.original_classes_in_exp[experience.current_experience]
+            ])
 
         # if experience.current_experience == 0:    # issue: will has two /Task000/Exp000
         #     print("Testing random model")
@@ -261,13 +262,14 @@ if __name__ == "__main__":
     # CUDA_VISIBLE_DEVICES=4 python experiments/continual_training.py
 
     '''fewshot test'''
-    if not default_args['skip_fewshot_testing']:
+    if default_args['do_fewshot_testing']:
         common_args = {
             'use_wandb': False,
             'use_interactive_logger': False,
             'use_text_logger': True,
             'learning_rate': 0.001,
             'epochs': 20,
+            'disable_early_stop': True,
             'eval_every': -1,
             'test_freeze_feature_extractor': True,
             'strategy': default_args['strategy'] if default_args['strategy'] in ['our'] else 'naive',

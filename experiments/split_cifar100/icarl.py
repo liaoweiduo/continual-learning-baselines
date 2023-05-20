@@ -44,7 +44,7 @@ def icarl_scifar100(override_args=None):
                                 'memory_size': 2000, 'epochs': 70, 'lr_base': 2.,
                                 'lr_milestones': [49, 63], 'lr_factor': 5.,
                                 'wght_decay': 0.00001, 'train_mb_size': 256,
-                                'seed': 2222}, override_args)
+                                'seed': 2222, 'dataset_root': "../datasets"}, override_args)
     # class incremental learning: classes mutual exclusive
     fixed_class_order = [87, 0, 52, 58, 44, 91, 68, 97, 51, 15,
                          94, 92, 10, 72, 49, 78, 61, 14, 8, 86,
@@ -62,7 +62,8 @@ def icarl_scifar100(override_args=None):
                              args.cuda >= 0 else "cpu")
 
     benchmark = SplitCIFAR100(n_experiences=args.nb_exp, seed=args.seed,
-                  fixed_class_order=fixed_class_order)
+                  fixed_class_order=fixed_class_order,
+                              dataset_root=args.dataset_root)
 
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(

@@ -211,6 +211,36 @@ END: GENERAL RESNET CODE
 """
 
 
+class NResNet18(nn.Module):
+    """
+        ResNet18 with normal linear classifier.
+
+    """
+    def __init__(self, initial_out_features: int = 2,
+                 pretrained=False, pretrained_model_path=None, fix=False):
+        super().__init__()
+        self.resnet = resnet18()
+        self.classifier = nn.Linear(self.resnet.output_size, initial_out_features)
+
+        if pretrained:
+            print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
+            ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
+            if 'state_dict' in ckpt_dict:
+                self.resnet.load_state_dict(ckpt_dict['state_dict'])
+            else:   # load resnet and classifier
+                self.load_state_dict(ckpt_dict)
+
+        # Freeze the parameters of the feature extractor
+        if fix:
+            for param in self.resnet.parameters():
+                param.requires_grad = False
+
+    def forward(self, x):
+        out = self.resnet(x)
+        out = out.view(out.size(0), -1)
+        return self.classifier(out)
+
+
 class ResNet18(DynamicModule):
     """
         ResNet18 with classifier.
@@ -222,6 +252,7 @@ class ResNet18(DynamicModule):
         self.resnet = resnet18()
         self.classifier = IncrementalClassifier(self.resnet.output_size, initial_out_features=initial_out_features,
                                                 masking=masking)
+
         if pretrained:
             print('Load pretrained resnet18 model from {}.'.format(pretrained_model_path))
             ckpt_dict = torch.load(pretrained_model_path)   # , map_location='cuda:0'
@@ -277,10 +308,13 @@ def get_resnet(
         multi_head: bool = False,
         initial_out_features: int = 2, pretrained=False, pretrained_model_path=None, fix=False, load_classifier=False,
         masking=True,
-        add_multi_class_classifier=False, num_classes_in_multi_class_classifier=21
+        add_multi_class_classifier=False, num_classes_in_multi_class_classifier=21,
+        normal_classifier=False,
 ):
     if multi_head:
         model = MTResNet18(initial_out_features, pretrained, pretrained_model_path, fix, masking=masking)
+    elif normal_classifier:
+        model = NResNet18(initial_out_features, pretrained, pretrained_model_path, fix)
     else:
         model = ResNet18(initial_out_features, pretrained, pretrained_model_path, fix, masking=masking)
 

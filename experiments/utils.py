@@ -7,6 +7,7 @@ from torch.nn import CrossEntropyLoss
 import numpy as np
 import random
 
+import avalanche
 from avalanche.training.plugins import EarlyStoppingPlugin, LRSchedulerPlugin
 
 
@@ -89,10 +90,16 @@ def get_model(args, checkpoint_path=None, multi_task_baseline=False):
         from models.resnet import get_resnet
         model = get_resnet(
             multi_head=multi_head,
+            initial_out_features=100 if args.strategy == 'icarl' else 2,
             pretrained=pretrained, pretrained_model_path=pretrained_model_path,
             masking=True if not multi_task_baseline else False,
             add_multi_class_classifier=True if args.strategy == 'concept' else False,
-            fix=fix)
+            fix=fix,
+            normal_classifier=True if args.strategy == 'icarl' else False,
+        )
+        if args.strategy == 'icarl':
+            from avalanche.models import initialize_icarl_net
+            model.apply(initialize_icarl_net)
     elif args.model_backbone == "vit":
         from models.vit import get_vit
         model = get_vit(
@@ -130,7 +137,9 @@ def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=Tru
 
     eval_every = args.eval_every
     if early_stop:
-        plugins.append(EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name='val_stream'))
+        # val_stream_name = 'train_stream' if args.dataset == 'scifar100' else 'val_stream'
+        val_stream_name = 'val_stream'
+        plugins.append(EarlyStoppingPlugin(patience=args.eval_patience, val_stream_name=val_stream_name))
 
     if name == 'naive':
         from avalanche.training import Naive
@@ -204,6 +213,37 @@ def get_strategy(name, model, benchmark, device, evaluator, args, early_stop=Tru
             plugins=plugins,
             evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
         )
+    elif name == 'icarl':
+        from avalanche.training import ICaRL
+        from datasets.cgqa import _build_default_transform
+        return ICaRL(
+            model.resnet if hasattr(model, 'resnet') else model.vit,
+            model.classifier,
+            optimizer,
+            args.icarl_mem_size,
+            buffer_transform=_build_default_transform((args.image_size, args.image_size)),
+            fixed_memory=True,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every,
+        )
+    elif name == 'agem':
+        from avalanche.training import AGEM
+        return AGEM(
+            model,
+            optimizer,
+            CrossEntropyLoss(),
+            patterns_per_exp=args.agem_patterns_per_exp, sample_size=args.agem_sample_size,
+            train_mb_size=args.train_mb_size,
+            train_epochs=args.epochs,
+            eval_mb_size=args.eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator, eval_every=eval_every, peval_mode="epoch",
+        )
     elif name == 'our':
         from strategies.select_module import Algorithm
         return Algorithm(
@@ -258,6 +298,8 @@ def get_benchmark(args, task_offset=0, multi_task=False):
             from datasets.cpin import continual_training_benchmark
         elif args.dataset == 'cobj':
             from datasets.cobj import continual_training_benchmark
+        elif args.dataset == 'scifar100':
+            from datasets.scifar100 import continual_training_benchmark
         else:
             raise Exception(f'Un-implemented dataset: {args.dataset}.')
 
@@ -269,6 +311,20 @@ def get_benchmark(args, task_offset=0, multi_task=False):
         else:
             train_transform, eval_transform = None, None    # default transform
 
+        # if args.dataset == 'scifar100':
+        #     if train_transform is None:     # if set as None, it will not use default setting.
+        #         benchmark = avalanche.benchmarks.SplitCIFAR100(
+        #             args.n_experiences, return_task_id=args.return_task_id,
+        #             dataset_root=args.dataset_root
+        #         )
+        #     else:
+        #         benchmark = avalanche.benchmarks.SplitCIFAR100(
+        #             args.n_experiences, return_task_id=args.return_task_id,
+        #             dataset_root=args.dataset_root,
+        #             train_transform=train_transform, eval_transform=eval_transform,
+        #         )
+        #     benchmark.val_stream = benchmark.train_stream
+        # else:
         benchmark = continual_training_benchmark(
             n_experiences=args.n_experiences, image_size=(args.image_size, args.image_size),
             return_task_id=args.return_task_id,

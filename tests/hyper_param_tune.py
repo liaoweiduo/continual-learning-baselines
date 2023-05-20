@@ -7,6 +7,7 @@ sys.path.append(python_path)
 print(f'Add python path: {python_path}')
 
 
+import numpy as np
 import time
 import wandb
 import copy
@@ -110,10 +111,10 @@ def main(params, fix_device=True, start_iter=0):
 target = 'experiments/continual_training.py'
 task_name = return_time()   # defined by time
 print(task_name)
-task_root = 'tests/tasks'        # path for sh in the working path
-# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 1       # num of runs in 1 sh file
-fix_device = True      # cuda self-increase for each run if True, else use cuda:0
+# task_root = 'tests/tasks'        # path for sh in the working path
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+num_runs_1sh = 3       # num of runs in 1 sh file
+fix_device = False      # cuda self-increase for each run if False, else use cuda:0
 start_iter = 0
 common_args = {
     'project_name': 'CGQA',
@@ -128,25 +129,430 @@ common_args = {
 params = []
 
 """
+baselines resnet agem 
+"""
+# target = 'experiments/continual_training.py'
+# task_root = '../avalanche-experiments/tasks'
+# num_runs_1sh = 2
+# fix_device = False
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'agem',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'return_task_id': [False, True],
+#     'learning_rate': np.around(np.logspace(-4, -1, num=8), decimals=4).tolist(),   # [1e-4,...,0.1]
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
+"""
+baselines resnet icarl 
+"""
+# target = 'experiments/continual_training.py'
+# task_root = '../avalanche-experiments/tasks'
+# num_runs_1sh = 3
+# fix_device = False
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'icarl',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'return_task_id': False
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': np.around(np.logspace(-4, 1, num=24), decimals=4).tolist(),   # [1e-4,...,10]
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
+"""
+baselines resnet ssifar100
+"""
+# target = 'experiments/continual_training.py'
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# fix_device = False
+# # multi-runs
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'naive',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+#     'skip_fewshot_testing': True,
+# })
+# common_args.update({
+#     'strategy': 'naive',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-seed{seed}'
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [True],
+#     'learning_rate': [0.01],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [False],
+#     'learning_rate': [0.003],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# common_args.update({
+#     'strategy': 'er',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-seed{seed}'
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [True, False],
+#     'learning_rate': [0.0007],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# common_args.update({
+#     'strategy': 'gem',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-p{gem_patterns_per_exp}-m{gem_mem_strength}' + \
+#                     '-seed{seed}'
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [True],
+#     'learning_rate': [0.001],
+#     'gem_patterns_per_exp': [256],
+#     'gem_mem_strength': [0.7],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [False],
+#     'learning_rate': [0.001],
+#     'gem_patterns_per_exp': [256],
+#     'gem_mem_strength': [0.1],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# common_args.update({
+#     'strategy': 'lwf',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-a{lwf_alpha}-t{lwf_temperature}' + \
+#                     '-seed{seed}'
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [True],
+#     'learning_rate': [0.001],
+#     'lwf_alpha': [1],
+#     'lwf_temperature': [2],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [False],
+#     'learning_rate': [0.001],
+#     'lwf_alpha': [1],
+#     'lwf_temperature': [3.32],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# common_args.update({
+#     'strategy': 'ewc',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-lambda{ewc_lambda}' + \
+#                     '-seed{seed}'
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [True],
+#     'learning_rate': [0.01],
+#     'ewc_lambda': [1],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'return_task_id': [False],
+#     'learning_rate': [0.001],
+#     'ewc_lambda': [0.22],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # multi-task
+# target = 'experiments/multi_task_training.py'
+# common_args.update({
+#     'tag': 'HT-MT',
+#     'strategy': 'naive',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-seed{seed}'
+# param_grid = {
+#     'seed': [1, 2, 3, 4, 5, 6, 7, 8],
+#     'learning_rate': [0.001],
+#     'return_task_id': [True, False],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
+# # naive
+# # param_grid = {
+# #     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+# #     'return_task_id': [False, True],
+# # }
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'naive',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [0.025, 0.05, 0.075, 0.1],
+#     'return_task_id': [True],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'learning_rate': [3e-4, 7e-4, 3e-3, 7e-3],
+#     'return_task_id': [False],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # er
+# # param_grid = {
+# #     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+# #     'return_task_id': [False, True],
+# # }
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'er',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [3e-4, 7e-4, 3e-3, 7e-3],
+#     'return_task_id': [True, False],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # gem
+# # param_grid = {
+# #     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+# #     'return_task_id': [False, True],
+# #     'gem_patterns_per_exp': [256],      # [32, 64, 128, 256],
+# #     'gem_mem_strength': [0.5],          # [0.1, 0.3, 0.5, 1.0],
+# # }
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'gem',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+# param_grid = {
+#     'learning_rate': [0.001],
+#     'return_task_id': [False, True],
+#     'gem_patterns_per_exp': [256],
+#     'gem_mem_strength': [0.1, 0.3, 0.7, 1.0],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # lwf
+# # param_grid = {
+# #     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+# #     'return_task_id': [False, True],
+# #     'lwf_alpha': [1],             # [0.1, 0.5, 1, 5, 10],
+# #     'lwf_temperature': [2],       # [0.1, 0.5, 1, 2],
+# # }
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'lwf',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+#     'skip_fewshot_testing': True,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-a{lwf_alpha}-t{lwf_temperature}'
+# # param_grid = {
+# #     'learning_rate': [0.001],
+# #     'return_task_id': [False, True],
+# #     'lwf_alpha': [0.01, 0.1, 10, 100],
+# #     'lwf_temperature': [2],
+# # }
+# # param_grid = {
+# #     'learning_rate': [0.001],
+# #     'return_task_id': [False, True],
+# #     'lwf_alpha': [1],
+# #     'lwf_temperature': [0.1, 1, 10, 100],
+# # }
+# # param_grid = {
+# #     'learning_rate': [0.001],
+# #     'return_task_id': [False],
+# #     'lwf_alpha': [1],
+# #     'lwf_temperature': np.around(np.logspace(0, 1, num=24), decimals=2).tolist(),   # [1,...,10]
+# # }
+# param_grid = {
+#     'learning_rate': np.around(np.logspace(-4, -2, num=8), decimals=5).tolist(),   # [1e-4,...,1e-2]
+#     'return_task_id': [False],
+#     'lwf_alpha': np.around(np.logspace(-2, 1, num=8), decimals=3).tolist(),   # [1e-2,...,10]
+#     'lwf_temperature': [3.32],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # ewc
+# common_args.update({
+#     'tag': 'HT',
+#     'strategy': 'ewc',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+#     'skip_fewshot_testing': True,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}' + \
+#                     '-lambda{ewc_lambda}'
+# # param_grid = {
+# #     'learning_rate': [1e-4, 1e-3, 1e-2, 1e-1],
+# #     'return_task_id': [False, True],
+# #     'ewc_lambda': [1],      # [0.1, 1, 10, 100]
+# # }
+# # param_grid = {
+# #     'learning_rate': [1e-2],
+# #     'return_task_id': [True],
+# #     'ewc_lambda': [0.01, 0.1, 10, 100],
+# # }
+# # params_temp = generate_params(common_args, param_grid, exp_name_template)
+# # params.extend(params_temp)
+# # param_grid = {
+# #     'learning_rate': [1e-3],
+# #     'return_task_id': [False],
+# #     'ewc_lambda': [0.01, 0.1, 10, 100],
+# # }
+# # params_temp = generate_params(common_args, param_grid, exp_name_template)
+# # params.extend(params_temp)
+# # param_grid = {
+# #     'learning_rate': [1e-3],
+# #     'return_task_id': [False],
+# #     'ewc_lambda': np.around(np.logspace(-1, 1, num=24), decimals=2).tolist(),   # [1e-1,...,10]
+# # }
+# param_grid = {
+#     'learning_rate': np.around(np.logspace(-4, -2, num=24), decimals=5).tolist(),   # [1e-4,...,1e-2]
+#     'return_task_id': [False],
+#     'ewc_lambda': [0.22, 1],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # multi-task
+# target = 'experiments/multi_task_training.py'
+# common_args.update({
+#     'tag': 'HT-MT',
+#     'strategy': 'naive',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'SCIFAR100',
+#     'dataset': 'scifar100',
+#     'image_size': 32,
+#     'epochs': 100,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# param_grid = {
+#     'learning_rate': [1e-4, 1e-3, 1e-2, 1e-1],
+#     'return_task_id': [False, True],
+# }
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
+"""
 baselines resnet cobj
 """
 # # Multi-task
 # target = 'experiments/multi_task_training.py'
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# num_runs_1sh = 1
+# start_iter = 0
 # fix_device = False
 # param_grid = {
-#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+#     'learning_rate': np.around(np.logspace(-4, -1, num=4), decimals=5).tolist(),
 #     'return_task_id': [False, True],
 # }
 # common_args.update({
-#     'tag': 'MT',
+#     'tag': 'HT-MT-5tasks',
 #     'strategy': 'naive',
 #     'model_backbone': 'resnet18',
 #     'use_interactive_logger': False,
 #     'use_text_logger': True,
 #     'project_name': 'COBJ',
 #     'dataset': 'cobj',
-#     'test_n_way': 2,
+#     # 'test_n_way': 10,
+#     'n_experiences': 5,    # [3, 5, 10]
 # })
 # exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
 #                     '-tsk_{return_task_id}' + \
@@ -154,52 +560,142 @@ baselines resnet cobj
 # params_temp = generate_params(common_args, param_grid, exp_name_template)
 # params.extend(params_temp)
 
-target = 'experiments/continual_training.py'
-task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-fix_device = False
-# naive
-param_grid = {
-    'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
-    'return_task_id': [False, True],
-}
-common_args.update({
-    'tag': 'res_cl',
-    'strategy': 'naive',
-    'model_backbone': 'resnet18',
-    'use_interactive_logger': False,
-    'use_text_logger': True,
-    'project_name': 'COBJ',
-    'dataset': 'cobj',
-    'test_n_way': 2,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
-                    '-tsk_{return_task_id}' + \
-                    '-lr{learning_rate}'
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-params.extend(params_temp)
-# # er
+# target = 'experiments/continual_training.py'
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# num_runs_1sh = 1
+# fix_device = False
+# # naive
 # param_grid = {
 #     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
 #     'return_task_id': [False, True],
 # }
 # common_args.update({
-#     'tag': 'res_cl',
-#     'strategy': 'er',
+#     'tag': 'HT-5tasks',
+#     'strategy': 'naive',
 #     'model_backbone': 'resnet18',
 #     'use_interactive_logger': False,
 #     'use_text_logger': True,
 #     'project_name': 'COBJ',
 #     'dataset': 'cobj',
-#     'test_n_way': 2,
+#     'n_experiences': 5,    # [3, 5, 10]
 # })
 # exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
 #                     '-tsk_{return_task_id}' + \
 #                     '-lr{learning_rate}'
 # params_temp = generate_params(common_args, param_grid, exp_name_template)
 # params.extend(params_temp)
-# gem
-# lwf
-# ewc
+# # er
+# param_grid = {
+#     'learning_rate': [1e-4, 0.001, 0.01, 0.1],
+#     # [1e-5, 1e-4, 0.001, 0.01] np.around(np.logspace(-3, 0, num=8), decimals=3).tolist()
+#     'return_task_id': [False, True],
+# }
+# common_args.update({
+#     'tag': 'HT-5tasks',
+#     'strategy': 'er',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'n_experiences': 5,    # [3, 5, 10]
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # gem
+# common_args.update({
+#     'tag': 'HT-5tasks',
+#     'strategy': 'gem',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'n_experiences': 5,    # [3, 5, 10]
+# })
+# param_grid = {
+#     'learning_rate': [1e-4, 0.001, 0.01, 0.1],
+#     # np.around(np.logspace(-4, -2, num=12), decimals=5).tolist(),
+#     'return_task_id': [False],
+#     'gem_patterns_per_exp': [256],   # [16, 32, 64, 128, 256],
+#     'gem_mem_strength': [0.00139],
+# }
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'learning_rate': [1e-4, 0.001, 0.01, 0.1],
+#     # np.around(np.logspace(-4, -2, num=12), decimals=5).tolist(),
+#     'return_task_id': [True],
+#     'gem_patterns_per_exp': [16],   # [16, 32, 64, 128, 256],
+#     'gem_mem_strength': [0.3],
+# }
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # lwf
+# param_grid = {
+#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],     #
+#     'return_task_id': [False, True],
+#     'lwf_alpha': [1],  # [0.01, 0.1, 1, 10, 100]
+#     'lwf_temperature': [2],
+#     # np.around(np.logspace(-2, 1, num=12), decimals=3).tolist(),
+# }
+# common_args.update({
+#     'tag': 'HT-5tasks',
+#     'strategy': 'lwf',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'n_experiences': 5,    # [3, 5, 10]
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# # ewc
+# common_args.update({
+#     'tag': 'HT-5tasks',
+#     'strategy': 'ewc',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'n_experiences': 5,    # [3, 5, 10]
+# })
+# param_grid = {
+#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+#     # np.around(np.logspace(-3, 0, num=12), decimals=4).tolist(),
+#     'return_task_id': [True],
+#     'ewc_lambda': [100],   # [0.01, 0.1, 1, 10, 100]
+# }
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-lambda{ewc_lambda}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+# param_grid = {
+#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+#     # np.around(np.logspace(-4, -2, num=12), decimals=5).tolist(),
+#     'return_task_id': [False],
+#     'ewc_lambda': [10],   # [0.01, 0.1, 1, 10, 100]
+# }
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}-lambda{ewc_lambda}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
 
 
 """
@@ -498,9 +994,38 @@ exp: different training size
 
 
 """
-baselines vit
+baselines vit cgqa
 """
 # vit structure: ps16 - dim384 - depth9 - heads16 - mlp_dim1536
+# Multi-task
+target = 'experiments/multi_task_training.py'
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+task_root = 'tests/tasks'        # path for sh in the working path
+num_runs_1sh = 1
+fix_device = True
+param_grid = {
+    'learning_rate': [5e-5, 1e-4, 1e-3],  # np.around(np.logspace(-4, -1, num=4), decimals=5).tolist(),
+    'return_task_id': [False, True],
+}
+common_args.update({
+    'tag': 'HT-MT-vit',
+    'strategy': 'naive',
+    'use_interactive_logger': False,
+    'use_text_logger': True,
+    'project_name': 'CGQA',
+    'dataset': 'cgqa',
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    # 'train_mb_size': 32,
+    'lr_schedule': 'cos',
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+
 # # naive
 # return_task_id = False
 # strategy = 'naive'

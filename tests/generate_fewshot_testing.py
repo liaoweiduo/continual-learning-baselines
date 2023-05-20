@@ -83,7 +83,7 @@ def main(params, fix_device=True, start_iter=0):
         if len(params_temp) == num_runs_1sh or idx == len(params) - 1:  # every num_runs_1sh or last runs
             print(f'Generate {iter}.sh with params: {params_temp}.')
             template_exp_sh(
-                target='experiments/fewshot_testing.py',
+                target=target,
                 path=f'../avalanche-experiments/tasks/{task_name}',
                 name=iter,
                 params=params_temp,
@@ -105,10 +105,10 @@ def main(params, fix_device=True, start_iter=0):
 target = 'experiments/fewshot_testing.py'
 task_name = return_time()   # defined by time
 print(task_name)
-task_root = 'tests/tasks'        # path for sh in the working path
-# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 1       # num of runs in 1 sh file
-fix_device = True      # cuda self-increase for each run if True, else use cuda:0
+# task_root = 'tests/tasks'        # path for sh in the working path
+task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+num_runs_1sh = 6       # num of runs in 1 sh file
+fix_device = False      # cuda self-increase for each run if True, else use cuda:0
 start_iter = 0
 common_args = {
     'use_wandb': False,
@@ -118,12 +118,54 @@ common_args = {
     # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
     # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
     'learning_rate': 0.001,
-    'epochs': 20,
+    'epochs': 20,       # 20
     'test_freeze_feature_extractor': True,
+    'disable_early_stop': True,
     'eval_every': -1,   # do not enable eval during training
 }
 
 params = []
+
+"""
+exp: cobj baselines
+"""
+common_args.update({
+    'use_interactive_logger': False,
+    'use_text_logger': True,
+    'project_name': 'COBJ',
+    'dataset': 'cobj',
+    'test_n_way': 10,        # [3, 6, 10]
+})
+param_grid = {
+    'exp_name': [         # 3-tasks 10-way
+        'HT-MT-3tasks-naive-tsk_True-lr0_001', 'HT-MT-3tasks-naive-tsk_False-lr0_001',
+        'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
+        'HT-er-tsk_True-lr0_01', 'HT-er-tsk_False-lr0_01',
+        'HT-gem-tsk_True-lr0_001-p16-m0_3', 'HT-gem-tsk_False-lr0_001-p256-m0_00139',
+        'HT-lwf-tsk_True-lr0_001-a1-t2', 'HT-lwf-tsk_False-lr0_001-a1-t1_52',
+        'HT-ewc-tsk_True-lr0_01-lambda100', 'HT-ewc-tsk_False-lr0_00053-lambda10',
+    ],
+    # 'exp_name': [           # 10-tasks 3-way
+    #     'HT-MT-naive-tsk_True-lr0_00231', 'HT-MT-naive-tsk_False-lr0_00123',
+    #     'HT-10tasks-naive-tsk_True-lr1e-05', 'HT-10tasks-naive-tsk_False-lr0_001',
+    #     'HT-10tasks-er-tsk_True-lr0_001', 'HT-10tasks-er-tsk_False-lr0_001',
+    #     'HT-10tasks-gem-tsk_True-lr0_001-p16-m0_3', 'HT-10tasks-gem-tsk_False-lr0_001-p256-m0_00139',
+    #     'HT-10tasks-lwf-tsk_True-lr1e-05-a1-t2', 'HT-10tasks-lwf-tsk_False-lr0_001-a1-t2',
+    #     'HT-10tasks-ewc-tsk_True-lr1e-05-lambda100', 'HT-10tasks-ewc-tsk_False-lr0_01-lambda10',
+    # ],
+    # 'exp_name': [           # 5-tasks 6-way
+    #     'HT-MT-5tasks-naive-tsk_True-lr0_001', 'HT-MT-5tasks-naive-tsk_False-lr0_001',
+    #     'HT-5tasks-naive-tsk_True-lr0_01', 'HT-5tasks-naive-tsk_False-lr0_001',
+    #     'HT-5tasks-er-tsk_True-lr0_001', 'HT-5tasks-er-tsk_False-lr0_001',
+    #     'HT-5tasks-gem-tsk_True-lr0_01-p16-m0_3', 'HT-5tasks-gem-tsk_False-lr0_01-p256-m0_00139',
+    #     'HT-5tasks-lwf-tsk_True-lr0_001-a1-t2', 'HT-5tasks-lwf-tsk_False-lr0_001-a1-t2',
+    #     'HT-5tasks-ewc-tsk_True-lr0_001-lambda100', 'HT-5tasks-ewc-tsk_False-lr0_001-lambda10',
+    # ],
+    'dataset_mode': ['sys', 'pro', 'non', 'noc'],
+}
+params.extend(generate_params(common_args, param_grid))
+
+
 
 """
 exp: do fewshot testing on random model
@@ -198,26 +240,26 @@ exp: baselines vit cgqa
 """
 exp: fresh or old concepts
 """
-task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-fix_device = False
-common_args.update({
-    'use_interactive_logger': False,
-    'use_text_logger': True,
-})
-param_grid = {
-    'train_class_order': ['fixed'],
-    'test_n_way': [2],
-    'dataset_mode': ['nonf', 'nono', 'sysf', 'syso'],
-    'exp_name': [
-        # 'naive-cls-lr0_003', 'naive-tsk-lr0_008',
-        # 'er-cls-lr0_003', 'er-tsk-lr0_0008',
-        # 'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
-        # 'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
-        # 'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2',
-        'MT-naive-tsk_False-lr0_005', 'MT-naive-tsk_True-lr0_001',
-    ],
-}
-params.extend(generate_params(common_args, param_grid))
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# fix_device = False
+# common_args.update({
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+# })
+# param_grid = {
+#     'train_class_order': ['fixed'],
+#     'test_n_way': [2],
+#     'dataset_mode': ['nonf', 'nono', 'sysf', 'syso'],
+#     'exp_name': [
+#         # 'naive-cls-lr0_003', 'naive-tsk-lr0_008',
+#         # 'er-cls-lr0_003', 'er-tsk-lr0_0008',
+#         # 'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
+#         # 'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
+#         # 'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2',
+#         'MT-naive-tsk_False-lr0_005', 'MT-naive-tsk_True-lr0_001',
+#     ],
+# }
+# params.extend(generate_params(common_args, param_grid))
 
 """
 exp: different training size

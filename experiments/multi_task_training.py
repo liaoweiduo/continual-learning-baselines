@@ -227,11 +227,12 @@ if __name__ == "__main__":
     # CUDA_VISIBLE_DEVICES=4 python experiments/continual_training.py
 
     '''fewshot test'''
-    if not default_args['skip_fewshot_testing']:
+    if default_args['do_fewshot_testing']:
         common_args = {
             'use_wandb': False,
             'learning_rate': 0.001,
             'epochs': 20,
+            'disable_early_stop': True,
             'eval_every': -1,
             'test_freeze_feature_extractor': True,
             'strategy': default_args['strategy'] if default_args['strategy'] in ['our'] else 'naive',

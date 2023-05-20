@@ -46,6 +46,8 @@ def fewshot_test(override_args=None):
     args.exp_name = f'{args.exp_name}-{args.dataset_mode}-{args.strategy}'      # Naive-tsk-sys-naive
     if args.test_freeze_feature_extractor:
         args.exp_name = f'{args.exp_name}-frz'
+    args.exp_name = f'{args.exp_name}-test_n_way{args.test_n_way}'
+
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
                           if torch.cuda.is_available() and
@@ -102,7 +104,9 @@ def fewshot_test(override_args=None):
                                             benchmark=benchmark,
                                             wandb_log=args.use_wandb,
                                             num_samples=5,
-                                            target=args.test_task_id))
+                                            target=args.test_task_id,
+                                            stream='train',
+                                            ))
 
     evaluation_plugin = EvaluationPlugin(
         *metrics_list,
@@ -115,10 +119,10 @@ def fewshot_test(override_args=None):
     print("Starting experiment...")
     results, accs = [], []
     if args.test_task_id == -1:
-        tasks = benchmark.train_stream
+        tasks, val_tasks = benchmark.train_stream, benchmark.val_stream
     else:
-        tasks = [benchmark.train_stream[args.test_task_id]]
-    for experience in tasks:
+        tasks, val_tasks = [benchmark.train_stream[args.test_task_id]], [benchmark.val_stream[args.test_task_id]]
+    for experience, val_task in zip(tasks, val_tasks):
         current_experience = experience.current_experience
         print("Start of experience ", current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
@@ -131,9 +135,10 @@ def fewshot_test(override_args=None):
         # ####################
         # STRATEGY INSTANCE
         # ####################
-        cl_strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args, early_stop=False)
+        cl_strategy = get_strategy(args.strategy, model, benchmark, device, evaluation_plugin, args,
+                                   early_stop=not args.disable_early_stop)
 
-        cl_strategy.train(experience, pin_memory=False, num_workers=10)
+        cl_strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")

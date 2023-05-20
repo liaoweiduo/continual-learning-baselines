@@ -102,6 +102,12 @@ parser.add_argument('--gem_patterns_per_exp', type=int, default=32, metavar='GEM
 parser.add_argument('--gem_mem_strength', type=float, default=0.3, metavar='GEM',
                     help='.')
 
+# agem args
+parser.add_argument('--agem_patterns_per_exp', type=int, default=32, metavar='AGEM',
+                    help='.')
+parser.add_argument('--agem_sample_size', type=int, default=1000, metavar='AGEM',
+                    help='.')
+
 # ewc args
 parser.add_argument('--ewc_lambda', type=float, default=1, metavar='EWC',
                     help='.')
@@ -109,6 +115,10 @@ parser.add_argument('--ewc_mode', type=str, default='separate', metavar='EWC',
                     help='.')
 parser.add_argument('--ewc_decay', type=float, default=0.0, metavar='EWC',
                     help='Only used when ewc mode is `onlineweightedsum`.')
+
+# icarl args
+parser.add_argument('--icarl_mem_size', type=int, default=1000, metavar='ICARL',
+                    help='Memory buffer size to store past tasks.')
 
 # our args
 parser.add_argument('--ssc', type=float, default=1, metavar='REG',
@@ -140,7 +150,7 @@ parser.add_argument('--eval_patience', type=int, default=5, metavar='PATIENCE',
                     help='Patience for EarlyStopingPlugin.')
 
 # test args
-parser.add_argument('--skip_fewshot_testing', action='store_true',
+parser.add_argument('--do_fewshot_testing', action='store_true',
                     help='Whether to do fewshot testing after the continual training.')
 parser.add_argument('--test_on_random_model', action='store_true',
                     help='Whether to do fewshot testing on a random model.')

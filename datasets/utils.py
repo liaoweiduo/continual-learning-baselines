@@ -147,7 +147,7 @@ def log_obj(only_fewshot=False):
         wandb_dataset_analyzer.log_dataset(_dataset['test'], label_map, visual_name="Test samples")
 
     # fewshot test
-    for mode in ['sys', 'pro', 'non', 'noc']:
+    for mode in ['sys', 'pro', 'non', 'noc']:       # no 'sub'
         _dataset, _label_info = _get_obj365_datasets('../../datasets', mode=mode)
 
         label_map = {key: ', '.join(item) for key, item in _label_info[2].items()}
