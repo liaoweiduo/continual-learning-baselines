@@ -101,7 +101,7 @@ def main(params, fix_device=True, start_iter=0):
 
     '''Generate bash for server'''
     # template_sustech, template_hisao
-    template_hisao(
+    template_sustech(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}'
@@ -997,34 +997,34 @@ exp: different training size
 baselines vit cgqa
 """
 # vit structure: ps16 - dim384 - depth9 - heads16 - mlp_dim1536
-# Multi-task
-target = 'experiments/multi_task_training.py'
-# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-task_root = 'tests/tasks'        # path for sh in the working path
-num_runs_1sh = 1
-fix_device = True
-param_grid = {
-    'learning_rate': [5e-5, 1e-4, 1e-3],  # np.around(np.logspace(-4, -1, num=4), decimals=5).tolist(),
-    'return_task_id': [False, True],
-}
-common_args.update({
-    'tag': 'HT-MT-vit',
-    'strategy': 'naive',
-    'use_interactive_logger': False,
-    'use_text_logger': True,
-    'project_name': 'CGQA',
-    'dataset': 'cgqa',
-    'model_backbone': 'vit',
-    'epochs': 200,
-    'image_size': 224,
-    # 'train_mb_size': 32,
-    'lr_schedule': 'cos',
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
-                    '-tsk_{return_task_id}' + \
-                    '-lr{learning_rate}'
-params_temp = generate_params(common_args, param_grid, exp_name_template)
-params.extend(params_temp)
+# # Multi-task
+# target = 'experiments/multi_task_training.py'
+# # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# task_root = 'tests/tasks'        # path for sh in the working path
+# num_runs_1sh = 1
+# fix_device = True
+# param_grid = {
+#     'learning_rate': [5e-5, 1e-4, 1e-3],  # np.around(np.logspace(-4, -1, num=4), decimals=5).tolist(),
+#     'return_task_id': [False, True],
+# }
+# common_args.update({
+#     'tag': 'HT-MT-vit',
+#     'strategy': 'naive',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'project_name': 'CGQA',
+#     'dataset': 'cgqa',
+#     'model_backbone': 'vit',
+#     'epochs': 200,
+#     'image_size': 224,
+#     # 'train_mb_size': 32,
+#     'lr_schedule': 'cos',
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
 
 # # naive
 # return_task_id = False
