@@ -190,6 +190,8 @@ def continual_train(override_args=None):
             model_file = os.path.join(checkpoint_path, f'model-{experience.current_experience}.pth')
             print("Store checkpoint in", model_file)
             torch.save(model.state_dict(), model_file)
+
+        # store the last exp
         model_file = os.path.join(checkpoint_path, 'model.pth')
         print("Store checkpoint in", model_file)
         torch.save(model.state_dict(), model_file)
@@ -206,6 +208,11 @@ def continual_train(override_args=None):
         stored_results.append(re)
 
         result_file = os.path.join(exp_path, f'results-{args.exp_name}-{experience.current_experience}.npy')
+        print("Save results in", result_file)
+        np.save(result_file, stored_results)
+
+        # store the last exp
+        result_file = os.path.join(exp_path, f'results-{args.exp_name}-last.npy')
         print("Save results in", result_file)
         np.save(result_file, stored_results)
 

@@ -96,7 +96,7 @@ def main(params, fix_device=True, start_iter=0):
 
     '''Generate bash for server'''
     # template_sustech, template_hisao
-    template_sustech(
+    template_hisao(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}')
@@ -134,17 +134,17 @@ exp: cobj baselines
 #     'use_text_logger': True,
 #     'project_name': 'COBJ',
 #     'dataset': 'cobj',
-#     'test_n_way': 3,        # [3, 6, 10]
+#     'test_n_way': 6,        # [3, 6, 10]
 # })
 # param_grid = {
-#     # 'exp_name': [         # 3-tasks 10-way
-#     #     'HT-MT-3tasks-naive-tsk_True-lr0_001', 'HT-MT-3tasks-naive-tsk_False-lr0_001',
-#     #     'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
-#     #     'HT-er-tsk_True-lr0_01', 'HT-er-tsk_False-lr0_01',
-#     #     'HT-gem-tsk_True-lr0_001-p16-m0_3', 'HT-gem-tsk_False-lr0_001-p256-m0_00139',
-#     #     'HT-lwf-tsk_True-lr0_001-a1-t2', 'HT-lwf-tsk_False-lr0_001-a1-t1_52',
-#     #     'HT-ewc-tsk_True-lr0_01-lambda100', 'HT-ewc-tsk_False-lr0_00053-lambda10',
-#     # ],
+#     'exp_name': [         # 3-tasks 10-way
+#         'HT-MT-3tasks-naive-tsk_True-lr0_001', 'HT-MT-3tasks-naive-tsk_False-lr0_001',
+#         'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
+#         'HT-er-tsk_True-lr0_01', 'HT-er-tsk_False-lr0_01',
+#         'HT-gem-tsk_True-lr0_001-p16-m0_3', 'HT-gem-tsk_False-lr0_001-p256-m0_00139',
+#         'HT-lwf-tsk_True-lr0_001-a1-t2', 'HT-lwf-tsk_False-lr0_001-a1-t1_52',
+#         'HT-ewc-tsk_True-lr0_01-lambda100', 'HT-ewc-tsk_False-lr0_00053-lambda10',
+#     ],
 #     # 'exp_name': [           # 10-tasks 3-way
 #     #     'HT-MT-naive-tsk_True-lr0_00231', 'HT-MT-naive-tsk_False-lr0_00123',
 #     #     'HT-10tasks-naive-tsk_True-lr1e-05', 'HT-10tasks-naive-tsk_False-lr0_001',
@@ -153,18 +153,17 @@ exp: cobj baselines
 #     #     'HT-10tasks-lwf-tsk_True-lr1e-05-a1-t2', 'HT-10tasks-lwf-tsk_False-lr0_001-a1-t2',
 #     #     'HT-10tasks-ewc-tsk_True-lr1e-05-lambda100', 'HT-10tasks-ewc-tsk_False-lr0_01-lambda10',
 #     # ],
-#     'exp_name': [           # 5-tasks 6-way
-#         'HT-MT-5tasks-naive-tsk_True-lr0_001', 'HT-MT-5tasks-naive-tsk_False-lr0_001',
-#         'HT-5tasks-naive-tsk_True-lr0_01', 'HT-5tasks-naive-tsk_False-lr0_001',
-#         'HT-5tasks-er-tsk_True-lr0_001', 'HT-5tasks-er-tsk_False-lr0_001',
-#         'HT-5tasks-gem-tsk_True-lr0_01-p16-m0_3', 'HT-5tasks-gem-tsk_False-lr0_01-p256-m0_00139',
-#         'HT-5tasks-lwf-tsk_True-lr0_001-a1-t2', 'HT-5tasks-lwf-tsk_False-lr0_001-a1-t2',
-#         'HT-5tasks-ewc-tsk_True-lr0_001-lambda100', 'HT-5tasks-ewc-tsk_False-lr0_001-lambda10',
-#     ],
+#     # 'exp_name': [           # 5-tasks 6-way
+#     #     'HT-MT-5tasks-naive-tsk_True-lr0_001', 'HT-MT-5tasks-naive-tsk_False-lr0_001',
+#     #     'HT-5tasks-naive-tsk_True-lr0_01', 'HT-5tasks-naive-tsk_False-lr0_001',
+#     #     'HT-5tasks-er-tsk_True-lr0_001', 'HT-5tasks-er-tsk_False-lr0_001',
+#     #     'HT-5tasks-gem-tsk_True-lr0_01-p16-m0_3', 'HT-5tasks-gem-tsk_False-lr0_01-p256-m0_00139',
+#     #     'HT-5tasks-lwf-tsk_True-lr0_001-a1-t2', 'HT-5tasks-lwf-tsk_False-lr0_001-a1-t2',
+#     #     'HT-5tasks-ewc-tsk_True-lr0_001-lambda100', 'HT-5tasks-ewc-tsk_False-lr0_001-lambda10',
+#     # ],
 #     'dataset_mode': ['sys', 'pro', 'non', 'noc'],
 # }
 # params.extend(generate_params(common_args, param_grid))
-
 
 
 """
@@ -218,31 +217,30 @@ exp: assist with multi-concept learning head
 """
 exp: baselines vit cgqa
 """
-task_root = 'tests/tasks'        # path for sh in the working path
-# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-num_runs_1sh = 5       # num of runs in 1 sh file
-fix_device = True      # cuda self-increase for each run if True, else use cuda:0
-common_args.update({
-    'use_interactive_logger': False,
-    'use_text_logger': True,
-    'model_backbone': 'vit',
-    'image_size': 224,
-    'train_mb_size': 32,
-})
-param_grid = {
-    'exp_name': [
-        # 'HT-MT-vit-naive-tsk_False-lr0_0001',
-        'HT-MT-vit-naive-tsk_True-lr0_0001',
-        # 'ht-vit-naive-cls-lr0_0001', 'ht-vit-naive-tsk-lr0_0001',
-        # 'ht-vit-er-cls-lr0_0001', 'ht-vit-er-tsk-lr0_0001',
-        # 'ht-vit-gem-cls-lr5e-05', 'ht-vit-gem-tsk-lr1e-05',
-        # 'ht-vit-lwf-cls-lr0_0001', 'ht-vit-lwf-tsk-lr0_0001',
-        # 'ht-vit-ewc-cls-lr0_0001', 'ht-vit-ewc-tsk-lr0_0001',
-    ],
-    'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
-}
-params.extend(generate_params(common_args, param_grid))
-
+# task_root = 'tests/tasks'        # path for sh in the working path
+# # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# num_runs_1sh = 5       # num of runs in 1 sh file
+# fix_device = True      # cuda self-increase for each run if True, else use cuda:0
+# common_args.update({
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'model_backbone': 'vit',
+#     'image_size': 224,
+#     'train_mb_size': 32,
+# })
+# param_grid = {
+#     'exp_name': [
+#         # 'HT-MT-vit-naive-tsk_False-lr0_0001',
+#         'HT-MT-vit-naive-tsk_True-lr0_0001',
+#         # 'ht-vit-naive-cls-lr0_0001', 'ht-vit-naive-tsk-lr0_0001',
+#         # 'ht-vit-er-cls-lr0_0001', 'ht-vit-er-tsk-lr0_0001',
+#         # 'ht-vit-gem-cls-lr5e-05', 'ht-vit-gem-tsk-lr1e-05',
+#         # 'ht-vit-lwf-cls-lr0_0001', 'ht-vit-lwf-tsk-lr0_0001',
+#         # 'ht-vit-ewc-cls-lr0_0001', 'ht-vit-ewc-tsk-lr0_0001',
+#     ],
+#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
+# }
+# params.extend(generate_params(common_args, param_grid))
 
 
 """
@@ -268,6 +266,7 @@ exp: fresh or old concepts
 #     ],
 # }
 # params.extend(generate_params(common_args, param_grid))
+
 
 """
 exp: different training size

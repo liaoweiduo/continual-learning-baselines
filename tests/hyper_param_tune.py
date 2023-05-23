@@ -52,7 +52,7 @@ def generate_params(common_args, param_grid, exp_name_template):
     return params
 
 
-def main(params, fix_device=True, start_iter=0):
+def main(params, fix_device=True, start_iter=0, func=template_hisao):
     '''Run experiments in sequence'''
     # print('************************')
     # print(f'{time.asctime(time.localtime(time.time()))}: Start tuning hyper parameters for {exp_name_template}.')
@@ -101,7 +101,7 @@ def main(params, fix_device=True, start_iter=0):
 
     '''Generate bash for server'''
     # template_sustech, template_hisao
-    template_sustech(
+    func(
         name_list=names,
         cmd_path=f'{task_root}/{task_name}',
         path=f'../avalanche-experiments/tasks/{task_name}'
@@ -111,6 +111,7 @@ def main(params, fix_device=True, start_iter=0):
 target = 'experiments/continual_training.py'
 task_name = return_time()   # defined by time
 print(task_name)
+func = template_hisao
 # task_root = 'tests/tasks'        # path for sh in the working path
 task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
 num_runs_1sh = 3       # num of runs in 1 sh file
@@ -531,6 +532,112 @@ baselines resnet ssifar100
 # params.extend(params_temp)
 
 """
+baselines vit cobj
+"""
+# Multi-task
+target = 'experiments/multi_task_training.py'
+func = template_sustech
+task_root = 'tests/tasks'        # path for sh in the working path
+num_runs_1sh = 1
+start_iter = 0
+fix_device = True
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+    'return_task_id': [False, True],
+}
+common_args.update({
+    'tag': 'HT-vit-3tasks-MT',
+    'strategy': 'naive',
+    'use_interactive_logger': False,
+    'use_text_logger': True,
+    'project_name': 'COBJ',
+    'dataset': 'cobj',
+    'model_backbone': 'vit',
+    'epochs': 200,
+    'image_size': 224,
+    'lr_schedule': 'cos',
+    'n_experiences': 3,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+
+target = 'experiments/continual_training.py'
+# naive
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+    'return_task_id': [False, True],
+}
+common_args.update({
+    'tag': 'HT-vit-3tasks',
+    'strategy': 'naive',
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+# er
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+    'return_task_id': [False, True],
+}
+common_args.update({
+    'strategy': 'er',
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+# gem
+common_args.update({
+    'strategy': 'gem',
+})
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+    'return_task_id': [False, True],
+    'gem_patterns_per_exp': [32],
+    'gem_mem_strength': [0.3],
+}
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}-p{gem_patterns_per_exp}-m{gem_mem_strength}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+# lwf
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+    'return_task_id': [False, True],
+    'lwf_alpha': [1],
+    'lwf_temperature': [1],
+}
+common_args.update({
+    'strategy': 'lwf',
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}-a{lwf_alpha}-t{lwf_temperature}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+# ewc
+common_args.update({
+    'strategy': 'ewc',
+})
+param_grid = {
+    'learning_rate': [1e-5, 5e-5, 1e-4, 5e-4],
+    'return_task_id': [False, True],
+    'ewc_lambda': [2],
+}
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+                    '-tsk_{return_task_id}' + \
+                    '-lr{learning_rate}-lambda{ewc_lambda}'
+params_temp = generate_params(common_args, param_grid, exp_name_template)
+params.extend(params_temp)
+
+"""
 baselines resnet cobj
 """
 # # Multi-task
@@ -699,32 +806,6 @@ baselines resnet cobj
 
 
 """
-exp: multi-task baselines
-"""
-# target = 'experiments/multi_task_training.py'
-# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
-# fix_device = False
-# param_grid = {
-#     # 'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1],
-#     # 'return_task_id': [True, False],
-#     'learning_rate': [0.001],
-#     'return_task_id': [False],
-# }
-# common_args.update({
-#     'tag': 'MT',
-#     'strategy': 'naive',
-#     'use_interactive_logger': False,
-#     'use_text_logger': True,
-# })
-# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
-#                     '-tsk_{return_task_id}' + \
-#                     '-lr{learning_rate}'
-# params_temp = generate_params(common_args, param_grid, exp_name_template)
-# params.extend(params_temp)
-
-
-
-"""
 exp: multi-label baselines
 """
 # task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
@@ -746,7 +827,6 @@ exp: multi-label baselines
 #                     '-lr{learning_rate}'
 # params_temp = generate_params(common_args, param_grid, exp_name_template)
 # params.extend(params_temp)
-
 
 
 """
@@ -772,7 +852,6 @@ exp: assist with multi-concept learning head
 # # for p in params_temp:
 # #     p['scc'] = p['ssc']
 # params.extend(params_temp)
-
 
 
 """
@@ -805,7 +884,6 @@ exp: module-net, 10 tasks, tune lr and reg coeff (sparse, supcon)
 # # for p in params_temp:
 # #     p['scc'] = p['ssc']
 # params.extend(params_temp)
-
 
 
 """
@@ -846,7 +924,6 @@ exp: module-net, only first task, tune lr and reg coeff (sparse, supcon)
 # #     # p['isc'] = p['ssc']
 # #     # p['csc'] = p['ssc']
 # params.extend(params_temp)
-
 
 
 """
@@ -990,7 +1067,6 @@ exp: different training size
 #                     ('tsk' if return_task_id else 'cls') + \
 #                     '-ts{num_samples_each_label}'
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
-
 
 
 """
@@ -1318,8 +1394,54 @@ baselines vit cgqa
 
 
 """
-baselines resnet
+exp: multi-task baselines cgqa
 """
+# target = 'experiments/multi_task_training.py'
+# task_root = '../avalanche-experiments/tasks'        # path for sh out of working path
+# fix_device = False
+# param_grid = {
+#     # 'learning_rate': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1],
+#     # 'return_task_id': [True, False],
+#     'learning_rate': [0.001],
+#     'return_task_id': [False],
+# }
+# common_args.update({
+#     'tag': 'MT',
+#     'strategy': 'naive',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-lr{learning_rate}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
+
+"""
+baselines resnet cgqa
+"""
+# # naive* on different number of tasks
+# num_runs_1sh = 1       # num of runs in 1 sh file
+# param_grid = {
+#     'learning_rate': [1e-5, 1e-4, 0.001, 0.01],
+#     'return_task_id': [True],
+#     'n_experiences': [50],      # [1, 2, 4, 5, 10(finished), 20, 25, 50]
+# }
+# common_args.update({
+#     'tag': 'HT-DnumTasks',
+#     'strategy': 'naive',
+#     'model_backbone': 'resnet18',
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + \
+#                     '-tsk_{return_task_id}' + \
+#                     '-ne{n_experiences}' + \
+#                     '-lr{learning_rate}'
+# params_temp = generate_params(common_args, param_grid, exp_name_template)
+# params.extend(params_temp)
+
 # # naive
 # return_task_id = False
 # strategy = 'naive'   # optional: [naive, er, gem, lwf, ewc]
@@ -1334,7 +1456,7 @@ baselines resnet
 #     'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],       # cgqa resnet
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
-#
+
 # return_task_id = True
 # strategy = 'naive'   # optional: [naive, er, gem, lwf, ewc]
 # common_args.update({
@@ -1348,7 +1470,7 @@ baselines resnet
 #     'learning_rate': [0.0005, 0.0008, 0.001, 0.003, 0.005, 0.008, 0.01, 0.03, 0.05, 0.08, 0.1],
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
-#
+
 # # er
 # return_task_id = False
 # strategy = 'er'   # optional: [naive, er, gem, lwf, ewc]
@@ -1475,4 +1597,4 @@ baselines resnet
 # }
 # params.extend(generate_params(common_args, param_grid, exp_name_template))
 
-main(params, fix_device, start_iter)
+main(params, fix_device, start_iter, func=func)
