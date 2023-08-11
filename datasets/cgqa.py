@@ -488,12 +488,24 @@ def _get_gqa_datasets(
     :return data_sets defined by json file and label information.
     """
     img_folder_path = os.path.join(dataset_root, "gqa", "GQA_100")
+    if 'full' in mode:      # {sys/pro/...}full: not few-shot, with 1000 samples each label
+        img_folder_path = os.path.join(dataset_root, "gqa", "CGQA_new")
+    elif '12345' in mode:
+        img_folder_path = os.path.join(dataset_root, "gqa", "TaskEvaluation", "task1_2_3_4_5")
+    elif '123' in mode:
+        img_folder_path = os.path.join(dataset_root, "gqa", "TaskEvaluation", "task1_2_3")
+    elif '12' in mode:
+        img_folder_path = os.path.join(dataset_root, "gqa", "TaskEvaluation", "task1_2")
+    elif '1' in mode:
+        img_folder_path = os.path.join(dataset_root, "gqa", "TaskEvaluation", "task1")
 
     if mode in ['nonf', 'nono', 'sysf', 'syso']:
         mode = mode[:3]     # recover to its original mode
 
     def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
         for item in img_info:
+            if item['newImageName'].startswith('task'):     # TaskEvaluation needs to remove path prefix
+                item['newImageName'] = '/'.join(item['newImageName'].split('/')[1:])
             item['image'] = f"{item['newImageName']}.jpg"
             item['label'] = mapping_tuple_label_to_int[tuple(sorted(item['comb']))]
             for obj in item['objects']:
@@ -589,9 +601,32 @@ def _get_gqa_datasets(
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
-    elif mode in ['sys', 'pro', 'sub', 'non', 'noc']:
-        json_name = {'sys': 'sys/sys_fewshot.json', 'pro': 'pro/pro_fewshot.json', 'sub': 'sub/sub_fewshot.json',
-                     'non': 'non_novel/non_novel_fewshot.json', 'noc': 'non_comp/non_comp_fewshot.json'}[mode]
+    else:
+        if mode in ['sys', 'pro', 'sub', 'non', 'noc']:
+            json_name = {'sys': 'sys/sys_fewshot.json', 'pro': 'pro/pro_fewshot.json', 'sub': 'sub/sub_fewshot.json',
+                         'non': 'non_novel/non_novel_fewshot.json', 'noc': 'non_comp/non_comp_fewshot.json'}[mode]
+        elif 'full' in mode:
+            json_name = {'sys': 'sys/sys_fewshot_1000.json', 'pro': 'pro/pro_fewshot_1000.json',
+                         'sub': 'sub/sub_fewshot_1000.json', 'non': 'non_novel/non_novel_fewshot_1000.json',
+                         'noc': 'non_comp/non_comp_fewshot_1000.json'}[mode[:3]]
+        elif mode in ['sys1', 'pro1', 'sub1', 'non1']:
+            json_name = {'sys': 'sys/sys_fewshot_task1.json', 'pro': 'pro/pro_fewshot_task1.json',
+                         'sub': 'sub/sub_fewshot_task1.json',
+                         'non': 'non_novel/non_novel_fewshot_task1.json'}[mode[:3]]
+        elif mode in ['sys12', 'pro12', 'sub12', 'non12']:
+            json_name = {'sys': 'sys/sys_fewshot_task1_2.json', 'pro': 'pro/pro_fewshot_task1_2.json',
+                         'sub': 'sub/sub_fewshot_task1_2.json',
+                         'non': 'non_novel/non_novel_fewshot_task1_2.json'}[mode[:3]]
+        elif mode in ['sys123', 'pro123', 'sub123', 'non123']:
+            json_name = {'sys': 'sys/sys_fewshot_task1_2_3.json', 'pro': 'pro/pro_fewshot_task1_2_3.json',
+                         'sub': 'sub/sub_fewshot_task1_2_3.json',
+                         'non': 'non_novel/non_novel_fewshot_task1_2_3.json'}[mode[:3]]
+        elif mode in ['sys12345', 'pro12345', 'sub12345', 'non12345']:
+            json_name = {'sys': 'sys/sys_fewshot_task1_2_3_4_5.json', 'pro': 'pro/pro_fewshot_task1_2_3_4_5.json',
+                         'sub': 'sub/sub_fewshot_task1_2_3_4_5.json',
+                         'non': 'non_novel/non_novel_fewshot_task1_2_3_4_5.json'}[mode[:3]]
+        else:
+            raise Exception(f'Un-implemented mode "{mode}".')
         json_path = os.path.join(img_folder_path, "fewshot", json_name)
         with open(json_path, 'r') as f:
             img_info = json.load(f)
@@ -607,9 +642,6 @@ def _get_gqa_datasets(
 
         datasets = {'dataset': dataset}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
-
-    else:
-        raise Exception(f'Un-implemented mode "{mode}".')
 
     return datasets, label_info
 

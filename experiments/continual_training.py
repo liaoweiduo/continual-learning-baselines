@@ -29,8 +29,9 @@ from strategies.select_module import SelectionPluginMetric, ImageSimilarityPlugi
 def continual_train(override_args=None):
     args = create_default_args(default_args, override_args)
     print(vars(args))
-    assert (args.dataset_mode == 'continual'
-            ), f"dataset mode is {args.dataset_mode}, need to be `continual`."
+    if args.dataset_mode != 'continual':
+        print(f"WARNING: dataset mode is {args.dataset_mode}, need to be `continual`.")
+
     exp_path, checkpoint_path = create_experiment_folder(
         root=args.exp_root,
         exp_name=args.exp_name if args.exp_name != "TIME" else None,
@@ -44,7 +45,10 @@ def continual_train(override_args=None):
     # ####################
     # BENCHMARK
     # ####################
-    benchmark = get_benchmark(args)
+    if 'full' in args.dataset_mode:         # full mode few shot test set
+        benchmark = get_benchmark(args, task_offset=10)     # evaluation task at the end of continual training tasks.
+    else:
+        benchmark = get_benchmark(args)
 
     # ####################
     # CHECKPOINTING
@@ -141,7 +145,7 @@ def continual_train(override_args=None):
     results = []
     for exp_idx, (experience, val_task) in enumerate(
             zip(benchmark.train_stream, benchmark.val_stream)):
-        if exp_idx < initial_exp:
+        if args.dataset_mode == 'continual' and exp_idx < initial_exp:  # other mode just do exp
             continue    # when initial_exp == len(train_stream), ValueError raises for train_stream[initial_exp:]
 
         if 0 <= args.train_num_exp <= initial_exp + num_trained_exp_this_run:
@@ -186,8 +190,13 @@ def continual_train(override_args=None):
         #     artifact_name = os.path.join("Models", 'WeightCheckpoint.pth')
         #     artifact.add_file(model_file, name=artifact_name)
         #     wandb_logger.wandb.run.log_artifact(artifact)
+        #
+        if 'full' in args.dataset_mode:         # full mode few shot test set
+            model_id = experience.current_experience + 10
+        else:
+            model_id = experience.current_experience
         if not args.do_not_store_checkpoint_per_exp:
-            model_file = os.path.join(checkpoint_path, f'model-{experience.current_experience}.pth')
+            model_file = os.path.join(checkpoint_path, f'model-{model_id}.pth')
             print("Store checkpoint in", model_file)
             torch.save(model.state_dict(), model_file)
 
@@ -207,7 +216,7 @@ def continual_train(override_args=None):
                 re[key] = item
         stored_results.append(re)
 
-        result_file = os.path.join(exp_path, f'results-{args.exp_name}-{experience.current_experience}.npy')
+        result_file = os.path.join(exp_path, f'results-{args.exp_name}-{model_id}.npy')
         print("Save results in", result_file)
         np.save(result_file, stored_results)
 

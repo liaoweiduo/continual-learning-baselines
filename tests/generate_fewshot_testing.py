@@ -112,7 +112,8 @@ fix_device = False      # cuda self-increase for each run if True, else use cuda
 start_iter = 0
 common_args = {
     'use_wandb': False,
-    'use_interactive_logger': True,
+    'use_interactive_logger': False,
+    'use_text_logger': True,
     'project_name': 'CGQA',
     'dataset': 'cgqa',
     # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
@@ -126,8 +127,107 @@ common_args = {
 
 params = []
 
+
 """
-exp: cobj baselines
+exp: rebuttal baselines resnet cobj - test on every checkpoints
+"""
+num_runs_1sh = 12       # num of runs in 1 sh file
+common_args.update({
+    'project_name': 'COBJ',
+    'dataset': 'cobj',
+    'test_n_way': 10,        # [3, 6, 10]
+    'test_n_experiences': 50
+})
+param_grid = {
+    'exp_name': [         # 3-tasks 10-way
+        # 'HT-MT-3tasks-naive-tsk_True-lr0_001', 'HT-MT-3tasks-naive-tsk_False-lr0_001',
+        # 'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
+        'HT-er-tsk_True-lr0_01', 'HT-er-tsk_False-lr0_01',
+        'HT-gem-tsk_True-lr0_001-p16-m0_3', 'HT-gem-tsk_False-lr0_001-p256-m0_00139',
+        'HT-lwf-tsk_True-lr0_001-a1-t2', 'HT-lwf-tsk_False-lr0_001-a1-t1_52',
+        'HT-ewc-tsk_True-lr0_01-lambda100', 'HT-ewc-tsk_False-lr0_00053-lambda10',
+    ],
+    'dataset_mode': ['sys', 'pro', 'non', 'noc'],
+    'test_after_train_task_id': [0, 1, 2],
+}
+params.extend(generate_params(common_args, param_grid))
+
+"""
+exp: baselines resnet cgqa - test on every checkpoints
+"""
+# num_runs_1sh = 100       # num of runs in 1 sh file
+# common_args.update({'test_after_train_task_id': 0, 'test_n_experiences': 50})
+# param_grid = {
+#     'exp_name': ['rebuttal-naive-tsk_False', 'rebuttal-naive-tsk_True',
+#                  'rebuttal-er-tsk_False', 'rebuttal-er-tsk_True',
+#                  'rebuttal-gem-tsk_False', 'rebuttal-gem-tsk_True',
+#                  'rebuttal-lwf-tsk_False', 'rebuttal-lwf-tsk_True',
+#                  'rebuttal-ewc-tsk_False', 'rebuttal-ewc-tsk_True',
+#                  ],
+#     'dataset_mode': ['sys1', 'pro1', 'sub1', 'non1', 'noc'],
+# }
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 1, })
+# param_grid.update({'dataset_mode': ['sys12', 'pro12', 'sub12', 'non12', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 2, })
+# param_grid.update({'dataset_mode': ['sys123', 'pro123', 'sub123', 'non123', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 3, })
+# param_grid.update({'dataset_mode': ['sys123', 'pro123', 'sub123', 'non123', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 4, })
+# param_grid.update({'dataset_mode': ['sys12345', 'pro12345', 'sub12345', 'non12345', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 5, })
+# param_grid.update({'dataset_mode': ['sys12345', 'pro12345', 'sub12345', 'non12345', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 6, })
+# param_grid.update({'dataset_mode': ['sys12345', 'pro12345', 'sub12345', 'non12345', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 7, })
+# param_grid.update({'dataset_mode': ['sys12345', 'pro12345', 'sub12345', 'non12345', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 8, })
+# param_grid.update({'dataset_mode': ['sys12345', 'pro12345', 'sub12345', 'non12345', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+# common_args.update({'test_after_train_task_id': 9, })
+# param_grid.update({'dataset_mode': ['sys12345', 'pro12345', 'sub12345', 'non12345', 'noc'], })
+# params.extend(generate_params(common_args, param_grid))
+
+
+"""
+exp: cobj baselines vit
+"""
+# # task_root = 'tests/tasks'        # path for sh in the working path
+# num_runs_1sh = 2       # num of runs in 1 sh file
+# # fix_device = True      # cuda self-increase for each run if True, else use cuda:0
+# start_iter = 0
+# common_args.update({
+#     'use_interactive_logger': False,
+#     'use_text_logger': True,
+#     'model_backbone': 'vit',
+#     'image_size': 224,
+#     'train_mb_size': 100,
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'test_n_way': 10,        # [3, 6, 10]
+# })
+# param_grid = {
+#     'exp_name': [         # 3-tasks 10-way
+#         # 'HT-vit-3tasks-MT-naive-tsk_True-lr5e-05', 'HT-vit-3tasks-MT-naive-tsk_False-lr5e-05', # (sk, sk)
+#         # 'HT-vit-3tasks-naive-tsk_True-lr5e-05', 'HT-vit-3tasks-naive-tsk_False-lr5e-05',    # (gc, sty)
+#         # 'HT-vit-3tasks-er-tsk_True-lr5e-05', 'HT-vit-3tasks-er-tsk_False-lr5e-05',
+#         # 'HT-vit-3tasks-gem-tsk_True-lr5e-05-p32-m0_3', 'HT-vit-3tasks-gem-tsk_False-lr0_0001-p32-m0_3',  # (gc, sty)
+#         'HT-vit-3tasks-lwf-tsk_True-lr5e-05-a1-t1', 'HT-vit-3tasks-lwf-tsk_False-lr0_0001-a1-t1',
+#         'HT-vit-3tasks-ewc-tsk_True-lr0_0001-lambda2', 'HT-vit-3tasks-ewc-tsk_False-lr0_0001-lambda2',   # (gc, sty)
+#     ],
+#     'dataset_mode': ['sys', 'pro', 'non', 'noc'],
+# }
+# params.extend(generate_params(common_args, param_grid))
+
+"""
+exp: cobj baselines resnet18
 """
 # common_args.update({
 #     'use_interactive_logger': False,
@@ -286,87 +386,13 @@ exp: different training size
 """
 exp: baselines resnet cgqa
 """
-# # naive
-# common_args.update({
-#     'exp_name': 'naive-cls-lr0_003'
-# })
+# num_runs_1sh = 10       # num of runs in 1 sh file
 # param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# common_args.update({
-#     'exp_name': 'naive-tsk-lr0_008'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# # er
-# common_args.update({
-#     'exp_name': 'er-cls-lr0_003'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# common_args.update({
-#     'exp_name': 'er-tsk-lr0_0008'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# # gem
-# common_args.update({
-#     'exp_name': 'gem-cls-lr0_01-p32-m0_3'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# common_args.update({
-#     'exp_name': 'gem-tsk-lr0_001-p32-m0_3'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# # lwf
-# common_args.update({
-#     'exp_name': 'lwf-cls-lr0_005-a1-t1'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# common_args.update({
-#     'exp_name': 'lwf-tsk-lr0_01-a1-t1'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# # ewc
-# common_args.update({
-#     'exp_name': 'ewc-cls-lr0_005-lambda0_1'
-# })
-# param_grid = {
-#     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
-# }
-# params.extend(generate_params(common_args, param_grid))
-#
-# common_args.update({
-#     'exp_name': 'ewc-tsk-lr0_005-lambda2'
-# })
-# param_grid = {
+#     'exp_name': ['naive-cls-lr0_003', 'naive-tsk-lr0_008',
+#                  'er-cls-lr0_003', 'er-tsk-lr0_0008',
+#                  'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
+#                  'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
+#                  'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2', ],
 #     'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc']
 # }
 # params.extend(generate_params(common_args, param_grid))

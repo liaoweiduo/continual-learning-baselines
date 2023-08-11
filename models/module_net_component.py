@@ -285,7 +285,7 @@ class SelectorModule(nn.Module):
             out[out >= 0.5] = 1
             out[out < 0.5] = 0
             # todo: test whether use all modules is better than use threshold.
-            #   since SPSnet does.
+            #   since RPSnet does.
         else:
             out = self._gumbel_hard_sigmoid(out)        # [bs, n_proto]
 

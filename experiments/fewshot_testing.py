@@ -47,6 +47,8 @@ def fewshot_test(override_args=None):
     if args.test_freeze_feature_extractor:
         args.exp_name = f'{args.exp_name}-frz'
     args.exp_name = f'{args.exp_name}-test_n_way{args.test_n_way}'
+    if args.test_after_train_task_id !=-1:
+        args.exp_name = f'{args.exp_name}-model{args.test_after_train_task_id}'
 
     set_seed(args.seed)
     device = torch.device(f"cuda:{args.cuda}"
@@ -68,7 +70,7 @@ def fewshot_test(override_args=None):
     # ####################
     # MODEL
     # ####################
-    origin_model = get_model(args, checkpoint_path=checkpoint_path)
+    origin_model = get_model(args, checkpoint_path=checkpoint_path, checkpoint_model_id=args.test_after_train_task_id)
 
     # ####################
     # LOGGER

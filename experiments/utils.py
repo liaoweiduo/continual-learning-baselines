@@ -58,13 +58,13 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
     return exp_path, checkpoint_path
 
 
-def get_model(args, checkpoint_path=None, multi_task_baseline=False):
+def get_model(args, checkpoint_path=None, checkpoint_model_id=-1, multi_task_baseline=False):
     # '''Check resume'''
     # if os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
     #     pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
     # else:
     #     pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
-    if args.dataset_mode == 'continual':
+    if args.dataset_mode in ['continual', 'sysfull', 'profull', 'subfull', 'nonfull', 'nocfull']:   # treat these as con
         pretrained, pretrained_model_path = args.model_pretrained, args.pretrained_model_path
         multi_head = args.return_task_id
         fix = False
@@ -74,7 +74,11 @@ def get_model(args, checkpoint_path=None, multi_task_baseline=False):
         fix = args.test_freeze_feature_extractor
     else:
         assert checkpoint_path is not None
-        pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
+        if checkpoint_model_id == -1:
+            model_name = 'model.pth'
+        else:
+            model_name = f'model-{checkpoint_model_id}.pth'
+        pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, model_name)
         multi_head = True
         fix = args.test_freeze_feature_extractor
 

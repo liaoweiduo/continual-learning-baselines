@@ -12,7 +12,12 @@ parser.add_argument('--dataset', type=str, default='cgqa', metavar='DATASET',
                          'Split cifar100: scifar100')
 parser.add_argument('--dataset_mode', type=str, default='continual', metavar='DATASET_MODE',
                     choices=['continual', 'sys', 'pro', 'sub', 'non', 'noc',
-                             'nonf', 'nono', 'sysf', 'syso'],
+                             'nonf', 'nono', 'sysf', 'syso',
+                             'sysfull', 'profull', 'subfull', 'nonfull', 'nocfull',
+                             'sys1', 'pro1', 'sub1', 'non1',
+                             'sys12', 'pro12', 'sub12', 'non12',
+                             'sys123', 'pro123', 'sub123', 'non123',
+                             'sys12345', 'pro12345', 'sub12345', 'non12345'],
                     help='For cgqa, mode indicates the benchmark mode.')
 parser.add_argument('--return_task_id', action='store_true',
                     help='Incremental setting: True for task-IL or False for class-IL.')
@@ -164,6 +169,8 @@ parser.add_argument('--test_n_experiences', type=int, default=300, metavar='NEXP
                     help='Number of few-shot tasks.')
 parser.add_argument('--test_task_id', type=int, default=-1, metavar='NEXPERIENCES',
                     help='If it is not -1, test only on the specific task_id.')
+parser.add_argument('--test_after_train_task_id', type=int, default=-1, metavar='NEXPERIENCES',
+                    help='If it is not -1, test only on the specific model after task id.')
 parser.add_argument('--test_n_way', type=int, default=10, metavar='WAY',
                     help='Number of way in few-shot tasks.')
 parser.add_argument('--test_n_shot', type=int, default=10, metavar='SHOT',
