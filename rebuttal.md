@@ -267,12 +267,6 @@ Q4: Missing literature review about augmented-memory-based continual learning
 
 - We run REMIND on our CGQA and the results are shown below:
 
-    | finish task 1| 54.1 | 0 | 0 | 
-    | --- | --- | --- | --- |
-    | 2 |28.1 | 55.1 | 0 | 
-    | 3 | 35.5 | 29.5 | 53.3 | 
-    |  | evaluate on task 1 | 2 | 3 |
-
     - For time limit, we just run the same stream learning setting as in REMIND paper (each task only finish one round)
 
 Thank you again for your comments.
