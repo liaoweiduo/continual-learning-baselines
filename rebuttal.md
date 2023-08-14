@@ -61,7 +61,6 @@ Q2: Too strict requirement of frozen feature extractor
 - We now explain why we chose to use fewshot tasks and frozen feature extractor during evaluation. At specific checkpoint (after finishing all continual training tasks), we use our evaluation protocol to evaluate the model’s compositionality. In such condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them and thus we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks).
 - We also try to not freezen the feature extractor. And the results are present in Appendix E.7. For your convenience, we show our observation: all methods show a performance drop if not freezing the feature extractor especially for ER. It is clearly an overfitting issue and the bad effect is method-dependent. So in order to eliminate this effect when comparing the accuracies among methods, we freeze the feature extractor.
 - Note that methods which don't explicitly separate feature learning from classifier learning can also use our evaluation protocol, as long as they can handle few-shot cases.
-    - [We provide a version with enough examples and not freezing the feature extractor during evaluation. In this case, the evaluation task can be treated as the N+1-th continual task. The results are shown below: ??感觉上面的claim也指出学FE不好，针对feature learning和classifier learning分不开的mothod，可以直接在few shot task上测，不freeze FE。 ]
 
 Q3: ``Never-ending'' CL sense
 
@@ -212,7 +211,7 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
 - On CGQA, forgetting is relatively smaller than COBJ even for the naive Finetune method. It is intuitive, since COBJ is a real-world benchmark and CGQA is a grid-like synthesized benchmark.
 - The key point of MNTDP* to address catastrophic forgetting is to freeze old modules, thus, it can achieve no forgeting. However, in our CGQA case, forgetting is not as suffered as the real-world benchmark (e.g., COBJ). Thus, MNTDP* does not perform well on CGQA. But, in COBJ, MNTDP* can largely eliminate forgetting, thus, outperforms the others.
 
-Q7: Explain why conv-based methods have lower (A_sub) even though they are sensitive to texture information, and sub protocol also uses texture information to composite images. 
+Q7: Explain why conv-based methods have lower (A_sub) even though they are sensitive to texture information, and sub protocol also uses texture information to composite images. 
 
 - Good question. We are very sory that our explaination in line 268-271 did not satisfy you. We now try to discuss more about this.
 - We said ``conv-based models are sensitive to texture information'', thus, they tends to use texture features for prediction. Further, when texture features are absent from the target concept (in sub test, we use objects with different texture features for evaluation, e.g., train using red, black, and white shirts but test the green shirt in sub), models are confused to recognize the target concept.
@@ -266,9 +265,15 @@ Q4: Missing literature review about augmented-memory-based continual learning
 
 - Thank you very much for providing me these papers. I will improve my paper’s related works part. We will submit our revision as soon as possible.
 
-1和2都没发表，3是pretrained backbone （imagenet）可以跑个结果给他看，但是是做stream leaning的，就是每个task只跑一个epoch，我们的setting是每个tasks最多有100个epoch。setting不一样也没有比的必要。
+- We run REMIND on our CGQA and the results are shown below:
 
-However, comparing with such pretrained methods are relatively unfair since they may have seen some concepts or concept combinations before.
+    | finish task 1| 54.1 | 0 | 0 | 
+    | --- | --- | --- | --- |
+    | 2 |28.1 | 55.1 | 0 | 
+    | 3 | 35.5 | 29.5 | 53.3 | 
+    |  | evaluate on task 1 | 2 | 3 |
+
+    - For time limit, we just run the same stream learning setting as in REMIND paper (each task only finish one round)
 
 Thank you again for your comments.
 
