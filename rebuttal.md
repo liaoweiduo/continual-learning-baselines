@@ -272,6 +272,7 @@ Q4: Missing literature review about augmented-memory-based continual learning
     | REMIND  | 7.84 | 9.78 +- 0.39 | 9.84 +- 0.43 | 9.62 +- 0.40 | 9.74 | 9.68 +- 0.44 | 9.70 +- 0.43 | 9.69 | 9.72 |
     
     - For time limit, we just run the same stream learning setting as in REMIND paper. So it is not fair directly comparing it with the results in our paper. 
+    - It seems that REMIND suffers extreme overfitting when evaluating with few-shot tasks since we do not freeze the feature extractor. 
 
 Thank you again for your comments.
 
