@@ -5,8 +5,8 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 Q1: Differences between CFST and multi-label classification tasks
 
 - We are very sorry that the benchmark construction process confuse you. We would like to highlight the difference between our CFST and mutli-label recognition task, which is illustrated in Figure 1 and Remark 3.2 [line 106-111] of main paper.
-- We do not provide concept labels to the model, which is a more diffcult setting than multi-label classification tasks.
-- As a result, the model has to learn the hidden concepts from the image itself.
+  - We do not provide concept labels to the model, which is a more diffcult setting than multi-label classification tasks.
+  - As a result, the model has to learn the hidden concepts from the image itself.
 - We also discussed the difficulties for models to learn compositionality in this way in Appendix A. Briefly speaking:
     1. Some beneficial features may be good for the specific classification task, but not good for understanding this class (in a compositional way). 
     2. It is hard for the model to tell which visual features capture the corresponding concepts. 
