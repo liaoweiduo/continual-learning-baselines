@@ -108,7 +108,7 @@ def main(params, fix_device=True, start_iter=0, func=template_hisao):
     )
 
 
-target = 'experiments/continual_training.py'
+target = 'experiments/continual_training.py -u'
 task_name = return_time()   # defined by time
 print(task_name)
 func = template_hisao

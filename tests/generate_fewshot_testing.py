@@ -102,7 +102,7 @@ def main(params, fix_device=True, start_iter=0):
         path=f'../avalanche-experiments/tasks/{task_name}')
 
 
-target = 'experiments/fewshot_testing.py'
+target = 'experiments/fewshot_testing.py -u'
 task_name = return_time()   # defined by time
 print(task_name)
 # task_root = 'tests/tasks'        # path for sh in the working path
