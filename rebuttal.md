@@ -67,18 +67,18 @@ Q3: ``Never-ending'' CL sense
 - This is a very good comment. Our reported results are indeed static (only evaluating after finishing all continual training tasks), but the setting is clearly a never-ending CL.
 - We claim that our diagnosing evaluation can be used at any checkpoint (not be restricted at the end of all continual training tasks). We report the per-task Hn on 10-way COBJ as following:
     
-    | | Hn_1 | Hn_2 | Hn_3 |
-    | --- | --- | --- | --- |
-    | Finetune | 37.57 | 38.32 | 37.82 |
-    |ER | 30.27 | 33.33 | 36.99 |
-    |GEM | 38.05 | 37.60 | 37.36 |
-    |LwF | 38.13 | 43.34 | 45.19 |
-    |EWC | 37.34 | 36.86 | 38.68 |
+    |           | Hn_1 | Hn_2 | Hn_3 |
+    |-----------| --- | --- | --- | --- |
+    | Finetune  | 37.57 | 38.32 | 37.82 |
+    | ER        | 30.27 | 33.33 | 36.99 |
+    | GEM       | 38.05 | 37.60 | 37.36 |
+    | LwF       | 38.13 | 43.34 | 45.19 |
+    | EWC       | 37.34 | 36.86 | 38.68 |
     | Finetune* |37.41 | 37.07 | 40.93 | 
-    | ER* | 31.11 | 37.30 | 38.66 |
-    |GEM* | 37.45 | 35.60 | 40.93 |
-    |LwF* | 37.84 | 44.01 | 44.75 |
-    |EWC* | 30.76 | 34.18 | 36.20 |
+    | ER*       | 31.11 | 37.30 | 38.66 |
+    | GEM*      | 37.45 | 35.60 | 40.93 |
+    | LwF*      | 37.84 | 44.01 | 44.75 |
+    | EWC*      | 30.76 | 34.18 | 36.20 |
     
     - where Hn_1 denotes Hn after finish the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
     - A rough observation: [pending for discussion]
@@ -166,18 +166,18 @@ Q5: Add literature review of more recent works and baseline experiments
 - The reason why we did not include prompt-based methods (e.g., l2p, dualprompt) in our experiments is that these methods utilize a pretrained backbone and learn to extract knowledge from the backbone by prompting, thus, we claim that the pretrain backbone may potentially see the labels for testing which is unfair to those from-scratch learning methods (baselines I used in our experiments).
 - We also run quick experiments on codaPrompt, dualPrompt, l2p, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier). The results are as follows:
     
-    |CGQA| Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-    | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-    | codaPrompt | 77.43 | 20.40 +- 1.84 | 23.68 +- 1.90 | 33.88 +- 2.65 | 24.84 | 24.46 +- 1.80 | 32.22 +- 3.49 | 27.81 | 25.95 |
-    | dualPrompt | 77.92 | 23.00 +- 2.22 | 24.06 +- 1.90 | 33.16 +- 3.05 | 26.04 | 22.22 +- 2.17 | 31.74 +- 2.95 | 26.14 | 26.08 |
-    | l2p | 77.87 | 20.72 +- 1.98 | 22.20 +- 1.71 | 33.96 +- 3.22 | 24.44 | 23.28 +- 1.98 | 35.82 +- 3.09 | 28.22 | 25.82 |
+    | CGQA          | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
+    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    | codaPrompt    | 77.43 | 20.40 +- 1.84 | 23.68 +- 1.90 | 33.88 +- 2.65 | 24.84 | 24.46 +- 1.80 | 32.22 +- 3.49 | 27.81 | 25.95 |
+    | dualPrompt    | 77.92 | 23.00 +- 2.22 | 24.06 +- 1.90 | 33.16 +- 3.05 | 26.04 | 22.22 +- 2.17 | 31.74 +- 2.95 | 26.14 | 26.08 |
+    | l2p           | 77.87 | 20.72 +- 1.98 | 22.20 +- 1.71 | 33.96 +- 3.22 | 24.44 | 23.28 +- 1.98 | 35.82 +- 3.09 | 28.22 | 25.82 |
     | FT_Classifier | 78.13 | 20.50 +- 2.09 | 23.52 +- 1.99 | 31.06 +- 3.21 | 24.29 | 24.32 +- 2.29 | 38.20 +- 2.91 | 29.72 | 26.21 |
     
-    | COBJ | continual | sys | pro | Hn | non | noc | Hr | Ha | 
-    | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-    | codaPrompt | 89.20 | 31.36 +- 1.83 | 25.10 +- 1.76 | 27.88 | 27.00 +- 1.79 | 51.26 +- 2.14 | 35.37 | 31.18 |
-    | dualPrompt | 88.93 | 31.44 +- 2.22 | 25.38 +- 1.88 | 28.09 | 27.32 +- 2.10 | 51.58 +- 2.00 | 35.72 | 31.45 |
-    | l2p | 89.47 | 30.48 +- 2.57 | 25.26 +- 2.05 | 27.63 | 27.32 +- 2.06 | 51.20 +- 1.86 | 35.63 | 31.12 |
+    | COBJ          | continual | sys | pro | Hn | non | noc | Hr | Ha | 
+    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    | codaPrompt    | 89.20 | 31.36 +- 1.83 | 25.10 +- 1.76 | 27.88 | 27.00 +- 1.79 | 51.26 +- 2.14 | 35.37 | 31.18 |
+    | dualPrompt    | 88.93 | 31.44 +- 2.22 | 25.38 +- 1.88 | 28.09 | 27.32 +- 2.10 | 51.58 +- 2.00 | 35.72 | 31.45 |
+    | l2p           | 89.47 | 30.48 +- 2.57 | 25.26 +- 2.05 | 27.63 | 27.32 +- 2.06 | 51.20 +- 1.86 | 35.63 | 31.12 |
     | FT_Classifier | 89.07 | 30.50 +- 2.37 | 24.30 +- 1.99 | 27.05 | 27.82 +- 1.64 | 52.76 +- 1.77 | 36.43 | 31.05 |
  
     - It is clear that these pretrained methods has good Acon. However, their Hn are all very poor. Thus, those methods have small forgetting when the number of training samples is enough but can not quickly adapt to new task with a small number of training samples (few-shot).
@@ -187,26 +187,26 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
 - To justify this, we show the test accuracies for Finetune just after finishing each continual training task as follows:
     - task-IL 10-way CGQA tasks
         
-        | finish task 1| 58.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-        | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-        | 2 |55.2 | 66.7 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-        | 3 | 55.1 | 65.4 | 74.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-        | 4 | 54.2 | 63.3 | 61.3 | 83.8 | 0 | 0 | 0 | 0 | 0 | 0 |
-        | 5 | 54.7 | 56.4 | 59.4 | 71.9 | 75.4 | 0 | 0 | 0 | 0 | 0 |
-        | 6 | 48.9 | 57.7 | 66.0 | 71.1 | 72.2 | 77.1 | 0 | 0 | 0 | 0 |
-        | 7 | 54.0 | 58.7 | 63.8 | 75.9 | 66.6 | 72.4 | 75.3 | 0 | 0 | 0 |
-        | 8 | 47.2 | 58.4 | 54.1 | 74.3 | 64.9 | 71.1 | 71.0 | 74.8 | 0 | 0 |
-        | 9 | 61.6 | 70.0 | 68.2 | 82.9 | 76.4 | 76.4 | 75.5 | 69.9 | 84.8 | 0 |
-        | 10 | 53.4 | 69.1 | 74.3 | 78.3 | 75.5 | 75.5 | 70.1 | 67.1 | 82.5 | 82.2 |
-        |  | evaluate on task 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+        | finish task 1 | 58.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+        | 2             |55.2 | 66.7 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | 3             | 55.1 | 65.4 | 74.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | 4             | 54.2 | 63.3 | 61.3 | 83.8 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | 5             | 54.7 | 56.4 | 59.4 | 71.9 | 75.4 | 0 | 0 | 0 | 0 | 0 |
+        | 6             | 48.9 | 57.7 | 66.0 | 71.1 | 72.2 | 77.1 | 0 | 0 | 0 | 0 |
+        | 7             | 54.0 | 58.7 | 63.8 | 75.9 | 66.6 | 72.4 | 75.3 | 0 | 0 | 0 |
+        | 8             | 47.2 | 58.4 | 54.1 | 74.3 | 64.9 | 71.1 | 71.0 | 74.8 | 0 | 0 |
+        | 9             | 61.6 | 70.0 | 68.2 | 82.9 | 76.4 | 76.4 | 75.5 | 69.9 | 84.8 | 0 |
+        | 10            | 53.4 | 69.1 | 74.3 | 78.3 | 75.5 | 75.5 | 70.1 | 67.1 | 82.5 | 82.2 |
+        |               | evaluate on task 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
         
     - task-IL 10-way COBJ tasks
         
-        | finish task 1| 54.1 | 0 | 0 |
-        | --- | --- | --- | --- |
-        | 2 |28.1 | 55.1 | 0 | 
-        | 3 | 35.5 | 29.5 | 53.3 | 
-        |  | evaluate on task 1 | 2 | 3 |
+        | finish task 1 | 54.1 | 0 | 0 |
+        |---------------| --- | --- | --- | --- |
+        | 2             |28.1 | 55.1 | 0 | 
+        | 3             | 35.5 | 29.5 | 53.3 | 
+        |               | evaluate on task 1 | 2 | 3 |
         
 - On CGQA, forgetting is relatively smaller than COBJ even for the naive Finetune method. It is intuitive, since COBJ is a real-world benchmark and CGQA is a grid-like synthesized benchmark.
 - The key point of MNTDP* to address catastrophic forgetting is to freeze old modules, thus, it can achieve no forgeting. However, in our CGQA case, forgetting is not as suffered as the real-world benchmark (e.g., COBJ). Thus, MNTDP* does not perform well on CGQA. But, in COBJ, MNTDP* can largely eliminate forgetting, thus, outperforms the others.
@@ -267,7 +267,11 @@ Q4: Missing literature review about augmented-memory-based continual learning
 
 - We run REMIND on our CGQA and the results are shown below:
 
-    - For time limit, we just run the same stream learning setting as in REMIND paper (each task only finish one round)
+    | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
+    |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    | REMIND  | 7.84 | 9.78 +- 0.39 | 9.84 +- 0.43 | 9.62 +- 0.40 | 9.74 | 9.68 +- 0.44 | 9.70 +- 0.43 | 9.69 | 9.72 |
+    
+    - For time limit, we just run the same stream learning setting as in REMIND paper. So it is not fair directly comparing it with the results in our paper. 
 
 Thank you again for your comments.
 
