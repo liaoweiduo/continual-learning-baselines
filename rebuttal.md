@@ -80,21 +80,20 @@ Q3: ``Never-ending'' CL sense
     | LwF*      | 37.84 | 44.01 | 44.75 |
     | EWC*      | 30.76 | 34.18 | 36.20 |
     
-    - where Hn_1 denotes Hn after finish the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
+    - where Hn_1 denotes Hn after finishing the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
     - A rough observation: [pending for discussion]
-- [想一个场景。医院里，[应该不用再举例了吧, 他说if not再举例]]
 
 Q4: Short and superficial discussion of limitations of this work
 
-- We are very sorry that due to page limit we do not discuss more on our limitation.
+- We are very sorry that due to the page limit, we do not discuss more on our limitations.
 - Here we discuss more on one limitation: our candidate concepts were quite visual and disentangled. Note that, we want to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts together. However, some concepts like motion and human mood can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
 
 Q5: Relation To Prior Work
 
-- I am not sure if I capture your question correctly, if your ``Prior Work'' refers to those benchmarking works since our main contributions are the benchmarks and the corresponding evaluation protocol. We mentioned in Sec 2 (Related Works) that some vision benchmarks evaluates compositionality (including works in the CL field) and we pointed out that some benchmarks are toy and evaluate only systematicity. Thus, we provided the diagnosing benchmark (CGQA) and real-world benchmark (COBJ), and evaluated three aspects of compsoitionality (sys, pro, sub).
-- As for other comparison, unfortunately due to page limit, we did not include the detail discussion in our main paper. However, we clearly understand that they are important and will include them in the camera-ready version.
-    - Additionally as for the relationship with CZSL, we illustrated the difference in Figure 1 and Remark 3.2.
-    - As for the relationship with forgetting, we investigated empirically by a case study in Sec 6 [line 276-304] and also provided detail experiments in Appendix E.4.
+- I am not sure if I capture your question correctly if your ``Prior Work'' refers to those benchmarking works since our main contributions are the benchmarks and the corresponding evaluation protocol. We mentioned in Sec 2 (Related Works) that some vision benchmarks evaluate compositionality (including works in the CL field) and we pointed out that some benchmarks are toy and evaluate only systematicity. Thus, we provided the diagnosing benchmark (CGQA) and real-world benchmark (COBJ), and evaluated three aspects of compositionality (sys, pro, sub).
+- As for other comparisons, unfortunately, due to the page limit, we did not include a detailed discussion in our main paper. However, we clearly understand that they are important and will include them in the camera-ready version.
+    - Additionally, as for the relationship with CZSL, we illustrated the difference in Figure 1 and Remark 3.2.
+    - As for the relationship with forgetting, we investigated empirically by a case study in Sec 6 [line 276-304] and also provided detailed experiments in Appendix E.4.
 
 Q6: CGQA disentangled concept feature  (Sec 3)
 
@@ -102,22 +101,22 @@ Q6: CGQA disentangled concept feature  (Sec 3)
 
 Q7: Question about non-novel testing accuracy vs training accuracy in Sec 4
 
-- Good question. The answer is yes, exactly as you think. Although one non-novel testing task contains the same number of labels as training tasks, the K labels are randomly chosen from the training label pool. That is, it is a small probability that a non-novel testing task is just one of the training task (of course, the number of training samples for each label is different from the training task).
+- Good question. The answer is yes, exactly as you think. Although one non-novel testing task contains the same number of labels as one training task, the K labels are randomly chosen from the training label pool. That is, it is a small probability that a non-novel testing task is just one of the training tasks (of course, the number of training samples for each label is relatively smaller than that in the training tasks).
 
 Q8: Put more description of the construction process rather than the motivation in Sec 5
 
-- Good comment. We will compress the motivation and put the construction process to the main paper in the camera-ready version.
+- Good comment. Unfortunately, due to the page limit, we did not include a detailed construction process in our main paper. However, we clearly understand that this is very important for the readers to understand our work, thus, we will compress the motivation and put the construction process to the main paper in the camera-ready version.
 
 Q9: Question about experimental results
 
 1. Multitask is not the best on Hn in COBJ (RPSnet and ER* are the best)
-    - Good question. Firstly, we would like to highlight that Hn evaluates compositionality of the feature extractor.
-    - This observation is quite interesting, that, Multitask may not necessarily be the upper bound w.r.t. compositionality. You know in CGQA, compositionality is easier to learn since we visually split the concepts which the models are expected to learn. Multitask shows a great superiority on Hn in CGQA, which is also consistent with the CAM visualization results in Appendix E.3 and fig7. Multitask can recognize more concepts than Finetune.
-    - However, in the real-world case COBJ, concepts are not as visually separable as that in CGQA. Our CAM visualization results in Appendix fig8 shows that Multitask is better than Finetune but the gap is not so large(the number of recognized concepts by Multitask is larger but similar than that by Finetune). That is, Multitask may not necessarily beats CL methods w.r.t. compositionality.
+    - Good question. Firstly, we would like to highlight that Hn evaluates the compositionality of the feature extractor.
+    - This observation is quite interesting, that, Multitask may not necessarily be the upper bound in terms of compositionality. You know in CGQA, compositionality is easier to learn since we visually split the concepts which the models are expected to learn. Multitask shows a great superiority on Hn in CGQA, which is also consistent with the CAM visualization results in Appendix E.3 and fig7. Multitask could recognize more concepts than Finetune.
+    - However, in the real-world case (COBJ), concepts are not as visually separable as that in CGQA. Our CAM visualization results in Appendix fig8 showed that Multitask was better than Finetune but the gap was not so large (the number of recognized concepts by Multitask was larger but similar to that by Finetune). That is, Multitask might not necessarily beats CL methods in terms of compositionality.
     - Hope my analysis solves your question.
 2. MNTDP* is not the top performer on Hn on COBJ, only on Acon.
-    - Good question. As we highlighted on the above question, a model with better Acon does not necessarily have better Hn (compositionality).
-    - This result shows that MNTDP* shows no superiority on compositionality. The high average test accuracy is due to the zero forgetting of old tasks, since it freezes all learned modules for old tasks.
+    - Good question. As we highlighted in the above question, a model with better Acon does not necessarily have better Hn (compositionality).
+    - This result indicated that MNTDP* showed no superiority in compositionality. The high average test accuracy was due to the zero forgetting of old tasks since it froze all learned modules for old tasks.
 - The above two observations also indicates the shortcomings of average test accuracy Acon. Our evaluation metric Hn provides more insights.
 
 Q10: Grammar errors and typos
