@@ -64,8 +64,8 @@ Q2: Too strict requirement of frozen feature extractor
 
 Q3: ``Never-ending'' CL sense
 
-- This is a very good comment. Our reported results are indeed static (only evaluating after finishing all continual training tasks), but the setting is clearly a never-ending CL.
-- We claim that our diagnosing evaluation can be used at any checkpoint (not be restricted at the end of all continual training tasks). We report the per-task Hn on 10-way COBJ as following:
+- This is a very good comment. Our reported results were indeed static (only evaluating after finishing all continual training tasks), but the setting is clearly a never-ending CL.
+- We claim that our diagnosing evaluation can be used at any checkpoint (not to be restricted at the end of all continual training tasks). We report the per-task Hn on 10-way COBJ as follows:
     
     |           | Hn_1 | Hn_2 | Hn_3 |
     |-----------| --- | --- | --- | --- |
@@ -74,7 +74,7 @@ Q3: ``Never-ending'' CL sense
     | GEM       | 38.05 | 37.60 | 37.36 |
     | LwF       | 38.13 | 43.34 | 45.19 |
     | EWC       | 37.34 | 36.86 | 38.68 |
-    | Finetune* |37.41 | 37.07 | 40.93 | 
+    | Finetune* | 37.41 | 37.07 | 40.93 | 
     | ER*       | 31.11 | 37.30 | 38.66 |
     | GEM*      | 37.45 | 35.60 | 40.93 |
     | LwF*      | 37.84 | 44.01 | 44.75 |
