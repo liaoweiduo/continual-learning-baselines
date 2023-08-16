@@ -246,17 +246,17 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 Q1: Grid-like images for multi-task classification and not naturalistic
 
-- Thank you very much on your following designs about other methods to construct benchmarks, which really inspire me and we will carefully consider them.
+- Thank you very much for your following designs about other methods to construct benchmarks, which really inspire me and we will carefully consider them.
 - Our CGQA is like you said in a grid-like manner. We claim that this is because it provides human interpretable concept visualization and easy to analyse and diagnose the model’s compositionality.
-- Also, we provide COBJ, which is not constructed in a grid-like way but a whole real image. Please refer to Appendix C.2 about the construction and image examples.
-- Our work is not multi-task classification. As pointed out in Sec 3 Remark 3.2, line 106-111, we do not provide concept labels to the model.
-    - As a result, model has to learn the hidden concepts from the image itself.
-    - We also discuss about the difficult of learning compositionality under our setting in Appendix A.
+- Additionally, we provided COBJ, which is not constructed in a grid-like way but a whole real image. Please refer to Appendix C.2 for the construction process and some image examples.
+- Our work is not multi-task classification. As pointed out in Sec 3 Remark 3.2, line 106-111, we would not provide concept labels to the model.
+    - As a result, the model has to learn the hidden concepts from the image itself.
+    - We also discussed the difficulty of learning compositionality under our setting in Appendix A. 
 
 Q2: About augmentation
 
 - CGQA is limited to 2x2 grids. Thus, we also tried 3x3 grids called CPIN, constructed from PartImageNet. The details and results were presented in Appendix C.1.7 and E.9, respectively. Since it provides similar conclusions as CGQA, so we only present CGQA in the main paper.
-- We summary the training details about augmentation technique we used in Appendix D line 425-434. We use the standard augmentation techniques. And your advices in the Point 4 really inspires me.
+- We summarized the training details about the augmentation technique we used in Appendix D line 425-434. We use standard augmentation techniques. And your advice in Point 4 really inspires me.
 
 Q3: About construction process
 
@@ -265,16 +265,16 @@ Q3: About construction process
 
 Q4: Missing literature review about augmented-memory-based continual learning
 
-- Thank you very much for providing me these papers. I will improve my paper’s related works part. We will submit our revision as soon as possible.
+- Thank you very much for providing me with these papers. I will include them and improve the related works part. We will submit our revision as soon as possible.
 
-- We run REMIND on our CGQA and the results are shown below:
+- We ran REMIND on our CGQA and the results were shown below:
 
     | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
     |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
     | REMIND  | 7.84 | 9.78 +- 0.39 | 9.84 +- 0.43 | 9.62 +- 0.40 | 9.74 | 9.68 +- 0.44 | 9.70 +- 0.43 | 9.69 | 9.72 |
     
-    - For time limit, we just run the same stream learning setting as in the REMIND paper. So it is not fair directly comparing it with the results in our paper. 
-    - It seems that REMIND does not perform well when evaluating with few-shot tasks since samples only seen once in the stream learning setting. 
+    - For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
+    - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
 
 Thank you again for your comments.
 
