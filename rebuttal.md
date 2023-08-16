@@ -81,7 +81,7 @@ Q3: ``Never-ending'' CL sense
     | EWC*      | 30.76 | 34.18 | 36.20 |
     
     - where Hn_1 denotes Hn after finishing the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
-    - A rough observation: [pending for discussion]
+    - A rough observation: methods tend to improve compositionality when seeing more labels (combinations of concepts). 
 
 Q4: Short and superficial discussion of limitations of this work
 
@@ -132,37 +132,38 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 Q1: Contradiction between experimental results and the claim: "compositionality addresses the stability-plasticity dilemma" 
 
-- Very good question. First we would like to highlight that we are discussing the stability and plasticity on the **feature extractor** of a continual learner. We can easily observe forgetting phenomenon that this continual learner has a performance drop on old tasks after learning a new task. However, we want to say that the performance drop is from two aspects.
-    1. The feature extractor forgets the crucial features for old tasks when learning the new task. 
-    2. The classifiers of old tasks can not update (no old sample), thus, the coupling between the feature extractor and the corresponding classifiers is broken. 
-- In our experiment, we visualized CAM of feature extractor in Appendix E.3. On CGQA, the learned feature extractor of Finetune was compositional, thus, it had good stability. However, Acon was very bad, thus, Acon can not one-hundred percent represent the performance of plasticity and stability abilities.
-- While, our Hn evaluate the compositionality of a feature extractor (how well can this feature extractor extract compositional features). We eliminate the effect of the classifier.
-- By the way, our evaluation method is flexible and can also be used on algorithms which don't explicitly separate feature learning from classifier learning. We just provide few-shot testing tasks and algorithms can just deepcopy and evaluate their models with their own methods.
-- 抛开modularity结果，baselines是基本上Hn高的Acon就好（table 1的2的ER，ER*） why ER better than LwF。
-    - LwF的问题是class IL上的prediction bias on classifier较为严重，而memory-based方法ER却能很好的解决这个，他们的feature extractor在extractor.
-- 而 modularity （RPSnet）在class-IL上好的原因是it reduces the prediction bias in the classifier (Appendix line 521-523), and our compositionalty more focuses on feature extractor (to extract compositional features).
+- Very good question. First, we would like to highlight that we are discussing the stability and plasticity of the **feature extractor** of a continual learner. We can easily observe the forgetting phenomenon that this continual learner has a performance drop on old tasks after learning a new task. However, we want to say that the performance drop is from two aspects.
+    1. The **feature extractor** forgets the crucial features for old tasks when learning the new task. 
+    2. The **classifiers** of old tasks can not update (no old sample), thus, the coupling between the feature extractor and the corresponding classifiers is broken. 
+- In our experiment, we visualized the CAM of the feature extractor in Appendix E.3. On CGQA, the learned feature extractor of Finetune was compositional, thus, the feature extractor had good stability. However, Acon was very bad, showing that when combined with the classifiers, the stability was poor. Thus, we claim that using Acon to evaluate the feature extractor is faulty. 
+- While our Hn evaluates the compositionality of a feature extractor (how well can this feature extractor extract compositional features). We eliminate the effect of the classifier.
+- By the way, our evaluation method is flexible and can also be used on algorithms that don't explicitly separate feature learning from classifier learning. We just provide few-shot testing tasks and algorithms can just deepcopy and evaluate their models with their own methods.
 
 Q2: Motivations on the evaluations of three compositinoal capabilities
 
-- Very good question. As we claim and explain in the above question, compositionality is a very important ability for a continual learner. and most of the current works (Sec 2 related works) in vision only consider systematicity (novel re-combination) as composistionality. we extend to productivity and substitutivity (other two very interesting aspects of compositionality which are widely studied in the NLP field) to provide more insights of continual learners.
-- We now discuss more about the motivations on productivity and substitutivity:
-    - Productivity: Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, a un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. Productivity test is to evaluate this performance.
-    - Substitutivity: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts together), our selected concepts are all visual and disentangled. However, some concepts (like motion and human mood) are more likely to be the attribute of other concepts (like human). These attribute-like concepts are not so flexible that it can not appear on other concepts or the representation may be different when combined with different concepts (like Ripe apple is different from Ripe banana). To compensate the evaluation on these attribute-like concepts, we design substitutivity test.
+- Very good question. As we claim and explain in the above question, compositionality is a very important ability for a continual learner. and most of the current works (Sec 2 related works) in vision only consider systematicity (novel re-combination) as compositionality. We extend to productivity and substitutivity (other two very interesting aspects of compositionality which are widely studied in the NLP field) to provide more insights.
+- We now discuss more about the motivations for productivity and substitutivity:
+    - Productivity: Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, an un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. The productivity test is to evaluate this performance.
+    - Substitutivity: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (like motion and human mood) are more likely to be the attribute of other concepts (e.g., Human). These attribute-like concepts are not so flexible that they can not appear on other concepts or the representation may be different when combined with different concepts (like Ripe apple is different from Ripe banana). To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test.
 
 Q3: Knowledge leaking on continual training tasks
 
+- 
+
 - reviewer觉得CL setting不同task之间需要完全无关，novel classes没有knowledge leaking。我们的不同task会有相同的concept出现，不是standard CL setting。
+- domain-IL ? 就是要利用上old task的knowledge的？
 - besides， we also evaluate on noc, (non-compositional testing), the concepts are all unseen on old tasks.
 
 Q4: Explain why Principle 2 (few-shot learning) and Principle 3 (frozen feature extractor) supports evaluating model's compositionality.
 
-- At the specific checkpoint (after finishing all continual training tasks), we used our evaluation protocol to evaluate the model’s compositionality. In such a condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them and thus we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks). Thus, we recommend few-shot evaluation tasks and frozen feature extractors. We also list the reason in the main paper line 120-126.
-- We should highlight that the principles are not strict and we also did experiments on not frozen feature extractors in Appendix E.7. For your convenience, we show our observation: all methods show a performance drop if not freezing the feature extractor especially for ER. It is clearly an overfitting issue and the bad effect is method-dependent. So in order to eliminate this effect when comparing the methods and let the accuracy correctly represents the compositionality, we freeze the feature extractor.
+- At the specific checkpoint (after finishing all continual training tasks), we used our evaluation protocol to evaluate the model’s compositionality. In such a condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them and thus we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks). Thus, we recommend few-shot evaluation tasks and frozen feature extractors. We also listed the reason in the main paper line 120-126.
+- We should highlight that the principles are not strict and we also did experiments on not frozen feature extractors in Appendix E.7. For your convenience, we show our observation: all methods show a performance drop if not freezing the feature extractor, especially for ER. It was clearly an overfitting issue and the bad effect was method-dependent. So in order to eliminate this effect when comparing the methods and let the accuracy correctly represents the compositionality, we freeze the feature extractor.
+- On the other hand, few-shot tasks can help evaluate the plasticity since models can have good accuracy on these tasks only if they can fast adapt previous knowledge to the new one. In this case, the compositionality is crucial to fill the systematic gap between the continual training and the few-shot testing tasks. 
 
 Q5: Add literature review of more recent works and baseline experiments
 
 - Thank you very much for providing recent works. I will put them into our related works. We will submit our revision as soon as possible.
-- The reason why we did not include prompt-based methods (e.g., l2p, dualprompt) in our experiments is that these methods utilize a pretrained backbone and learn to extract knowledge from the backbone by prompting, thus, we claim that the pretrain backbone may potentially see the labels for testing which is unfair to those from-scratch learning methods (baselines I used in our experiments).
+- The reason why we did not include prompt-based methods (e.g., l2p, dualprompt) in our experiments is that these methods utilize a pretrained backbone and learn to extract knowledge from the backbone by prompting, thus, we claim that the pretrained backbone may potentially see the labels for testing which is unfair to those from-scratch learning methods (baselines I used in our experiments).
 - We also run quick experiments on codaPrompt, dualPrompt, l2p++, deep l2p++, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier; **l2p++**: use prefix-tuning instead of prompt-tuning; **deep l2p++**: add prefix-tuning at all layers). The results are as follows:
     
     | CGQA          | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
@@ -210,33 +211,33 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
         | 3             | 35.5 | 29.5 | 53.3 | 
         |               | evaluate on task 1 | 2 | 3 |
         
-- On CGQA, forgetting is relatively smaller than COBJ even for the naive Finetune method. It is intuitive, since COBJ is a real-world benchmark and CGQA is a grid-like synthesized benchmark.
-- The key point of MNTDP* to address catastrophic forgetting is to freeze old modules, thus, it can achieve no forgeting. However, in our CGQA case, forgetting is not as suffered as the real-world benchmark (e.g., COBJ). Thus, MNTDP* does not perform well on CGQA. But, in COBJ, MNTDP* can largely eliminate forgetting, thus, outperforms the others.
+- On CGQA, forgetting is relatively smaller than COBJ even for the naive Finetune method. It is intuitive since COBJ is a real-world benchmark and CGQA is a grid-like synthesized benchmark.
+- The key point of MNTDP* to address catastrophic forgetting is to freeze old modules, thus, it can achieve no forgetting. However, in our CGQA case, forgetting is not as suffered as the real-world benchmark (e.g., COBJ). Thus, the advantages of MNTDP* are not obvious on CGQA. However, in COBJ, MNTDP* can largely eliminate forgetting, thus, outperforms the others.
 
 Q7: Explain why conv-based methods have lower (A_sub) even though they are sensitive to texture information, and sub protocol also uses texture information to composite images. 
 
-- Good question. We are very sory that our explaination in line 268-271 did not satisfy you. We now try to discuss more about this.
-- We said ``conv-based models are sensitive to texture information'', thus, they tends to use texture features for prediction. Further, when texture features are absent from the target concept (in sub test, we use objects with different texture features for evaluation, e.g., train using red, black, and white shirts but test the green shirt in sub), models are confused to recognize the target concept.
-    - For example, a model recognizes the shirt concept by its color “red or black or white”. When a “green shirt” comes, this model does not recognize it is also a shirt. Thus, it results in poor test acc on sub test.
-- One the contrary, vit-based models tend to use shape features for prediction and can correctly recognize “green shirt” as shirt concept since it has the same shape as other shirts.
-- On the other hand, we guaranteed the Solvability that the evaluated attribute are seen in other concepts. The pool A_sub results indicate its pool compositionality on attirbute-level.
+- Good question. We are very sorry that our explanation in line 268-271 did not satisfy you. We now try to discuss more about this.
+- We said ``conv-based models are sensitive to texture information'', thus, they tend to use texture features for prediction. Further, when texture features are absent from the target concept (in the sub test, we use objects with different texture features for evaluation, e.g., train using red, black, and white shirts but test the green shirt in sub), models are confused to recognize the target concept.
+    - For example, a model recognizes the shirt concept by its color “red or black or white”. When a “green shirt” comes, this model does not recognize that it is also a shirt. Thus, it results in poor test acc on the sub test.
+- On the contrary, vit-based models tend to use shape features for prediction and can correctly recognize “green shirt” as the shirt concept since it has the same shape as other shirts.
+- Note that, we guaranteed the Solvability that the evaluated attributes are seen in other concepts. The pool A_sub results indicate its pool compositionality on the attirbute level.
 
 Q8: Experimental results on ``Sample efficiency for learning compositionality'': why S(sys) are positive when few samples (between 0 to 100 samples) are present?
 
-- Good question. Here I should point out that the samples refer to training samples in the continual training tasks (line 306-307).
-- Note that S(sys)=(A_sys-A_non)/A_non. Here non-novel (non) testing tasks contain the same number of labels as training tasks, but the K labels are randomly chosen from the training label pool. That is, it is a small probability that a non-novel testing task is just one of the training task (of course, the number of training samples for each label is different from the training task).
+- Good question. I should point out that the samples here refer to training samples in the continual training tasks (line 306-307).
+- Note that S(sys)=(A_sys-A_non)/A_non. Here non-novel (non) testing tasks contain the same number of labels as training tasks, but the K labels are randomly chosen from the training label pool. That is, it is a small probability that a non-novel testing task is just one of the training tasks (of course, the number of training samples for each label is relatively smaller than the training tasks).
     - Thus, when the model is not well-trained (which is the case when the number of training samples for each continual task is very few (less than 100)), A_non does not necessarily better than A_sys.
 
 Q9: experimental results on ``Varying number of continual training tasks'': why the small-way task needs a smaller number of compositional features for distinguishing classes but the accuracy drops when decreasing number of classes in the task. 
 
-- Good question. First we need to clarify that we train the feature extractor at continual training phase.  For a specific continual task, the model will learn crucial compositional features but miss other compositional features which are not needed for this task but may be crucial for the future continual tasks.
-    - Taking the example in Appendix E.5 line 613-616, one can distinguish horse with person by their different shapes. But this is not enough for the case of horse and zebra (i.e., limited compositionality). However, for the tri-classification task of distinguishing among horse, zebra, and person, one can learn both shape and texture features (i.e., relatively better compositionality). The learned texture features can be used in future tasks like distinguishing tigers with other animals.
-- Thus, the model may not obtain necessary features for these compositional testing tasks during the continual training phase. As a result, the performance of evaluating compsoitionality (i.e., Hn) drops.
+- Good question. First, we need to clarify that we train the feature extractor in the continual training phase. For a specific continual task, the model will learn crucial compositional features but miss other compositional features which are not needed for this task but may be crucial for future tasks.
+    - Taking the example in Appendix E.5 line 613-616, one can distinguish a horse from a person by their different shapes. But this is not enough for the case of horse and zebra (i.e., limited compositionality). However, for the tri-classification task of distinguishing between horse, zebra, and person, one can learn both shape and texture features (i.e., relatively better compositionality). The learned texture features can be used in future tasks like distinguishing tigers from other animals.
+- Thus, the model may not obtain the necessary features for these compositional testing tasks during the continual training phase. As a result, the performance of evaluating compositionality (i.e., Hn) drops.
 
 Q10: Purpose to use “concept factorization”. 
 
 - Good question. Sorry for not presenting our motivation to use ``concept factorization''. We will update the motivation in a revision.
-- Specifically, we need to mathmatically describe the data generation process from the pespective of sampling distribution. It can clearly shows the difference between our proposed compositional testing tasks.
+- Specifically, we need to mathematically describe the data generation process from the perspective of sampling distribution. It can clearly show the difference between our proposed compositional testing tasks.
 
 Thank you again for your comments.
 
@@ -271,7 +272,7 @@ Q4: Missing literature review about augmented-memory-based continual learning
 
     | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
     |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-    | REMIND  | 7.84 | 9.78 +- 0.39 | 9.84 +- 0.43 | 9.62 +- 0.40 | 9.74 | 9.68 +- 0.44 | 9.70 +- 0.43 | 9.69 | 9.72 |
+    | REMIND  | 8.34 | 10.16 +- 0.71 | 9.90 +- 0.81 | 9.10 +- 0.65 | 9.70 | 9.06 +- 0.70 | 9.40 +- 0.60 | 9.23 | 9.50 |
     
     - For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
     - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
