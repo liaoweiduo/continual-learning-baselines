@@ -1597,81 +1597,81 @@ baselines resnet cgqa
              'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
              'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2', ],
 """
-num_runs_1sh = 2       # num of runs in 1 sh file
-common_args.update({
-    'tag': 'rebuttal',
-})
-common_args.update({
-    'test_n_experiences': 1,
-    'test_n_shot': 850,
-    'test_n_val': 50,
-    'test_n_query': 100,
-})
-param_grid = {
-    'dataset_mode': ['sysfull', 'profull', 'subfull', 'nonfull', 'nocfull'],
-    'seed': [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-}
-# naive  'naive-cls-lr0_003', 'naive-tsk-lr0_008',
-common_args.update({
-    'return_task_id': False, 'strategy': 'naive', 'learning_rate': 0.003,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-common_args.update({
-    'return_task_id': True, 'strategy': 'naive', 'learning_rate': 0.008,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-# er   'er-cls-lr0_003', 'er-tsk-lr0_0008',
-common_args.update({
-    'return_task_id': False, 'strategy': 'er', 'learning_rate': 0.003,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-common_args.update({
-    'return_task_id': True, 'strategy': 'er', 'learning_rate': 0.0008,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-# gem 'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
-common_args.update({
-    'return_task_id': False, 'strategy': 'gem', 'learning_rate': 0.01,
-    'gem_patterns_per_exp': 32, 'gem_mem_strength': 0.3,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-common_args.update({
-    'return_task_id': True, 'strategy': 'gem', 'learning_rate': 0.001,
-    'gem_patterns_per_exp': 32, 'gem_mem_strength': 0.3,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-# lwf 'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
-common_args.update({
-    'return_task_id': False, 'strategy': 'lwf', 'learning_rate': 0.005,
-    'lwf_alpha': 1, 'lwf_temperature': 1,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-common_args.update({
-    'return_task_id': True, 'strategy': 'lwf', 'learning_rate': 0.01,
-    'lwf_alpha': 1, 'lwf_temperature': 1, 'train_mb_size': 50
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-# ewc 'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2',
-common_args.update({
-    'return_task_id': False, 'strategy': 'ewc', 'learning_rate': 0.005,
-    'ewc_lambda': 0.1,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
-common_args.update({
-    'return_task_id': True, 'strategy': 'ewc', 'learning_rate': 0.005,
-    'ewc_lambda': 2,
-})
-exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
-params.extend(generate_params(common_args, param_grid, exp_name_template))
+# num_runs_1sh = 2       # num of runs in 1 sh file
+# common_args.update({
+#     'tag': 'rebuttal',
+# })
+# common_args.update({
+#     'test_n_experiences': 1,
+#     'test_n_shot': 850,
+#     'test_n_val': 50,
+#     'test_n_query': 100,
+# })
+# param_grid = {
+#     'dataset_mode': ['sysfull', 'profull', 'subfull', 'nonfull', 'nocfull'],
+#     'seed': [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+# }
+# # naive  'naive-cls-lr0_003', 'naive-tsk-lr0_008',
+# common_args.update({
+#     'return_task_id': False, 'strategy': 'naive', 'learning_rate': 0.003,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# common_args.update({
+#     'return_task_id': True, 'strategy': 'naive', 'learning_rate': 0.008,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# # er   'er-cls-lr0_003', 'er-tsk-lr0_0008',
+# common_args.update({
+#     'return_task_id': False, 'strategy': 'er', 'learning_rate': 0.003,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# common_args.update({
+#     'return_task_id': True, 'strategy': 'er', 'learning_rate': 0.0008,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# # gem 'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
+# common_args.update({
+#     'return_task_id': False, 'strategy': 'gem', 'learning_rate': 0.01,
+#     'gem_patterns_per_exp': 32, 'gem_mem_strength': 0.3,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# common_args.update({
+#     'return_task_id': True, 'strategy': 'gem', 'learning_rate': 0.001,
+#     'gem_patterns_per_exp': 32, 'gem_mem_strength': 0.3,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# # lwf 'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
+# common_args.update({
+#     'return_task_id': False, 'strategy': 'lwf', 'learning_rate': 0.005,
+#     'lwf_alpha': 1, 'lwf_temperature': 1,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# common_args.update({
+#     'return_task_id': True, 'strategy': 'lwf', 'learning_rate': 0.01,
+#     'lwf_alpha': 1, 'lwf_temperature': 1, 'train_mb_size': 50
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# # ewc 'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2',
+# common_args.update({
+#     'return_task_id': False, 'strategy': 'ewc', 'learning_rate': 0.005,
+#     'ewc_lambda': 0.1,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
+# common_args.update({
+#     'return_task_id': True, 'strategy': 'ewc', 'learning_rate': 0.005,
+#     'ewc_lambda': 2,
+# })
+# exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+# params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 
 # # naive

@@ -4,29 +4,29 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 Q1: Differences between CFST and multi-label classification tasks
 
-- We are very sorry that the benchmark construction process confuse you. We would like to highlight the difference between our CFST and mutli-label recognition task, which is illustrated in Figure 1 and Remark 3.2 [line 106-111] of main paper.
-  - We do not provide concept labels to the model, which is a more diffcult setting than multi-label classification tasks.
+- We are very sorry that the benchmark construction process confuses you. We would like to highlight the difference between our CFST and multi-label recognition task, which is illustrated in Figure 1 and Remark 3.2 [line 106-111] of the main paper.
+  - We do not provide concept labels to the model, which is a more difficult setting than multi-label classification tasks.
   - As a result, the model has to learn the hidden concepts from the image itself.
 - We also discussed the difficulties for models to learn compositionality in this way in Appendix A. Briefly speaking:
-    1. Some beneficial features may be good for the specific classification task, but not good for understanding this class (in a compositional way). 
+    1. Some beneficial features (e.g., different shapes) may be good for the specific classification task, but not enough for understanding the classes in this task (in a compositional way). 
     2. It is hard for the model to tell which visual features capture the corresponding concepts. 
-- Also, we are very sorry for not presenting the details of the construction process in the main paper due to page limit. Instead, we present it in Appendix C.1.1 and C.2.1.
+- Additionally, we are very sorry for not presenting the details of the construction process in the main paper due to the page limit. Instead, we presented them in Appendix C.1.1 and C.2.1.
 
 Q3: This combination dataset does not meet the requirements of real-world scenarios and the task of compositional generalization
 
 - Our CGQA is like you said constructed in a grid way. We claim that this is because it can provide human interpretable concept visualization and easy to analyse and diagnose the model’s compositionality.
-- And we also provide COBJ, which is a real-world benchmark, which is not constructed in a grid way (detailed in Appendix C). We provide some image instances in Appendix Fig5 and the construction details in Appendix C.2.
+- And we also provided COBJ, which is a real-world benchmark and is not constructed in a grid way (detailed in Appendix C). We provided some image instances in Appendix Fig5 and the construction details in Appendix C.2.
 
 Q4: Frozen modules limits the adaptability of the methods to new tasks
 
-- I am not sure if I capture your question correctly, if you ask why those modularity-based methods (e.g., RPSnet) freeze old modules. They freeze old modules to address catastrophic forgetting on old tasks. As for adaptability to new tasks, they learn new modules sub-linearly to solve new knowledge. Since the old modules are fozen, the number of trainable parameters for each task is kept the same.
-- In order to answer you concern, we also run experiments that the modules for old tasks are not frozen, thus, we jointly train all used modules in RPSnet on CGQA.
+- I am not sure if I capture your question correctly if you asked why those modularity-based methods (e.g., RPSnet) freeze old modules. They freeze old modules to address catastrophic forgetting on old tasks. As for adaptability to new tasks, they learn new modules sub-linearly to solve new knowledge. Since the old modules are frozen, the number of trainable parameters for each task is kept the same.
+- In order to answer your concern, we also ran experiments that the modules for old tasks are not frozen, thus, we jointly trained all used modules in RPSnet on CGQA.
     - Results: Hn=67.99 (main paper frozen old modules’ Hn=59.94).
-    - Jointly training can indeed improve performance. However, we should emphasize that this performance gain is due to the larger model capacity since the number of trainable parameters are relatively larger than that in other baselines which is unfair for comparison.
+    - Jointly training can indeed improve performance. However, we should emphasize that this performance gain is due to the larger model capacity since the number of trainable parameters is relatively larger than that in other baselines which is unfair for comparison.
 
 Q5: No discussion about the negative societal impact
 
-- Thank you very much to point out the limitations. Our benchmarks do not contain any sensitive data, such as medical data, which makes them ethically sound sound for use in research.
+- Thank you very much to point out the limitations. Our benchmarks do not contain any sensitive data, such as medical data, which makes them ethically sound for use in research.
 - We will update the discussion in our new revision as soon as possible.
 
 Thank you again for your comments.
@@ -37,13 +37,13 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 Q1: Model size comparison for RPSnet to other CL method. 
 
-- Very good concern. RPSnet (also MNTDP) exactly has much more model parameters than other methods. However, RPSnet only allows one path of modules to train. That is, each layer has only one trainable module for one task. Overall, the number of trainable parameters are kept the same with other methods.
+- Very good concern. RPSnet (also MNTDP) exactly has much more model parameters than other methods. However, RPSnet only allows one path of modules to train. That is, each layer has only one trainable module for one task. Overall, the number of trainable parameters is kept the same with other methods.
 - We can not fix the model size for modularity-based methods since this is their key point to address catastrophic forgetting by sub-linearly increasing model capacity. What we can do to support fair comparison is to use the same number of trainable parameters in one task.
 
 Q2: Limitation on selected concepts. 
 
-- Very good comment and advices. It is exactly our limination. Note that, we want to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts together. However, some concepts like motion and human mood can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
-- In the future, we tend to study concepts in a hierarchical way. We can contain more ``abstract'' (not visual) concepts like you said, e.g., specifically combining facial or gesture benchmarks.
+- Very good comment and advice. It is exactly our limitation. Note that, we wanted to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts should be similar (no long-tailed combinations) and we can combine any pair of concepts. However, some concepts like motion and human mood can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
+- In the future, we tend to study concepts hierarchically. We can contain more ``abstract'' (not visual) concepts like you said, e.g., specifically combining facial or gesture benchmarks.
 
 Thank you again for your comments.
 
@@ -53,14 +53,14 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 Q1: Move related work from appendix to main paper
 
-- Good advice. Unfortunately due to page limit, we do not include them in our main paper. However, we clearly understand that they are important for the reader so we will include them in the camera-ready version.
+- Good advice. Unfortunately, due to the page limit, we did not include them in our main paper. However, we clearly understand that they are important for the reader so we will include them in the camera-ready version.
 
 Q2: Too strict requirement of frozen feature extractor
 
-- Very good comments. First I would like to highlight that our benchmarks do not impose any restriction on the methods. During CL training, methods’ feature extractor does not have to be frozen (which is also the case in our experiments). Maybe our claim in the main paper misleads you, and we will correct the expression in the revision.
-- We now explain why we chose to use fewshot tasks and frozen feature extractor during evaluation. At specific checkpoint (after finishing all continual training tasks), we use our evaluation protocol to evaluate the model’s compositionality. In such condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them and thus we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks).
-- We also try to not freezen the feature extractor. And the results are present in Appendix E.7. For your convenience, we show our observation: all methods show a performance drop if not freezing the feature extractor especially for ER. It is clearly an overfitting issue and the bad effect is method-dependent. So in order to eliminate this effect when comparing the accuracies among methods, we freeze the feature extractor.
-- Note that methods which don't explicitly separate feature learning from classifier learning can also use our evaluation protocol, as long as they can handle few-shot cases.
+- Very good comments. First I would like to highlight that our benchmarks do not impose any restriction on the methods. During CL training, the methods’ feature extractor does not have to be frozen (which is also the case in our experiments). Maybe our claim in the main paper misleads you, and we will correct the expression in the revision.
+- We now explain why we chose to use few-shot tasks and frozen feature extractors during evaluation. At the specific checkpoint (after finishing all continual training tasks), we use our evaluation protocol to evaluate the model’s compositionality. In such a condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them, and thus, we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks).
+- We also tried to not freeze the feature extractor. And the results were presented in Appendix E.7. For your convenience, we show our observation: all methods showed a performance drop if not freezing the feature extractor, especially for ER. It was clearly an overfitting issue and the bad effect was method-dependent. So in order to eliminate this effect when comparing the accuracies among methods, we froze the feature extractor.
+- Note that methods that don't explicitly separate feature learning from classifier learning can also use our evaluation protocol, as long as they can handle few-shot cases.
 
 Q3: ``Never-ending'' CL sense
 
@@ -157,30 +157,33 @@ Q3: Knowledge leaking on continual training tasks
 
 Q4: Explain why Principle 2 (few-shot learning) and Principle 3 (frozen feature extractor) supports evaluating model's compositionality.
 
-- At specific checkpoint (after finishing all continual training tasks), we use our evaluation protocol to evaluate the model’s compositionality. In such condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them and thus we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks). Thus, we recommend few-shot evaluation tasks and frozen feature extractors. We also list the reason in the main paper line 120-126.
+- At the specific checkpoint (after finishing all continual training tasks), we used our evaluation protocol to evaluate the model’s compositionality. In such a condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them and thus we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks). Thus, we recommend few-shot evaluation tasks and frozen feature extractors. We also list the reason in the main paper line 120-126.
 - We should highlight that the principles are not strict and we also did experiments on not frozen feature extractors in Appendix E.7. For your convenience, we show our observation: all methods show a performance drop if not freezing the feature extractor especially for ER. It is clearly an overfitting issue and the bad effect is method-dependent. So in order to eliminate this effect when comparing the methods and let the accuracy correctly represents the compositionality, we freeze the feature extractor.
 
 Q5: Add literature review of more recent works and baseline experiments
 
 - Thank you very much for providing recent works. I will put them into our related works. We will submit our revision as soon as possible.
 - The reason why we did not include prompt-based methods (e.g., l2p, dualprompt) in our experiments is that these methods utilize a pretrained backbone and learn to extract knowledge from the backbone by prompting, thus, we claim that the pretrain backbone may potentially see the labels for testing which is unfair to those from-scratch learning methods (baselines I used in our experiments).
-- We also run quick experiments on codaPrompt, dualPrompt, l2p, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier). The results are as follows:
+- We also run quick experiments on codaPrompt, dualPrompt, l2p++, deep l2p++, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier; **l2p++**: use prefix-tuning instead of prompt-tuning; **deep l2p++**: add prefix-tuning at all layers). The results are as follows:
     
     | CGQA          | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
     |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-    | codaPrompt    | 77.43 | 20.40 +- 1.84 | 23.68 +- 1.90 | 33.88 +- 2.65 | 24.84 | 24.46 +- 1.80 | 32.22 +- 3.49 | 27.81 | 25.95 |
-    | dualPrompt    | 77.92 | 23.00 +- 2.22 | 24.06 +- 1.90 | 33.16 +- 3.05 | 26.04 | 22.22 +- 2.17 | 31.74 +- 2.95 | 26.14 | 26.08 |
-    | l2p           | 77.87 | 20.72 +- 1.98 | 22.20 +- 1.71 | 33.96 +- 3.22 | 24.44 | 23.28 +- 1.98 | 35.82 +- 3.09 | 28.22 | 25.82 |
-    | FT_Classifier | 78.13 | 20.50 +- 2.09 | 23.52 +- 1.99 | 31.06 +- 3.21 | 24.29 | 24.32 +- 2.29 | 38.20 +- 2.91 | 29.72 | 26.21 |
+    | dual-prompt | 85.52 ± 1.47 | 65.98 ± 1.68 | 69.32 ± 1.61 | 76.72 ± 1.56 | 70.40 | 69.26 ± 1.63 | 84.56 ± 1.22 | 76.15 | 72.59 |
+    | coda-prompt | 77.43 ± 1.91 | 52.24 ± 1.46 | 53.96 ± 1.77 | 62.14 ± 1.60 | 55.80 | 54.50 ± 1.56 | 74.38 ± 1.76 | 62.91 | 58.44 |
+    | l2p++ | 83.02 ± 1.66 | 61.46 ± 1.54 | 63.02 ± 1.61 | 71.28 ± 1.60 | 64.98 | 64.72 ± 1.75 | 81.70 ± 1.42 | 72.23 | 67.70 |
+    | deep l2p++ | 77.84 ± 1.91 | 52.22 ± 1.60 | 54.52 ± 2.00 | 62.70 ± 1.71 | 56.14 | 54.24 ± 1.58 | 74.24 ± 1.50 | 62.68 | 58.58 |
+    | FT_Classifier | 78.13 ± 1.85 | 52.34 ± 1.51 | 54.04 ± 1.28 | 61.04 ± 1.47 | 55.56 | 54.14 ± 1.69 | 74.40 ± 1.82 | 62.67 | 58.20 |
     
     | COBJ          | continual | sys | pro | Hn | non | noc | Hr | Ha | 
     |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-    | codaPrompt    | 89.20 | 31.36 +- 1.83 | 25.10 +- 1.76 | 27.88 | 27.00 +- 1.79 | 51.26 +- 2.14 | 35.37 | 31.18 |
-    | dualPrompt    | 88.93 | 31.44 +- 2.22 | 25.38 +- 1.88 | 28.09 | 27.32 +- 2.10 | 51.58 +- 2.00 | 35.72 | 31.45 |
-    | l2p           | 89.47 | 30.48 +- 2.57 | 25.26 +- 2.05 | 27.63 | 27.32 +- 2.06 | 51.20 +- 1.86 | 35.63 | 31.12 |
-    | FT_Classifier | 89.07 | 30.50 +- 2.37 | 24.30 +- 1.99 | 27.05 | 27.82 +- 1.64 | 52.76 +- 1.77 | 36.43 | 31.05 |
+    | dual-prompt | 90.00 ± 3.63 | 62.48 ± 1.97 | 48.94 ± 2.62 | 54.89 | 51.80 ± 2.36 | 84.04 ± 1.46 | 64.09 | 59.13 |
+    | coda-prompt | 89.20 ± 3.89 | 60.46 ± 2.10 | 46.76 ± 2.68 | 52.73 | 49.84 ± 2.24 | 83.28 ± 1.61 | 62.36 | 57.14 |
+    | l2p++ | 89.37 ± 3.46 | 61.52 ± 2.11 | 47.50 ± 2.59 | 53.61 | 50.60 ± 2.49 | 83.48 ± 1.42 | 63.01 | 57.93 |
+    | deep l2p++ | 89.90 ± 3.35 | 60.68 ± 2.04 | 46.54 ± 2.55 | 52.68 | 49.22 ± 2.33 | 82.78 ± 1.38 | 61.73 | 56.85 |
+    | FT_Classifier | 89.07 ± 3.98 | 60.62 ± 1.97 | 46.78 ± 2.69 | 52.81 | 48.96 ± 2.25 | 83.44 ± 1.36 | 61.71 | 56.91 |
  
-    - It is clear that these pretrained methods has good Acon. However, their Hn are all very poor. Thus, those methods have small forgetting when the number of training samples is enough but can not quickly adapt to new task with a small number of training samples (few-shot).
+    - It is clear that these pretrained methods has good Acon. And good noc shows that they have potentially seen these concepts before. 
+
 Q6: Provide more justification on the claim "forgetting is not as suffered as that in the class-IL setting on CGQA (Line 244-245)".
 
 - Sorry, my wrong grammar leads to the misunderstanding. The correct claim is that “ This is because forgetting on CGQA is not as suffered as that on COBJ, especially in the task-IL setting. ” We will update this in our revision.
@@ -271,7 +274,7 @@ Q4: Missing literature review about augmented-memory-based continual learning
     |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
     | REMIND  | 7.84 | 9.78 +- 0.39 | 9.84 +- 0.43 | 9.62 +- 0.40 | 9.74 | 9.68 +- 0.44 | 9.70 +- 0.43 | 9.69 | 9.72 |
     
-    - For time limit, we just run the same stream learning setting as in REMIND paper. So it is not fair directly comparing it with the results in our paper. 
+    - For time limit, we just run the same stream learning setting as in the REMIND paper. So it is not fair directly comparing it with the results in our paper. 
     - It seems that REMIND does not perform well when evaluating with few-shot tasks since samples only seen once in the stream learning setting. 
 
 Thank you again for your comments.
