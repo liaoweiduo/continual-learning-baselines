@@ -146,13 +146,14 @@ Q2: Motivations on the evaluations of three compositinoal capabilities
     - Productivity: Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, an un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. The productivity test is to evaluate this performance.
     - Substitutivity: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (like motion and human mood) are more likely to be the attribute of other concepts (e.g., Human). These attribute-like concepts are not so flexible that they can not appear on other concepts or the representation may be different when combined with different concepts (like Ripe apple is different from Ripe banana). To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test.
 
-Q3: Knowledge leaking on continual training tasks
+Q3: The proposed benchmarks are not truly in continual learning setting and knowledge leaking on continual training tasks
 
-- 
-
-- reviewer觉得CL setting不同task之间需要完全无关，novel classes没有knowledge leaking。我们的不同task会有相同的concept出现，不是standard CL setting。
-- domain-IL ? 就是要利用上old task的knowledge的？
-- besides， we also evaluate on noc, (non-compositional testing), the concepts are all unseen on old tasks.
+- We are very sorry that our description makes you think we did not conduct a truly continual learning setting. We will discuss more on our setting with the comparison of Split-CIFAR100 (a standard CL setting). 
+- Our CGQA has 100 different labels and if the number of tasks is 10, each task will have 10 different labels. These labels are actually the existence of the concepts, thus, different labels may contain overlapped concepts (e.g., there can be two labels: {Door, Shirt} and {Grass, Shirt}). As pointed out in Sec 3 Remark 3.2, line 106-111, and Figure 1, these concepts are potentially hidden. For example, we can assign label 0 to {Door, Shirt} and label 1 to {Grass, Shirt}. They are totally different labels and we do not tell the models that label 0 and label 1 all have the Shirt concept. 
+    - This is just the same as Split-CIFAR100 with 100 labels and these labels are evenly distributed in 10 tasks. 
+    - There are two labels (i.e., pine_tree, oak_tree) in CIFAR100. They can be assigned to different tasks in the Split-CIFAR100 setting. These two labels also have overlapped concepts (e.g., leaves, trunk), and the concepts are potentially hidden. 
+- We should again apologize for the poor clarity of our paper. 
+- By the way, we also evaluate unseen concepts on noc (non-compositional testing). 
 
 Q4: Explain why Principle 2 (few-shot learning) and Principle 3 (frozen feature extractor) supports evaluating model's compositionality.
 
