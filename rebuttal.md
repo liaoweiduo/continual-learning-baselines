@@ -43,15 +43,21 @@ Thank you again for your comments.
 
 We sincerely appreciate your constructive comments on this paper. We detail our response below point by point. Please kindly let us know if our response addresses the issues you raised in this paper.
 
-### Q1: Model size comparison for RPSnet to other CL method. 
-
-> - Very good concern. RPSnet (also MNTDP) exactly has much more model parameters than other methods. However, RPSnet only allows one path of modules to train. That is, each layer has only one trainable module for one task. Overall, the number of trainable parameters is kept the same with other methods.
-> - We can not fix the model size for modularity-based methods since this is their key point to address catastrophic forgetting by sub-linearly increasing model capacity. What we can do to support fair comparison is to use the same number of trainable parameters in one task.
+### Q1: Model size comparison for RPSnet to other CL methods. 
+>
+> This is a very good concern. We would like to highlight that we follow the **original implementation of modularity-based methods** which freeze old modules to maximally prevent catastrophic forgetting and **learn new modules sub-linearly** to solve new knowledge. 
+>
+> - RPSnet (also MNTDP) exactly has much **more model parameters** than other methods when the current task id $t>0$. 
+>
+> - However, in order to **guarantee fair comparison**, RPSnet only allows to train one module each layer for one task. Overall, **the number of trainable parameters remains the same and comparable to other baselines**. 
 
 ### Q2: Limitation on selected concepts. 
-
-> - Very good comment and advice. It is exactly our limitation. Note that, we wanted to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts should be similar (no long-tailed combinations) and we can combine any pair of concepts. However, some concepts like motion and human mood can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
-> - In the future, we tend to study concepts hierarchically. We can contain more ``abstract'' (not visual) concepts like you said, e.g., specifically combining facial or gesture benchmarks.
+>
+> This is a very good comment and advice. The reason we chose these ``visual'' concepts is as follows:
+>
+> - We wanted to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts should be similar (no long-tailed combinations) and we can combine any pair of concepts. However, some concepts, like motion and human mood, can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
+> 
+> - Our future work is to further study concepts hierarchically to introduce different generalization challenges. We can contain more ``abstract'' (not visual) concepts, e.g., by specifically combining facial or gesture benchmarks.
 
 Thank you again for your comments.
 
