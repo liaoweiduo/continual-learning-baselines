@@ -67,7 +67,7 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q1: Move related work from appendix to main paper
 >
-> - Good advice. Unfortunately, due to the page limit, we did not include them in our main paper. However, we clearly understand that they are important for the reader so we will include them in the camera-ready version.
+> - This is a very good advice. Unfortunately, due to the page limit, we did not include them in our main paper. However, we clearly understand that they are important for the reader so we will include them in the revision.
 
 ### Q2: Too strict requirement of frozen feature extractor
 >
