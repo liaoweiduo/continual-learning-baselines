@@ -55,7 +55,9 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 > This is a very good comment and advice. The reason we chose these ``visual'' concepts is as follows:
 >
-> - We wanted to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts should be similar (no long-tailed combinations) and we can combine any pair of concepts. However, some concepts, like motion and human mood, can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
+> - We wanted to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts should be similar (no long-tailed combinations) and we can combine any pair of concepts. 
+> 
+> - However, some concepts, like motion and human mood, can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
 > 
 > - Our future work is to further study concepts hierarchically to introduce different generalization challenges. We can contain more ``abstract'' (not visual) concepts, e.g., by specifically combining facial or gesture benchmarks.
 
@@ -67,18 +69,26 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q1: Move related work from appendix to main paper
 >
-> - This is a very good advice. Unfortunately, due to the page limit, we did not include them in our main paper. However, we clearly understand that they are important for the reader so we will include them in the revision.
+> - This is a very good advice. Unfortunately, due to the page limit, we did not include them in our main text. However, we clearly understand that they are important for the reader so we will include them in the revision.
 
 ### Q2: Too strict requirement of frozen feature extractor
->
-> - Very good comments. First I would like to highlight that our benchmarks do not impose any restriction on the methods. During CL training, the methods’ feature extractor does not have to be frozen (which is also the case in our experiments). Maybe our claim in the main paper misleads you, and we will correct the expression in the revision.
-> - We now explain why we chose to use few-shot tasks and frozen feature extractors during evaluation. At the specific checkpoint (after finishing all continual training tasks), we use our evaluation protocol to evaluate the model’s compositionality. In such a condition, if the number of support samples in the evaluation task is large, the feature extractor may learn from them, and thus, we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks).
-> - We also tried to not freeze the feature extractor. And the results were presented in Appendix E.7. For your convenience, we show our observation: all methods showed a performance drop if not freezing the feature extractor, especially for ER. It was clearly an overfitting issue and the bad effect was method-dependent. So in order to eliminate this effect when comparing the accuracies among methods, we froze the feature extractor.
-> - Note that methods that don't explicitly separate feature learning from classifier learning can also use our evaluation protocol, as long as they can handle few-shot cases.
+> 
+> First I would like to highlight that our benchmarks **do not impose any restriction** on the methods. Maybe our claim in the main paper misleads you, and we will correct the expression in the revision.
+> 
+> - During **CL training**, the methods’ feature extractor does not have to be frozen (which is also the case in our experiments). 
+> 
+> - We now explain why we chose to use **few-shot tasks** and **frozen feature extractors** during **evaluation**. 
+> 
+>   - At the specific checkpoint (after finishing all continual training tasks), we use our evaluation tasks to evaluate the model’s compositionality. In such a condition, if the number of support samples in a evaluation task is large, the feature extractor may learn from them, and thus, we can not actually judge whether the good performance comes from the original feature extractor (learned from old tasks).
+> 
+>   - We also have tried to not freeze the feature extractor and the results are presented in Appendix E.7. For your convenience, we show our observation: all methods showed a performance drop if not freezing the feature extractor, especially for ER. It was clearly an overfitting issue and this bad effect was method-dependent. So in order to eliminate this effect when comparing the accuracies among methods, we froze the feature extractor.
+> 
+> - Note that ``frozen feature extractor'' is not a strict requirement, thus, methods that don't explicitly separate feature learning from classifier learning can also use our evaluation protocol.
 
 ### Q3: ``Never-ending'' CL sense
 > 
-> - This is a very good comment. Our reported results were indeed static (only evaluating after finishing all continual training tasks), but the setting is clearly a never-ending CL.
+> This is a very good comment. Our reported results were indeed static (only evaluating after finishing all continual training tasks), but the setting is clearly a never-ending CL.
+> 
 > - We claim that our diagnosing evaluation can be used at any checkpoint (not to be restricted at the end of all continual training tasks). We report the per-task Hn on 10-way COBJ as follows:
 > 
 >    | Methods | Hn_1 | Hn_2 | Hn_3 |
@@ -95,47 +105,61 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
     | EWC*      | 30.76 | 34.18 | 36.20 |
 >    
 >    - where Hn_1 denotes Hn after finishing the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
+>
 >    - A rough observation: methods tend to improve compositionality when seeing more labels (combinations of concepts). 
 
-### Q4: Short and superficial discussion of limitations of this work
+### Q4: Disentangled concepts are not real
 >
-> - We are very sorry that due to the page limit, we do not discuss more on our limitations.
-> - Here we discuss more on one limitation: our candidate concepts were quite visual and disentangled. Note that, we want to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts together. However, some concepts like motion and human mood can only be combined with the human concept (maybe it is better to explain as ``attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
-
-### Q5: Relation To Prior Work
+> Thank you very much to point out the limitation. We apologize for not discussing more about this due to the page limit. We now explain why we choose those ''visual'' concepts to construct our benchmarks. 
 > 
-> - I am not sure if I capture your question correctly if your ``Prior Work'' refers to those benchmarking works since our main contributions are the benchmarks and the corresponding evaluation protocol. We mentioned in Sec 2 (Related Works) that some vision benchmarks evaluate compositionality (including works in the CL field) and we pointed out that some benchmarks are toy and evaluate only systematicity. Thus, we provided the diagnosing benchmark (CGQA) and real-world benchmark (COBJ), and evaluated three aspects of compositionality (sys, pro, sub).
-> - As for other comparisons, unfortunately, due to the page limit, we did not include a detailed discussion in our main paper. However, we clearly understand that they are important and will include them in the revision.
->     - Additionally, as for the relationship with CZSL, we illustrated the difference in Figure 1 and Remark 3.2.
->     - As for the relationship with forgetting, we investigated empirically by a case study in Sec 6 [line 276-304] and also provided detailed experiments in Appendix E.4.
-
-### Q6: CGQA disentangled concept feature  (Sec 3)
+> - Note that, we want to achieve **balance** and **flexible** combinations of concepts. That is, the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts together. 
 > 
-> - See Q4.
+> - However, some concepts like motion and human mood can only be combined with the human concept (maybe it is better to explain as ''attribute'' in this work). This limits the flexibility and limits the number of re-combinations in the systematicity test since it is difficult to find various kinds of moods on other animals (maybe cats can :p ).
 
-### Q7: Question about non-novel testing accuracy vs training accuracy in Sec 4
+### Q5: Relation to prior work
 > 
-> - Good question. The answer is yes. Although one non-novel testing task contains the same number of labels as one training task, the K labels are randomly chosen from the training label pool. That is, it is a small probability that a non-novel testing task is just one of the training tasks (of course, the number of training samples for each label is relatively smaller than that in the training tasks).
-
-### Q8: Put more description of the construction process rather than the motivation in Sec 5
+> Thank you very much to point out our weakness and we will address in our revision. 
 >
-> - Good comment. Unfortunately, due to the page limit, we did not include a detailed construction process in our main paper. However, we clearly understand that this is very important for the readers to understand our work, thus, we will compress the motivation and put the construction process to the main paper in the revision.
+> - We have mentioned in Sec 2 (Related Works) that some vision benchmarks evaluate compositionality (including works in the CL field) and we have pointed out that some benchmarks are toy and evaluate only systematicity.
+> 
+> - As for the CL methods, unfortunately, due to the page limit, we apologize for not including a detailed discussion in our main paper. However, we clearly understand that they are important and will include them in the revision. 
+>
+> - Additionally, as for the relationship with CZSL, we have illustrated the difference in Figure 1 and Remark 3.2.
+>
+> - As for the relationship between our evaluation protocol with forgetting, we have investigated empirically by a case study in Sec 6 [lines 276-304] and also have provided detailed experiments in Appendix E.4. 
 
-### Q9: Question about experimental results
+### Q6: Question about non-novel testing accuracy vs training accuracy in Sec 4
+> 
+> - This is a good question. The answer is yes. Although one non-novel testing task contains the same number of labels as one training task, the K labels are **randomly chosen from the training label pool** and there is no intersection between their sample instances. That is, it is a small probability that the K labels of a non-novel testing task is just the same as that in one training task (of course, the number of training samples for each label is relatively smaller than that in the training tasks). 
+
+### Q7: Put more description of the construction process rather than the motivation in Sec 5
+>
+> - This is a very good advice. We apologize for not including a detailed construction process in our main paper, due to the page limit. However, we clearly understand that this is very important for the readers to understand our work, thus, we will compress the motivation and put the construction process to the main paper in the revision.
+
+### Q8: Question about experimental results
 >
 > 1. Multitask is not the best on Hn in COBJ (RPSnet and ER* are the best)
->     - Good question. Firstly, we would like to highlight that Hn evaluates the compositionality of the feature extractor.
->     - This observation is quite interesting, that, Multitask may not necessarily be the upper bound in terms of compositionality. You know in CGQA, compositionality is easier to learn since we visually split the concepts which the models are expected to learn. Multitask shows a great superiority on Hn in CGQA, which is also consistent with the CAM visualization results in Appendix E.3 and fig7. Multitask could recognize more concepts than Finetune.
->     - However, in the real-world case (COBJ), concepts are not as visually separable as that in CGQA. Our CAM visualization results in Appendix fig8 showed that Multitask was better than Finetune but the gap was not so large (the number of recognized concepts by Multitask was larger but similar to that by Finetune). That is, Multitask might not necessarily beat CL methods in terms of compositionality.
->     - Hope my analysis solves your question.
+>
+>   - Firstly, we would like to highlight that Hn evaluates the **compositionality of the feature extractor**.
+>
+>   - This observation is quite interesting, that, Multitask may not necessarily be the upper bound in terms of compositionality. In CGQA, compositionality is easier to learn since we visually split the concepts which the models are expected to learn. Multitask shows a great superiority on Hn in CGQA, which is also consistent with the CAM visualization results in Appendix E.3 and Fig7. Multitask could recognize more concepts than Finetune.
+>
+>   - However, in the real-world case (COBJ), concepts are not as visually separable as that in CGQA. Our CAM visualization results in Appendix Fig8 showed that Multitask was better than Finetune but the gap was not so large (the number of recognized concepts by Multitask was larger but similar to that by Finetune). That is, Multitask might not necessarily beat CL methods in terms of compositionality.
+>
+>   - Hope my analysis solves your question.
+>
 > 2. MNTDP* is not the top performer on Hn on COBJ, only on Acon.
->     - Good question. As we highlighted in the above question, a model with better Acon does not necessarily have better Hn (compositionality).
->     - This result indicated that MNTDP* showed no superiority in compositionality. The high average test accuracy was due to the zero forgetting of old tasks since it froze all learned modules for old tasks.
-> - The above two observations also indicate the shortcomings of average test accuracy Acon. Our evaluation metric Hn provides more insights.
+>
+>   - Good question. As we highlighted in the above question, a model with better Acon does not necessarily have better Hn (compositionality).
+>
+>   - This result indicated that MNTDP* showed no superiority in compositionality. The high average test accuracy was due to the zero forgetting of old tasks since it froze all learned modules for old tasks.
+>
+> - The above two observations also indicate the shortcomings of average test accuracy Acon. **Our evaluation metric Hn provides more insights**.
 
-### Q10: Grammar errors and typos
+### Q9: Grammar errors and typos
 >
 > - Sorry for my grammar errors and typos that lead to the misunderstanding of some parts.
+>
 > - We will carefully check those typos in our revision.
 
 Thank you again for your comments.
