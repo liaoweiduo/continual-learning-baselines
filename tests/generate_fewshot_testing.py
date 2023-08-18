@@ -129,28 +129,48 @@ params = []
 
 
 """
-exp: rebuttal baselines resnet cobj - test on every checkpoints
+exp: rebuttal baselines resnet cgqa - random grid perm augmentation
 """
-num_runs_1sh = 12       # num of runs in 1 sh file
+num_runs_1sh = 4       # num of runs in 1 sh file
 common_args.update({
-    'project_name': 'COBJ',
-    'dataset': 'cobj',
     'test_n_way': 10,        # [3, 6, 10]
     'test_n_experiences': 50
 })
 param_grid = {
-    'exp_name': [         # 3-tasks 10-way
-        # 'HT-MT-3tasks-naive-tsk_True-lr0_001', 'HT-MT-3tasks-naive-tsk_False-lr0_001',
-        # 'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
-        'HT-er-tsk_True-lr0_01', 'HT-er-tsk_False-lr0_01',
-        'HT-gem-tsk_True-lr0_001-p16-m0_3', 'HT-gem-tsk_False-lr0_001-p256-m0_00139',
-        'HT-lwf-tsk_True-lr0_001-a1-t2', 'HT-lwf-tsk_False-lr0_001-a1-t1_52',
-        'HT-ewc-tsk_True-lr0_01-lambda100', 'HT-ewc-tsk_False-lr0_00053-lambda10',
-    ],
-    'dataset_mode': ['sys', 'pro', 'non', 'noc'],
-    'test_after_train_task_id': [0, 1, 2],
+    'exp_name': ['rebuttal-gridperm-naive-tsk_False', 'rebuttal-gridperm-naive-tsk_True',
+                 'rebuttal-gridperm-er-tsk_False', 'rebuttal-gridperm-er-tsk_True',
+                 # 'rebuttal-gem-tsk_False', 'rebuttal-gem-tsk_True',
+                 # 'rebuttal-lwf-tsk_False', 'rebuttal-lwf-tsk_True',
+                 # 'rebuttal-ewc-tsk_False', 'rebuttal-ewc-tsk_True',
+                 ],
+    'dataset_mode': ['sys', 'pro', 'sub', 'non', 'noc'],
 }
 params.extend(generate_params(common_args, param_grid))
+
+
+"""
+exp: rebuttal baselines resnet cobj - test on every checkpoints
+"""
+# num_runs_1sh = 12       # num of runs in 1 sh file
+# common_args.update({
+#     'project_name': 'COBJ',
+#     'dataset': 'cobj',
+#     'test_n_way': 10,        # [3, 6, 10]
+#     'test_n_experiences': 50
+# })
+# param_grid = {
+#     'exp_name': [         # 3-tasks 10-way
+#         # 'HT-MT-3tasks-naive-tsk_True-lr0_001', 'HT-MT-3tasks-naive-tsk_False-lr0_001',
+#         # 'HT-naive-tsk_True-lr0_001', 'HT-naive-tsk_False-lr0_001',
+#         'HT-er-tsk_True-lr0_01', 'HT-er-tsk_False-lr0_01',
+#         'HT-gem-tsk_True-lr0_001-p16-m0_3', 'HT-gem-tsk_False-lr0_001-p256-m0_00139',
+#         'HT-lwf-tsk_True-lr0_001-a1-t2', 'HT-lwf-tsk_False-lr0_001-a1-t1_52',
+#         'HT-ewc-tsk_True-lr0_01-lambda100', 'HT-ewc-tsk_False-lr0_00053-lambda10',
+#     ],
+#     'dataset_mode': ['sys', 'pro', 'non', 'noc'],
+#     'test_after_train_task_id': [0, 1, 2],
+# }
+# params.extend(generate_params(common_args, param_grid))
 
 """
 exp: baselines resnet cgqa - test on every checkpoints
