@@ -250,7 +250,7 @@ Q5: Add literature review of more recent works and baseline experiments
 - We also run quick experiments on codaPrompt, dualPrompt, l2p++, deep l2p++, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier; **l2p++**: use prefix-tuning instead of prompt-tuning; **deep l2p++**: add prefix-tuning at all layers). The results are as follows:
     
     | CGQA          | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
     | dual-prompt | 85.52 ± 1.47 | 65.98 ± 1.68 | 69.32 ± 1.61 | 76.72 ± 1.56 | 70.40 | 69.26 ± 1.63 | 84.56 ± 1.22 | 76.15 | 72.59 |
     | coda-prompt | 77.43 ± 1.91 | 52.24 ± 1.46 | 53.96 ± 1.77 | 62.14 ± 1.60 | 55.80 | 54.50 ± 1.56 | 74.38 ± 1.76 | 62.91 | 58.44 |
     | l2p++ | 83.02 ± 1.66 | 61.46 ± 1.54 | 63.02 ± 1.61 | 71.28 ± 1.60 | 64.98 | 64.72 ± 1.75 | 81.70 ± 1.42 | 72.23 | 67.70 |
@@ -274,7 +274,7 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
     - task-IL 10-way CGQA tasks
         
         | finish task 1 | 58.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
         | 2             |55.2 | 66.7 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
         | 3             | 55.1 | 65.4 | 74.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
         | 4             | 54.2 | 63.3 | 61.3 | 83.8 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -343,30 +343,53 @@ Thank you again for your comments.
 
 We sincerely appreciate your constructive comments on this paper. We detail our response below point by point. Please kindly let us know if our response addresses the issues you raised in this paper.
 
-Q1: Grid-like images for multi-task classification and not naturalistic
+### Q1: The datasets are limited to grid-like images for multi-task classification and images are not naturalistic
+>
+> We would like to highlight the key difference between our CFST and the multi-task classification / multi-label recognition task, which we have already illustrated in Figure 1 and Remark 3.2 [Lines 106-111] in the main text.
+> 
+> - In CFST **only the image-level label is available and no concept label is provided**, which is much more challenging than multi-label classification where labels of all concepts in an image are accessible. 
+> 
+> - Thus, CFST requires **inference of the underlying compositional concepts behind an image**, while multi-label classification does not encourage compositional learning as we have detailed in Appendix A.
+>   
+>   - Capturing those discriminative features only for classification (e.g., the shape that differentiates "horse" from "human") and failing to capture all the compositional features (e.g., the fine-grained features helpful for identification of "horse") likely struggles in a future CFST task (e.g., classifying between "zebra" and "horse").
+>
+> The objective of our benchmark is exactly to evaluate the capability of a model in compositional learning, i.e., **whether it understands the previously learned concepts and generalizes to future tasks**. We underline that CGQA and COBJ meet this objective in practice:
+> 
+> - A combined image with only a single label in CGQA is **the same with a natural image in practical applications**, except that we aim to construct a dataset like CGQA with **(1)** all the concepts in an image **easy to parse and interpret**, and **(2)** **a comparably small number of concepts**. CGQA constructed in such a manner serves as a **less challenging benchmark** to evaluate various methods.
+> 
+> - The **more challenging benchmark of COBJ** contains images that also have **single labels without concept/object labels**; compared to CGQA, the concepts within each image are more complicated and realistic. 
+>   
+>   - We have detailed the construction process of COBJ in Appendix C that we crop the region with target concepts on one image, thus, images in COBJ are not grid-like;
+>   
+>   - We have provided image examples in Appendix Figure 5. 
+​>
+> By the way, thank you very much for your following designs about other methods to construct benchmarks, which really inspire me and we will carefully consider them. 
 
-- Thank you very much for your following designs about other methods to construct benchmarks, which really inspire me and we will carefully consider them.
-- Our CGQA is like you said in a grid-like manner. We claim that this is because it provides human interpretable concept visualization and easy to analyse and diagnose the model’s compositionality.
-- Additionally, we provided COBJ, which is not constructed in a grid-like way but a whole real image. Please refer to Appendix C.2 for the construction process and some image examples.
-- Our work is not multi-task classification. As pointed out in Sec 3 Remark 3.2, line 106-111, we would not provide concept labels to the model.
-    - As a result, the model has to learn the hidden concepts from the image itself.
-    - We also discussed the difficulty of learning compositionality under our setting in Appendix A. 
+### Q2: About augmentations during training
+> 
+> - In our experiments, we perform the random horizontal flipping for methods with ResNet-18 backbones and additionally perform the Rand-Augment and random erasing for methods with ViT backbones, which we have already summarized in Appendix D line 425-434. 
+>
+> - [adding changing grid location aug, waiting for the results and analysis]
+>
+> - As for expanding grid sizes and introducing some distractor image patches, we do not recommend to do that. The reasons are as follows:
+> 
+>   - The provided image-level labels are the existence of all concepts in the images, thus, introducing other image patches may potentially change the number of existence concepts. 
+> 
+>   - While our Productivity test aims to evaluate the generalization capability on more concepts, we need to prevent the model from potentially seeing more concepts in one image during continual training. 
+>
+> - By the way, we also tried another benchmark with 3x3 grid-like image, called CPIN, constructed from PartImageNet. The details and results have been presented in Appendix C.1.7 and E.9, respectively. Since it provides similar conclusions as CGQA, so we only present CGQA in the main paper.
 
-Q2: About augmentation
+### Q3: About construction process
+> 
+> - Thank you very much for your understanding of the page limit. We provide a short description on Sec 5 [lines 193-198] about the source dataset we used.
+> 
+> - We also clearly understand that the construction processes are important for readers to understand our work. We will put these parts to the main text in our revision. 
 
-- CGQA is limited to 2x2 grids. Thus, we also tried 3x3 grids called CPIN, constructed from PartImageNet. The details and results were presented in Appendix C.1.7 and E.9, respectively. Since it provides similar conclusions as CGQA, so we only present CGQA in the main paper.
-- We summarized the training details about the augmentation technique we used in Appendix D line 425-434. We use standard augmentation techniques. And your advice in Point 4 really inspires me.
-
-Q3: About construction process
-
-- Thank you for your understanding of page limit.
-- We presented a short description on Sec 5 line 193-198 about the source dataset we used.
-
-Q4: Missing literature review about augmented-memory-based continual learning
-
-- Thank you very much for providing me with these papers. I will include them and improve the related works part. We will submit our revision as soon as possible.
-
-- We ran REMIND on our CGQA and the results were shown below:
+### Q4: Missing literature review about augmented-memory-based continual learning
+> 
+> - Thank you very much for providing me with these papers. I will include them and improve the related works part. We will submit our revision as soon as possible.
+>
+> - We run REMIND on our CGQA and the results were shown below: [run on our setting, without ImageNet pretrained feature extractor(first 4 layers), waiting for analysis]
 
     | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
     |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
