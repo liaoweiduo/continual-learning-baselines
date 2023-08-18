@@ -225,7 +225,10 @@ Q2: Motivations on the evaluations of three compositinoal capabilities
 
 - Very good question. As we claim and explain in the above question, compositionality is a very important ability for a continual learner. and most of the current works (Sec 2 related works) in vision only consider systematicity (novel re-combination) as compositionality. We extend to productivity and substitutivity (other two very interesting aspects of compositionality which are widely studied in the NLP field) to provide more insights.
 - We now discuss more about the motivations for productivity and substitutivity:
-    - Productivity: Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, an un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. The productivity test is to evaluate this performance.
+    - Productivity: If a feature extractor has good compositionality, the extracted features exactly represent each compositional component. Then it should be easy to generalize to complex images with more seen concepts. For example in our main paper lines 150-151, after gathering knowledge of concepts Door, Shirt, Grass, Table, Hat, Leaves from the task (distinguishing {Door, Shirt}, {Grass, Table}, and {Hat, Leaves}), the model should easily understand {Door, Leaves, Shirt, Table}, although it does not seen any instance of this label before. 
+
+    [Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, an un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. The productivity test is to evaluate this performance.]
+    
     - Substitutivity: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (e.g., white color) are more likely to be the ''attribute'' of other concepts (e.g., shirt). These attribute-like concepts are not so flexible that they sometimes accompany by some concrete concepts. To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test.
 
 Q3: The proposed benchmarks are not truly in continual learning setting and knowledge leaking on continual training tasks
@@ -392,8 +395,8 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 > - We run REMIND on our CGQA and the results were shown below: [run on our setting, without ImageNet pretrained feature extractor(first 4 layers), waiting for analysis]
 
->  | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-  |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+> | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
+  |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
   | REMIND  | 8.34 | 10.16 +- 0.71 | 9.90 +- 0.81 | 9.10 +- 0.65 | 9.70 | 9.06 +- 0.70 | 9.40 +- 0.60 | 9.23 | 9.50 |
   - For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
   - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
