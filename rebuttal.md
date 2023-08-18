@@ -250,7 +250,7 @@ Q5: Add literature review of more recent works and baseline experiments
 - We also run quick experiments on codaPrompt, dualPrompt, l2p++, deep l2p++, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier; **l2p++**: use prefix-tuning instead of prompt-tuning; **deep l2p++**: add prefix-tuning at all layers). The results are as follows:
     
     | CGQA          | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-    |---------------| --- | --- | --- | --- | --- | --- | --- | --- |
+    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
     | dual-prompt | 85.52 ± 1.47 | 65.98 ± 1.68 | 69.32 ± 1.61 | 76.72 ± 1.56 | 70.40 | 69.26 ± 1.63 | 84.56 ± 1.22 | 76.15 | 72.59 |
     | coda-prompt | 77.43 ± 1.91 | 52.24 ± 1.46 | 53.96 ± 1.77 | 62.14 ± 1.60 | 55.80 | 54.50 ± 1.56 | 74.38 ± 1.76 | 62.91 | 58.44 |
     | l2p++ | 83.02 ± 1.66 | 61.46 ± 1.54 | 63.02 ± 1.61 | 71.28 ± 1.60 | 64.98 | 64.72 ± 1.75 | 81.70 ± 1.42 | 72.23 | 67.70 |
@@ -275,7 +275,7 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
     - task-IL 10-way CGQA tasks
         
         | finish task 1 | 58.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
         | 2             |55.2 | 66.7 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
         | 3             | 55.1 | 65.4 | 74.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
         | 4             | 54.2 | 63.3 | 61.3 | 83.8 | 0 | 0 | 0 | 0 | 0 | 0 |
