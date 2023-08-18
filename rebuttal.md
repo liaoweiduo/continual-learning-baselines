@@ -226,7 +226,7 @@ Q2: Motivations on the evaluations of three compositinoal capabilities
 - Very good question. As we claim and explain in the above question, compositionality is a very important ability for a continual learner. and most of the current works (Sec 2 related works) in vision only consider systematicity (novel re-combination) as compositionality. We extend to productivity and substitutivity (other two very interesting aspects of compositionality which are widely studied in the NLP field) to provide more insights.
 - We now discuss more about the motivations for productivity and substitutivity:
     - Productivity: Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, an un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. The productivity test is to evaluate this performance.
-    - Substitutivity: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (like motion and human mood) are more likely to be the attribute of other concepts (e.g., Human). These attribute-like concepts are not so flexible that they can not appear on other concepts or the representation may be different when combined with different concepts (like Ripe apple is different from Ripe banana). To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test.
+    - Substitutivity: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (e.g., white color) are more likely to be the ''attribute'' of other concepts (e.g., shirt). These attribute-like concepts are not so flexible that they sometimes accompany by some concrete concepts. To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test.
 
 Q3: The proposed benchmarks are not truly in continual learning setting and knowledge leaking on continual training tasks
 
@@ -250,7 +250,7 @@ Q5: Add literature review of more recent works and baseline experiments
 - We also run quick experiments on codaPrompt, dualPrompt, l2p++, deep l2p++, and the corresponding finetune method with pretrained backbone (**FT_Classifier**: freeze feature extractor and finetune classifier; **l2p++**: use prefix-tuning instead of prompt-tuning; **deep l2p++**: add prefix-tuning at all layers). The results are as follows:
     
     | CGQA          | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    |---------------| --- | --- | --- | --- | --- | --- | --- | --- |
     | dual-prompt | 85.52 ± 1.47 | 65.98 ± 1.68 | 69.32 ± 1.61 | 76.72 ± 1.56 | 70.40 | 69.26 ± 1.63 | 84.56 ± 1.22 | 76.15 | 72.59 |
     | coda-prompt | 77.43 ± 1.91 | 52.24 ± 1.46 | 53.96 ± 1.77 | 62.14 ± 1.60 | 55.80 | 54.50 ± 1.56 | 74.38 ± 1.76 | 62.91 | 58.44 |
     | l2p++ | 83.02 ± 1.66 | 61.46 ± 1.54 | 63.02 ± 1.61 | 71.28 ± 1.60 | 64.98 | 64.72 ± 1.75 | 81.70 ± 1.42 | 72.23 | 67.70 |
@@ -258,14 +258,15 @@ Q5: Add literature review of more recent works and baseline experiments
     | FT_Classifier | 78.13 ± 1.85 | 52.34 ± 1.51 | 54.04 ± 1.28 | 61.04 ± 1.47 | 55.56 | 54.14 ± 1.69 | 74.40 ± 1.82 | 62.67 | 58.20 |
     
     | COBJ          | continual | sys | pro | Hn | non | noc | Hr | Ha | 
-    |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+    |---------------| --- | --- | --- | --- | --- | --- | --- | --- |
     | dual-prompt | 90.00 ± 3.63 | 62.48 ± 1.97 | 48.94 ± 2.62 | 54.89 | 51.80 ± 2.36 | 84.04 ± 1.46 | 64.09 | 59.13 |
     | coda-prompt | 89.20 ± 3.89 | 60.46 ± 2.10 | 46.76 ± 2.68 | 52.73 | 49.84 ± 2.24 | 83.28 ± 1.61 | 62.36 | 57.14 |
     | l2p++ | 89.37 ± 3.46 | 61.52 ± 2.11 | 47.50 ± 2.59 | 53.61 | 50.60 ± 2.49 | 83.48 ± 1.42 | 63.01 | 57.93 |
     | deep l2p++ | 89.90 ± 3.35 | 60.68 ± 2.04 | 46.54 ± 2.55 | 52.68 | 49.22 ± 2.33 | 82.78 ± 1.38 | 61.73 | 56.85 |
     | FT_Classifier | 89.07 ± 3.98 | 60.62 ± 1.97 | 46.78 ± 2.69 | 52.81 | 48.96 ± 2.25 | 83.44 ± 1.36 | 61.71 | 56.91 |
  
-    - It is clear that these pretrained methods has good Acon. And good noc shows that they have potentially seen these concepts before. 
+    - It is clear that these pretrained methods has good Acon. And good ''noc'' shows that they have potentially seen these concepts before (those from-scratch learning methods reported in our paper generally have poor ''noc'' performance). 
+    - [因为这些方法有可能potentially see our test combinations in sys, pro,..., 所以CFST是失效的，sys的performance并不是在novel re-combination上的performance]
 
 Q6: Provide more justification on the claim "forgetting is not as suffered as that in the class-IL setting on CGQA (Line 244-245)".
 
@@ -274,7 +275,7 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
     - task-IL 10-way CGQA tasks
         
         | finish task 1 | 58.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+        |---------------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
         | 2             |55.2 | 66.7 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
         | 3             | 55.1 | 65.4 | 74.4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
         | 4             | 54.2 | 63.3 | 61.3 | 83.8 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -289,7 +290,7 @@ Q6: Provide more justification on the claim "forgetting is not as suffered as th
     - task-IL 10-way COBJ tasks
         
         | finish task 1 | 54.1 | 0 | 0 |
-        |---------------| --- | --- | --- | --- |
+        |---------------| --- | --- | --- |
         | 2             |28.1 | 55.1 | 0 | 
         | 3             | 35.5 | 29.5 | 53.3 | 
         |               | evaluate on task 1 | 2 | 3 |
@@ -391,12 +392,11 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 > - We run REMIND on our CGQA and the results were shown below: [run on our setting, without ImageNet pretrained feature extractor(first 4 layers), waiting for analysis]
 
-    | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-    |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-    | REMIND  | 8.34 | 10.16 +- 0.71 | 9.90 +- 0.81 | 9.10 +- 0.65 | 9.70 | 9.06 +- 0.70 | 9.40 +- 0.60 | 9.23 | 9.50 |
-    
-    - For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
-    - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
+>  | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
+  |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | REMIND  | 8.34 | 10.16 +- 0.71 | 9.90 +- 0.81 | 9.10 +- 0.65 | 9.70 | 9.06 +- 0.70 | 9.40 +- 0.60 | 9.23 | 9.50 |
+  - For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
+  - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
 
 Thank you again for your comments.
 
