@@ -108,7 +108,7 @@ def main(params, fix_device=True, start_iter=0, func=template_hisao):
     )
 
 
-target = 'experiments/continual_training.py -u'
+target = 'experiments/continual_training.py'
 task_name = return_time()   # defined by time
 print(task_name)
 func = template_hisao
@@ -120,14 +120,89 @@ start_iter = 0
 common_args = {
     'project_name': 'CGQA',
     'dataset': 'cgqa',
-    'use_interactive_logger': True,
-    'use_text_logger': False,
+    'use_interactive_logger': False,
+    'use_text_logger': True,
 }
 # for tencent server:
 # 'dataset_root': '/apdcephfs/share_1364275/lwd/datasets',
 # 'exp_root': '/apdcephfs/share_1364275/lwd/avalanche-experiments',
 
 params = []
+
+"""
+rebuttal baselines resnet cgqa with random grid position augmentation 
+'exp_name': ['naive-cls-lr0_003', 'naive-tsk-lr0_008',
+             'er-cls-lr0_003', 'er-tsk-lr0_0008',
+             'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
+             'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
+             'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2', ],
+"""
+num_runs_1sh = 1       # num of runs in 1 sh file
+common_args.update({
+    'tag': 'rebuttal-gridperm',
+})
+param_grid = {}
+# naive  'naive-cls-lr0_003', 'naive-tsk-lr0_008',
+common_args.update({
+    'return_task_id': False, 'strategy': 'naive', 'learning_rate': 0.003,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+common_args.update({
+    'return_task_id': True, 'strategy': 'naive', 'learning_rate': 0.008,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+# er   'er-cls-lr0_003', 'er-tsk-lr0_0008',
+common_args.update({
+    'return_task_id': False, 'strategy': 'er', 'learning_rate': 0.003,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+common_args.update({
+    'return_task_id': True, 'strategy': 'er', 'learning_rate': 0.0008,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+# gem 'gem-cls-lr0_01-p32-m0_3', 'gem-tsk-lr0_001-p32-m0_3',
+common_args.update({
+    'return_task_id': False, 'strategy': 'gem', 'learning_rate': 0.01,
+    'gem_patterns_per_exp': 32, 'gem_mem_strength': 0.3,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+common_args.update({
+    'return_task_id': True, 'strategy': 'gem', 'learning_rate': 0.001,
+    'gem_patterns_per_exp': 32, 'gem_mem_strength': 0.3,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+# lwf 'lwf-cls-lr0_005-a1-t1', 'lwf-tsk-lr0_01-a1-t1',
+common_args.update({
+    'return_task_id': False, 'strategy': 'lwf', 'learning_rate': 0.005,
+    'lwf_alpha': 1, 'lwf_temperature': 1,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+common_args.update({
+    'return_task_id': True, 'strategy': 'lwf', 'learning_rate': 0.01,
+    'lwf_alpha': 1, 'lwf_temperature': 1, 'train_mb_size': 50
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+# ewc 'ewc-cls-lr0_005-lambda0_1', 'ewc-tsk-lr0_005-lambda2',
+common_args.update({
+    'return_task_id': False, 'strategy': 'ewc', 'learning_rate': 0.005,
+    'ewc_lambda': 0.1,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
+common_args.update({
+    'return_task_id': True, 'strategy': 'ewc', 'learning_rate': 0.005,
+    'ewc_lambda': 2,
+})
+exp_name_template = common_args['tag'] + '-' + common_args['strategy'] + '-tsk_{return_task_id}'
+params.extend(generate_params(common_args, param_grid, exp_name_template))
 
 """
 exp: Forget vs Compo generalization, cobj, baselines, 10tasks, 3-way, test on 10-way seed [1-4]

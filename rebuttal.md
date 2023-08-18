@@ -39,6 +39,17 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 Thank you again for your comments.
 
+
+
+
+
+
+
+
+
+
+
+
 # To Reviewer RpQ2
 
 We sincerely appreciate your constructive comments on this paper. We detail our response below point by point. Please kindly let us know if our response addresses the issues you raised in this paper.
@@ -62,6 +73,26 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 > - Our future work is to further study concepts hierarchically to introduce different generalization challenges. We can contain more ``abstract'' (not visual) concepts, e.g., by specifically combining facial or gesture benchmarks.
 
 Thank you again for your comments.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # To Reviewer 9Qe4
 
@@ -163,6 +194,19 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 > - We will carefully check those typos in our revision.
 
 Thank you again for your comments.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # To Reviewer fvLh
 
@@ -279,6 +323,21 @@ Q10: Purpose to use “concept factorization”.
 - Specifically, we need to mathematically describe the data generation process from the perspective of sampling distribution. It can clearly show the difference between our proposed compositional testing tasks.
 
 Thank you again for your comments.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # To Reviewer 6pHG
 

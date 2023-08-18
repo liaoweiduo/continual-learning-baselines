@@ -19,6 +19,7 @@ from torchvision.transforms.functional import InterpolationMode
 import timm
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.data import create_transform
+from einops.layers.torch import Rearrange
 
 from avalanche.benchmarks.classic.classic_benchmarks_utils import check_vision_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
@@ -33,6 +34,29 @@ objects defined in json. E.g., "apple,banana".
 """
 
 
+class RandomGridPosition(object):
+    """Random permutation of grid positions. Need to be after transforms.ToTensor()"""
+    def __init__(self, grid_size=(2, 2)):
+        self.grid_size = grid_size
+
+    def __call__(self, img):
+        """
+        Args:
+            img: Torch image
+        Returns:
+            Torch image
+        """
+        to_grids = Rearrange('c (g1 ph) (g2 pw) -> (g1 g2) c ph pw', g1=self.grid_size[0], g2=self.grid_size[1])
+        to_img = Rearrange('(g1 g2) c ph pw -> c (g1 ph) (g2 pw)', g1=self.grid_size[0], g2=self.grid_size[1])
+        img_grids = to_grids(img)       # [g1*g2, c, h/g1, w/g1]
+
+        num_grids = img_grids.shape[0]
+        perm_img_grids = img_grids[torch.randperm(num_grids)]
+        perm_img = to_img(perm_img_grids)
+
+        return perm_img
+
+
 def _build_default_transform(image_size=(128, 228), is_train=True, normalize=True):
     """
     Default transforms borrowed from MetaShift.
@@ -42,6 +66,7 @@ def _build_default_transform(image_size=(128, 228), is_train=True, normalize=Tru
             transforms.Resize(image_size),  # allow reshape but not equal scaling
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
+            RandomGridPosition(),
     ]
     _eval_transform = [
             transforms.Resize(image_size),
