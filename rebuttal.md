@@ -390,19 +390,19 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 > - We also try to perform augmentation of randomly permutate grid locations. The results are shown below, and for comparison, we also list the results we reported in the main text: 
 > 
-> | Aug       |   continual | sys           | pro           | sub           |    Hn | non           | noc           |    Hr |    Ha |
-  |:----------|------------:|:--------------|:--------------|:--------------|------:|:--------------|:--------------|------:|------:|
-  | Finetune  |        8.42 | 63.96 +- 1.73 | 67.22 +- 1.75 | 59.36 +- 1.85 | 65.55 | 67.58 +- 2.13 | 39.34 +- 2.04 | 49.73 | 56.55 |
-  | ER        |       18.05 | 73.86 +- 1.63 | 75.18 +- 1.62 | 63.86 +- 1.81 | 74.51 | 77.72 +- 1.54 | 40.92 +- 1.85 | 53.61 | 62.36 |
-  | Finetune* |       72.13 | 67.66 +- 2.07 | 71.28 +- 1.62 | 62.06 +- 1.74 | 69.42 | 72.32 +- 1.78 | 40.22 +- 1.84 | 51.69 | 59.26 |
-  | ER*       |       77.88 | 72.28 +- 1.66 | 75.42 +- 1.47 | 67.82 +- 1.52 | 73.82 | 77.50 +- 1.72 | 43.62 +- 1.81 | 55.82 | 63.57 |
-
-> | Paper     |   continual | sys           | pro           | sub           |    Hn | non           | noc           |    Hr |    Ha |
-  |:----------|------------:|:--------------|:--------------|:--------------|------:|:--------------|:--------------|------:|------:|
-  | Finetune  |        8.38 | 64.73 +- 0.78 | 65.43 +- 0.73 | 61.26 +- 0.67 | 63.75 | 68.54 +- 0.80 | 40.32 +- 0.72 | 50.77 | 57.84 |
-  | ER        |       19.78 | 71.38 +- 0.75 | 70.11 +- 0.64 | 64.32 +- 0.69 | 68.46 | 77.27 +- 0.67 | 40.98 +- 0.72 | 53.56 | 61.60 |
-  | Finetune* |       72.46 | 70.32 +- 0.73 | 72.62 +- 0.63 | 66.33 +- 0.69 | 69.66 | 75.32 +- 0.70 | 43.26 +- 0.73 | 54.95 | 62.92 |
-  | ER*       |       76.05 | 71.37 +- 0.70 | 72.67 +- 0.69 | 66.80 +- 0.63 | 70.19 | 76.28 +- 0.66 | 45.61 +- 0.77 | 57.09 | 64.29 |
+>   | Aug       |   continual | sys           | pro           | sub           |    Hn | non           | noc           |    Hr |    Ha |
+>   |:----------|------------:|:--------------|:--------------|:--------------|------:|:--------------|:--------------|------:|------:|
+>   | Finetune  |        8.42 | 63.96 +- 1.73 | 67.22 +- 1.75 | 59.36 +- 1.85 | 65.55 | 67.58 +- 2.13 | 39.34 +- 2.04 | 49.73 | 56.55 |
+>   | ER        |       18.05 | 73.86 +- 1.63 | 75.18 +- 1.62 | 63.86 +- 1.81 | 74.51 | 77.72 +- 1.54 | 40.92 +- 1.85 | 53.61 | 62.36 |
+>   | Finetune* |       72.13 | 67.66 +- 2.07 | 71.28 +- 1.62 | 62.06 +- 1.74 | 69.42 | 72.32 +- 1.78 | 40.22 +- 1.84 | 51.69 | 59.26 |
+>   | ER*       |       77.88 | 72.28 +- 1.66 | 75.42 +- 1.47 | 67.82 +- 1.52 | 73.82 | 77.50 +- 1.72 | 43.62 +- 1.81 | 55.82 | 63.57 |
+>
+>   | Paper     |   continual | sys           | pro           | sub           |    Hn | non           | noc           |    Hr |    Ha |
+>   |:----------|------------:|:--------------|:--------------|:--------------|------:|:--------------|:--------------|------:|------:|
+>   | Finetune  |        8.38 | 64.73 +- 0.78 | 65.43 +- 0.73 | 61.26 +- 0.67 | 63.75 | 68.54 +- 0.80 | 40.32 +- 0.72 | 50.77 | 57.84 |
+>   | ER        |       19.78 | 71.38 +- 0.75 | 70.11 +- 0.64 | 64.32 +- 0.69 | 68.46 | 77.27 +- 0.67 | 40.98 +- 0.72 | 53.56 | 61.60 |
+>   | Finetune* |       72.46 | 70.32 +- 0.73 | 72.62 +- 0.63 | 66.33 +- 0.69 | 69.66 | 75.32 +- 0.70 | 43.26 +- 0.73 | 54.95 | 62.92 |
+>   | ER*       |       76.05 | 71.37 +- 0.70 | 72.67 +- 0.69 | 66.80 +- 0.63 | 70.19 | 76.28 +- 0.66 | 45.61 +- 0.77 | 57.09 | 64.29 |
 >
 >   - The results are quite similar with and without changing grid locations. 
 >
@@ -424,13 +424,16 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 > 
 > - Thank you very much for providing me with these papers. I will include them and improve the related works part. We will submit our revision as soon as possible.
 >
-> - We run REMIND on our CGQA and the results were shown below: [run on our setting, without ImageNet pretrained feature extractor(first 4 layers), waiting for analysis]
+> - Additionly, we run REMIND on our COBJ and the results are shown below: 
+>
+>   | CGQA      | Acon| sys | pro | Hn | non | noc | Hr | Ha |
+>   | --------- | --- | --- | --- | --- | --- | --- | --- | --- |
+>   | REMIND    | 16.00 | 19.48 +- 1.32 | 18.04 +- 1.39 | 18.73 | 24.52 +- 1.92 | 16.64 +- 1.10 | 19.83 | 19.26 |
+>
+>   - REMIND has better Acon than other baselines except 
 
-> | CGQA    | Acon| sys | pro | sub | Hn | non | noc | Hr | Ha |
-  |---------| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-  | REMIND  | 8.34 | 10.16 +- 0.71 | 9.90 +- 0.81 | 9.10 +- 0.65 | 9.70 | 9.06 +- 0.70 | 9.40 +- 0.60 | 9.23 | 9.50 |
-  - For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
-  - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
+For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
+>   - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
 
 Thank you again for your comments.
 
