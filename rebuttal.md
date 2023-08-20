@@ -313,22 +313,27 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q7: Explain why conv-based methods have lower (A_sub) even though they are sensitive to texture information, and sub protocol also uses texture information to composite images. 
 >
-> - Good question. We are very sorry that our explanation in line 268-271 did not satisfy you. We now try to discuss more about this.
-> - We said ``conv-based models are sensitive to texture information'', thus, they tend to use texture features for prediction. Further, when texture features are absent from the target concept (in the sub test, we use objects with different texture features for evaluation, e.g., train using red, black, and white shirts but test the green shirt in sub), models are confused to recognize the target concept.
+> - ''Conv-based models are sensitive to texture information'', thus, they **tend to use texture features for prediction**. Further, when texture features are absent from the target concept (in the sub test, we use objects with different texture features for evaluation, e.g., train using red, black, and white shirts but test the green shirt in sub), models are confused to recognize the target concept.
 >   - For example, a model recognizes the shirt concept by its color “red or black or white”. When a “green shirt” comes, this model does not recognize that it is also a shirt. Thus, it results in poor test acc on the sub test.
-> - On the contrary, vit-based models tend to use shape features for prediction and can correctly recognize “green shirt” as the shirt concept since it has the same shape as other shirts.
-> - Note that, we guaranteed the Solvability that the evaluated attributes are seen in other concepts. The pool A_sub results indicate its pool compositionality on the attirbute level.
+> - On the contrary, **vit-based models tend to use shape features for prediction** and can correctly recognize “green shirt” as the shirt concept since it has the same shape as other shirts.
+> - Note that, we guaranteed the Solvability that the evaluated attributes are seen in other concepts. The poor $A_{sub}$ results indicate its pool compositionality on the attirbute level.
 
-### Q8: Experimental results on ``Sample efficiency for learning compositionality'': why S(sys) are positive when few samples (between 0 to 100 samples) are present?
+### Q8: Experimental results on ''Sample efficiency for learning compositionality'': why S(sys) are positive when few samples (between 0 to 100 samples) are present?
 >
-> - Good question. I should point out that the samples here refer to training samples in the continual training tasks (line 306-307).
-> - Note that $S(sys)=(A_{sys}-A_{non})/A_{non}$. Here non-novel (non) testing tasks contain the same number of labels as training tasks, but the K labels are randomly chosen from the training label pool. That is, it is a small probability that a non-novel testing task is just one of the training tasks (of course, the number of training samples for each label is relatively smaller than the training tasks).
->   - Thus, when the model is not well-trained (which is the case when the number of training samples for each continual task is very few (less than 100)), A_non does not necessarily better than $A_{sys}$.
+> - First, I should clarify that the samples here refer to **training samples in the continual training tasks** (line 306-307).
+>
+> - Note that $S(sys)=(A_{sys}-A_{non})/A_{non}$. Here non-novel (non) testing tasks contain the same number of labels as training tasks, but the K labels are randomly chosen from the training label pool and there is no intersection between their sample instances. 
+>
+>   - Thus, when **the model is not well-trained (which is the case when the number of training samples for each continual task is very few (less than 100))**, $S(sys)$ can be very unstable and $A_{non}$ does not necessarily better than $A_{sys}$.
 
-### Q9: experimental results on ``Varying number of continual training tasks'': why the small-way task needs a smaller number of compositional features for distinguishing classes but the accuracy drops when decreasing number of classes in the task. 
+### Q9: experimental results on ''Varying number of continual training tasks'': why the small-way task needs a smaller number of compositional features for distinguishing classes but the accuracy drops when decreasing number of classes in the task. 
 >
-> - Good question. First, we need to clarify that we train the feature extractor in the continual training phase. For a specific continual task, the model will learn crucial compositional features but miss other compositional features which are not needed for this task but may be crucial for future tasks.
+> First, we would like to clarify that **we vary number of classes in the continual training tasks** and **the reported Hn is the result for models on the 10-way compositional testing tasks** since we need to keep the same number of classes for comparison. 
+>
+> - For a specific continual task, the model will learn crucial compositional features but miss other compositional features which are not needed for this task but may be crucial for future tasks.
+>
 >   - Taking the example in Appendix E.5 lines 613-616, one can distinguish a horse from a person by their different shapes. But this is not enough for the case of horse and zebra (i.e., limited compositionality). However, for the tri-classification task of distinguishing between horse, zebra, and person, one can learn both shape and texture features (i.e., relatively better compositionality). The learned texture features can be used in future tasks like distinguishing tigers from other animals.
+>
 > - Thus, the model may not obtain the necessary features for these compositional testing tasks during the continual training phase. As a result, the performance of evaluating compositionality (i.e., Hn) drops.
 
 ### Q10: Purpose to use “concept factorization”. 
