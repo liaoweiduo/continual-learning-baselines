@@ -218,19 +218,21 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 > - We analyse the forgetting phenomenon of the average test accuracy as follows: 
 >   1. The **feature extractor** forgets the crucial features for old tasks when learning the new task. 
 >   2. In a multi-classifier implementation: the **classifiers** of old tasks can not update (no old sample); in a single-classifier implementation: the prediciton will bias to classes in the current task (non-i.i.d). Thus, the coupling between the feature extractor and the corresponding classifiers is broken. 
-> - In our experiment, we visualized the CAM of the feature extractor in Appendix E.3. On CGQA, the learned feature extractor of Finetune was compositional, thus, the feature extractor had good stability. However, Acon was very bad, showing that when combined with the classifiers, the stability was poor. Thus, we claim that using Acon to evaluate the feature extractor is faulty. 
+> - In our experiment, we visualized the CAM of the feature extractor in Appendix E.3. On CGQA, the learned feature extractor of Finetune was compositional, thus, the feature extractor had good stability. However, Acon was very bad, showing that **when combined with the classifiers, the stability was poor**. Thus, we claim that using Acon to evaluate the feature extractor is faulty. 
 > - While our Hn evaluates the compositionality of a feature extractor (how well can this feature extractor extract compositional features). We eliminate the effect of the classifier.
 > - By the way, our evaluation method is flexible and can also be used on algorithms that don't explicitly separate feature learning from classifier learning. We just provide few-shot testing tasks and algorithms can just deepcopy and evaluate their models with their own methods.
 
 ### Q2: Motivations on the evaluations of three compositinoal capabilities
 > 
-> - First, we would like to humbly clarify that compositionality is a very important ability for a continual learner (see the response to Q1). And most of the current works (see Sec 2 related works) in vision **only consider systematicity (novel re-combination)** as compositionality. We extend to productivity and substitutivity (other two very interesting aspects of compositionality which are widely studied in the NLP field) to provide more insights.
-> - We now discuss more about the motivations for productivity and substitutivity:
->   - **Productivity**: If a feature extractor has good compositionality, the extracted features exactly represent each compositional component. Then it should be easy to generalize to complex images with more seen concepts. For example in our main paper lines 150-151, after gathering knowledge of concepts Door, Shirt, Grass, Table, Hat, Leaves from the task (distinguishing {Door, Shirt}, {Grass, Table}, and {Hat, Leaves}), the model should easily understand {Door, Leaves, Shirt, Table}, although it does not seen any instance of this label before. Our productivity test tasks only contain images with more concepts than the continual training tasks (e.g., images in continual training tasks may only have 2 concepts while images in the productivity test tasks have 3 or 4 concepts). 
-
-    [需要删除：Compositional feature extractors trained with simple combinations of concepts can easily generalize to complex images (more visual concepts). For example in our main paper line 150-151, an un-compositional feature extractor may learn coupled features between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Door, Leaves, Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on these features. On the other hand, a compositional feature extractor learns decoupled features for Grass and for Table concepts. Thus, it can have higher activating values on Table features when seeing {Door, Leaves, Shirt, Table}. The productivity test is to evaluate this performance.]
+> - First, we would like to humbly clarify that compositionality is a very important ability for a continual learner. And most of the current works (see Sec 2 related works) in vision **only consider systematicity (novel re-combination)** as compositionality. We extend to productivity and substitutivity (other two very interesting aspects of compositionality which are widely studied in the NLP field) to provide more insights.
 >
->   - **Substitutivity**: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (e.g., white color) are more likely to be the ''attribute'' of other concepts (e.g., shirt). These attribute-like concepts are not so flexible that they sometimes accompany by some concrete concepts. To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test. 
+> - We now discuss more about the motivations for these three compositional capabilities:
+>
+>   - **Systematicity**: This is the most general aspect of compositionality which question models whether they can understand novel-recombination of seen concepts. For example, an **un-compositional** feature extractor may learn **coupled features** between Grass and Table concepts when recognizing {Grass, Table}. Then, when seeing {Shirt, Table} (one image with the Table concept but no Grass concept), it does not have high activating values on the corresponding features. On the other hand, a **compositional** feature extractor learns **decoupled features for Grass and for Table concepts**. Thus, it can have higher activating values on Table features when seeing {Shirt, Table}. 
+>
+>   - **Productivity**: If a feature extractor has good compositionality, the extracted features exactly represent each compositional component. Then **it should be easy to generalize to complex images with more seen concepts**. For example in our main paper lines 150-151, after gathering knowledge of concepts Door, Shirt, Grass, Table, Hat, Leaves from the task (distinguishing {Door, Shirt}, {Grass, Table}, and {Hat, Leaves}), the model should easily understand {Door, Leaves, Shirt, Table}, although it does not seen any instance of this label before. Our productivity test tasks only contain images with more concepts than the continual training tasks (e.g., images in continual training tasks may only have 2 concepts while images in the productivity test tasks have 3 or 4 concepts). 
+>
+>   - **Substitutivity**: In order to achieve **balance** and **flexible** combinations of concepts (the number of instances for different combinations of concepts can be similar (no long-tailed combinations) and we can combine any pair of concepts), our selected concepts are all visual and disentangled. However, some concepts (e.g., white color) are more likely to be the ''attribute'' of other concepts (e.g., shirt). **These attribute-like concepts are not so flexible that they sometimes accompany by some other concrete concepts**. To compensate for the evaluation of these attribute-like concepts, we design the substitutivity test. 
 
 ### Q3: The proposed benchmarks are not truly in continual learning setting and knowledge leaking on continual training tasks
 >
@@ -238,10 +240,13 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 > 
 > - In CFST **only the image-level label is available and no concept label is provided**, thus, CFST requires **inference of the underlying compositional concepts behind an image**. 
 >   
-> - We compare our benchmarks with a standard CL setting: Split-CIFAR100. Our CGQA has 100 different labels and if the number of tasks is 10, each task will have 10 different labels. These labels are actually the existence of the concepts, thus, different labels may contain overlapped concepts (e.g., there can be two labels: {Door, Shirt} and {Grass, Shirt}). As pointed out in Sec 3 Remark 3.2, lines 106-111, and Figure 1, these concepts are potentially hidden. For example, we can assign label 0 to {Door, Shirt} and label 1 to {Grass, Shirt}. They are totally different labels and we do not tell the models that label 0 and label 1 all have the Shirt concept. 
+> - We compare our benchmarks with a standard CL setting: Split-CIFAR100. Our CGQA has 100 different labels and if the number of tasks is 10, each task will have 10 different labels. These labels are actually the existence of the concepts, thus, different labels may contain overlapped concepts (e.g., there can be two labels: {Door, Shirt} and {Grass, Shirt}). As pointed out in Sec 3 Remark 3.2, lines 106-111, and Figure 1, these concepts are potentially hidden. For example, we can assign label 0 to {Door, Shirt} and label 1 to {Grass, Shirt}. They are totally different labels and we do not tell the models that label 0 and label 1 all have the Shirt concept.
+> 
 >   - This is just the same as Split-CIFAR100 with 100 labels and these labels are evenly distributed in 10 tasks. 
+>
 >   - There are two labels (i.e., pine_tree, oak_tree) in CIFAR100. They can be assigned to different tasks in the Split-CIFAR100 setting. These two labels also have overlapped concepts (e.g., leaves, trunk), and the concepts are potentially hidden. 
-> - By the way, we also evaluate unseen concepts on noc (non-compositional testing). 
+>
+> - By the way, we also evaluate unseen concepts on noc (non-compositional testing) as a reference. 
 
 ### Q4: Explain why Principle 2 (few-shot learning) and Principle 3 (frozen feature extractor) supports evaluating model's compositionality.
 >
@@ -274,11 +279,11 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >    | deep l2p++    | 89.90 ± 3.35 | 60.68 ± 2.04 | 46.54 ± 2.55 | 52.68 | 49.22 ± 2.33 | 82.78 ± 1.38 | 61.73 | 56.85 |
 >    | FT_Classifier | 89.07 ± 3.98 | 60.62 ± 1.97 | 46.78 ± 2.69 | 52.81 | 48.96 ± 2.25 | 83.44 ± 1.36 | 61.71 | 56.91 |
 >
->  - These prompt-based methods utilize a pretrained backbone and learn to extract knowledge from the backbone by prompting. It is clear that these pretrained methods has better Acon and better Hr than the methods we reported in the main text. However, Hn does not outperformed and even is worse than the methods we reported in the main text, which indicates that **the good test accuracy comes from the strong pretrained backbone but the compositionality is not better**. 
+>  - These prompt-based methods utilize a pretrained backbone and learn to extract knowledge from the backbone by prompting. It is clear that these pretrained methods has better **Acon** and better **Hr** than the methods we reported in the main text. However, **Hn** does not outperformed and even is worse than the methods we reported in the main text, which indicates that **the good test accuracy comes from the strong pretrained backbone, however, the compositionality is not better**. 
 > 
->  - Further, the good ''noc'' shows that they have potentially seen these concepts before (those from-scratch learning methods reported in our paper generally have poor ''noc'' performance). 
+>  - Further, the good **noc** shows that they have potentially seen these concepts before (those from-scratch learning methods reported in our paper generally have poor **noc** performance). 
 >
->    - Thus, we claim that **the pretrained backbone may potentially see the labels for testing before** which is unfair to those from-scratch learning methods (baselines I used in our experiments).
+>    - Thus, we claim that **the pretrained backbone may potentially see the labels for testing before which is unfair** to those from-scratch learning methods (baselines I used in our experiments).
 
 ### Q6: Provide more justification on the claim "forgetting is not as suffered as that in the class-IL setting on CGQA (Line 244-245)".
 > 
@@ -424,11 +429,13 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 > 
 > - Thank you very much for providing me with these papers. I will include them and improve the related works part. We will submit our revision as soon as possible.
 >
-> - Additionly, we run REMIND on our COBJ and the results are shown below: 
+> - Additionly, we run REMIND on our 10-way COBJ and the results are shown below: 
 >
->   | CGQA      | Acon| sys | pro | Hn | non | noc | Hr | Ha |
+>   | COBJ      | Acon| sys | pro | Hn | non | noc | Hr | Ha |
 >   | --------- | --- | --- | --- | --- | --- | --- | --- | --- |
->   | REMIND    | 16.00 | 19.48 +- 1.32 | 18.04 +- 1.39 | 18.73 | 24.52 +- 1.92 | 16.64 +- 1.10 | 19.83 | 19.26 |
+>   | REMIND    | 16.00 | 19.48 ± 1.32 | 18.04 ± 1.39 | 18.73 | 24.52 ± 1.92 | 16.64 ± 1.10 | 19.83 | 19.26 |
+>   | Finetune  | 17.60 | 37.56 ± 0.86 | 29.98 ± 0.88 | 33.34 | 47.00 ± 1.03 | 28.41 ± 0.84 | 35.41 | 34.34 |
+>   | LwF       | 18.40 | 45.50 ± 0.87 | 38.16 ± 0.98 | 41.50 | 51.84 ± 0.95 | 34.08 ± 0.87 | 41.12 | 41.31 |
 >
 >   - REMIND has better Acon than other baselines except 
 > 
