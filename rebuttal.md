@@ -381,14 +381,14 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >   - We have detailed the construction process of COBJ in Appendix C that we crop the region with target concepts on one image, thus, images in COBJ are not grid-like;
 >   
 >   - We have provided image examples in Appendix Figure 5. 
-​>
+>
 > By the way, thank you very much for your following designs about other methods to construct benchmarks, which really inspire me and we will carefully consider them. 
 
 ### Q2: About augmentations during training
 > 
 > - In our experiments, we perform the random horizontal flipping for methods with ResNet-18 backbones and additionally perform the Rand-Augment and random erasing for methods with ViT backbones, which we have already summarized in Appendix D line 425-434. 
 >
-> - We also try to perform augmentation of randomly permutate grid locations. The results are shown below, and for comparison, we also list the results we reported in the main text: 
+> - We also try to perform **augmentation of randomly permutating grid locations**. The results are shown below, and for comparison, we also list the results we reported in the main text: 
 > 
 >   | Aug       |   continual | sys           | pro           | sub           |    Hn | non           | noc           |    Hr |    Ha |
 >   |:----------|------------:|:--------------|:--------------|:--------------|------:|:--------------|:--------------|------:|------:|
@@ -406,11 +406,11 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 >   - The results are quite similar with and without changing grid locations. 
 >
-> - As for expanding grid sizes and introducing some distractor image patches, we do not recommend to do that. The reasons are as follows:
+> - As for **expanding grid sizes and introducing some distractor image patches**, we do not recommend to do that. The reasons are as follows:
 > 
->   - The provided image-level labels are the existence of all concepts in the images, thus, introducing other image patches may potentially change the number of existence concepts. 
+>   - The provided image-level labels are the existence of all concepts in the images, thus, introducing other image patches may potentially change the number of existence concepts and change the label. 
 > 
->   - While our Productivity test aims to evaluate the generalization capability on more concepts, we need to prevent the model from potentially seeing more concepts in one image during continual training. 
+>   - While our Productivity test aims to evaluate the generalization capability on more concepts, we recommend to prevent the model from potentially seeing more concepts in one image during continual training. 
 >
 > - By the way, we also tried another benchmark with 3x3 grid-like image, called CPIN, constructed from PartImageNet. The details and results have been presented in Appendix C.1.7 and E.9, respectively. Since it provides similar conclusions as CGQA, so we only present CGQA in the main paper.
 
@@ -431,9 +431,8 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >   | REMIND    | 16.00 | 19.48 +- 1.32 | 18.04 +- 1.39 | 18.73 | 24.52 +- 1.92 | 16.64 +- 1.10 | 19.83 | 19.26 |
 >
 >   - REMIND has better Acon than other baselines except 
-
-For the time limit, we just ran the same stream learning setting as in the REMIND paper. So it was not fair directly compare it with the results in our paper. 
->   - It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting. 
+> 
+>   - [It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting.] 
 
 Thank you again for your comments.
 
