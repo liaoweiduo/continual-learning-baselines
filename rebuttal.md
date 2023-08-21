@@ -343,8 +343,13 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q10: Purpose to use “concept factorization”. 
 >
-> - Good question. Sorry for not presenting our motivation to use ``concept factorization''. We will update the motivation in a revision.
-> - Specifically, we need to mathematically describe the data generation process from the perspective of sampling distribution. It can clearly show the difference between our proposed compositional testing tasks.
+> Specifically, we need to mathematically describe the data generation process from the source datasets (i.e., GQA and Objects365). 
+>
+> - The key differences between training tasks and testing tasks are the marginal concept distributions and the conditional distributions which can be clearly modeled with ''concept factorization''. 
+> 
+>   - **Marginal distributions**: Different combinations of concepts form the label spaces are presented in different task sets.
+>
+>   - **Conditional distributions**: Substitutivity test uses $p_{sub}(x|c^{1:M})$ instead of $p(x|c^{1:M})$ since we test concepts with different attributes. 
 
 Thank you again for your comments.
 
@@ -421,9 +426,9 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q3: About construction process
 > 
-> - Thank you very much for your understanding of the page limit. We provide a short description on Sec 5 [lines 193-198] about the source dataset we used.
+> - Thank you very much for your understanding of the page limit. We have provided a short description on Sec 5 [lines 193-198] about the source dataset we used.
 > 
-> - We also clearly understand that the construction processes are important for readers to understand our work. We will put these parts to the main text in our revision. 
+> - We also clearly understand that the detailed construction processes are important for readers to understand our work. We will put these parts to the main text in our revision. 
 
 ### Q4: Missing literature review about augmented-memory-based continual learning
 > 
@@ -437,9 +442,8 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >   | Finetune  | 17.60 | 37.56 ± 0.86 | 29.98 ± 0.88 | 33.34 | 47.00 ± 1.03 | 28.41 ± 0.84 | 35.41 | 34.34 |
 >   | LwF       | 18.40 | 45.50 ± 0.87 | 38.16 ± 0.98 | 41.50 | 51.84 ± 0.95 | 34.08 ± 0.87 | 41.12 | 41.31 |
 >
->   - REMIND has better Acon than other baselines except 
+>   - REMIND has better **Acon** than other baselines (of course, we have not carefully tuned the hyper-parameters such as lr and number of replay samples. We believe its performance can be further improved). And compositionality (i.e., **Hn**) does not outperform others. 
 > 
->   - [It seems that REMIND did not perform well when evaluating with few-shot tasks since samples were only seen once in the stream learning setting.] 
 
 Thank you again for your comments.
 
