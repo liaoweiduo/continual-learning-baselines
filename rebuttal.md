@@ -161,7 +161,7 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q6: Question about non-novel testing accuracy vs training accuracy in Sec 4
 > 
-> - This is a good question. The answer is yes. Although one non-novel testing task contains the same number of labels as one training task, the K labels are **randomly chosen from the training label pool** and there is no intersection between their sample instances. That is, it is a small probability that the K labels of a non-novel testing task is just the same as that in one training task (of course, the number of training samples for each label is relatively smaller than that in the training tasks). 
+> - The answer is yes. Although one non-novel testing task contains the same number of labels as one training task, the K labels are **randomly chosen from the training label pool** and there is no intersection between their sample instances. That is, it is a small probability that the K labels of a non-novel testing task is just the same as that in one training task (of course, the number of training samples for each label is relatively smaller than that in the training tasks). 
 
 ### Q7: Put more description of the construction process rather than the motivation in Sec 5
 >
@@ -181,7 +181,7 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 > 2. MNTDP* is not the top performer on Hn on COBJ, only on Acon.
 >
->   - Good question. As we highlighted in the above question, a model with better Acon does not necessarily have better Hn (compositionality).
+>   - As we highlighted in the above question, a model with better Acon does not necessarily have better Hn (compositionality).
 >
 >   - This result indicated that MNTDP* showed no superiority in compositionality. The high average test accuracy was due to the zero forgetting of old tasks since it froze all learned modules for old tasks.
 >
@@ -214,7 +214,7 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 
 ### Q1: Contradiction between experimental results and the claim: "compositionality addresses the stability-plasticity dilemma" 
 >
-> This is a very good question. First, we would like to highlight that we are discussing the stability and plasticity of the **feature extractor** of a continual learner. In this case, **average test accuracy is not a suitable metric since it takes account of both the feature extractor and the classifier**. 
+> First, we would like to highlight that we are discussing the stability and plasticity of the **feature extractor** of a continual learner. In this case, **average test accuracy is not a suitable metric since it takes account of both the feature extractor and the classifier**. 
 > - We analyse the forgetting phenomenon of the average test accuracy as follows: 
 >   1. The **feature extractor** forgets the crucial features for old tasks when learning the new task. 
 >   2. In a multi-classifier implementation: the **classifiers** of old tasks can not update (no old sample); in a single-classifier implementation: the prediciton will bias to classes in the current task (non-i.i.d). Thus, the coupling between the feature extractor and the corresponding classifiers is broken. 
@@ -357,9 +357,45 @@ Thank you again for your comments.
 
 
 
+Q1: As suggested by authors, Acon is not a suitable metrics to evaluate the stability-plasticity dilemma. Then what is the quantitative metrics that truly evaluate the continual learning (CL) ability of a feature extractor?
 
+This evaluation metrics is critical to validate the paper's claim. To verify the main paper's contribution "compositionality addresses the stability-plasticity dilemma", the paper has to include this CL evaluation metrics and analyze its correlation with the compositionality metrics, i.e., Hn. Otherwise, we cannot make a meaningful conclusion that "compositionality addresses the stability-plasticity dilemma". Only inspecting few qualitative visualization is not sufficient to make such a conclusion. Meaningful quantitative evaluations are needed.
 
+# Thank you for your response
 
+### Contribution
+>
+> We would like to humbly clarify that ''compositionality addresses the stability-plasticity dilemma'' is not our contribution. 
+>
+> - It has been proposed or observed in many literatures including: 
+>
+>   - CL in NLP: [1,2,3]
+>
+>   - CL in vision: [4,5,6]
+>
+> - Our contributions are: 
+>
+>   1. proposing a novel evaluation protocol to systematically evaluate the compositionality in three aspects: sys, pro, sub. 
+>
+>   2. constructing two diagnosing benchmarks assisted with the protocol. 
+>
+> - Our proposed evalution metric, i.e., Hn, is also a average test accuracy. [和Acon一样，可以在CL完成任意一个task后进行evaluation。但是我觉得他可能是想要在continual task上去evaluate]
+>
+>   - Our reference metric, i.e., $A_{non}$, only considers the feature extractor, and is a complement of the average test accuracy on the continually trained tasks, which could be regarded as your expected metric truly evaluating the CL ability of a feature extractor. It is the average test accuracy on the few-shot tasks in which the labels are from $\mathcal{Y}_{tr}$ instead of $\mathcal{Y}_{sys}$. 
+>
+> References:
+
+> 1. Li, Y., Zhao, L., Church, K., & Elhoseiny, M. (2020). Compositional language continual learning. ICLR. 
+>
+> 2. Biesialska, M., Biesialska, K., & Costa-Jussa, M. R. (2020). Continual lifelong learning in natural language processing: A survey. COLING. 
+>
+> 3. Zhang, Y., Wang, X., & Yang, D. (2022). Continual sequence generation with adaptive compositional modules. ACL.
+>
+> 4. Mendez, J. A., & Eaton, E. (2021). Lifelong learning of compositional structures. ICLR.
+>
+> 5. Ostapenko, O., Rodriguez, P., Caccia, M., & Charlin, L. (2021). Continual learning via local module composition. NeurIPS.
+>
+> 6. Veniat, T., Denoyer, L., & Ranzato, M. A. (2021). Efficient continual learning with modular networks and task-driven priors. ICLR.
 
 
 
@@ -438,7 +474,7 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 >
 >   | COBJ      | Acon| sys | pro | Hn | non | noc | Hr | Ha |
 >   | --------- | --- | --- | --- | --- | --- | --- | --- | --- |
->   | REMIND    | 21.16 | 34.20 ± 1.82 | 30.56 ± 1.74 | 32.28 | 40.64 ± 2.21 | 29.22 ± 1.41 | 34.00 | 33.11 |
+>   | REMIND    | 25.70 | 34.20 ± 1.82 | 30.56 ± 1.74 | 32.28 | 40.64 ± 2.21 | 29.22 ± 1.41 | 34.00 | 33.11 |
 >   | Finetune  | 17.60 | 37.56 ± 0.86 | 29.98 ± 0.88 | 33.34 | 47.00 ± 1.03 | 28.41 ± 0.84 | 35.41 | 34.34 |
 >   | LwF       | 18.40 | 45.50 ± 0.87 | 38.16 ± 0.98 | 41.50 | 51.84 ± 0.95 | 34.08 ± 0.87 | 41.12 | 41.31 |
 >
@@ -448,3 +484,11 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 Thank you again for your comments.
 
 
+****Response to all reviews****
+
+Thank you for reviews. We summarized some updates based on the suggestions. 
+
+- rearranged Sec 2 Related Works: moved continual learning methods from the Appendix to the main text and included more papers suggested by the reviewers.
+- Sec 3: improved Remark3.2 and clarify the label space and notations.
+- Sec 4: revised the writing and removed some redundant texts.
+- Sec 5: moved the construction process of CGQA and COBJ from the Appendix to the main text.
