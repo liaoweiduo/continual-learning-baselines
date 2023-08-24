@@ -367,24 +367,43 @@ This evaluation metrics is critical to validate the paper's claim. To verify the
 >
 > We would like to humbly clarify that ''compositionality addresses the stability-plasticity dilemma'' is not our contribution. 
 >
-> - It has been proposed or observed in many literatures including: 
->
->   - CL in NLP: [1,2,3]
->
->   - CL in vision: [4,5,6]
+> - It has been proposed or observed in many literatures including: 1. CL and NLP: [1,2,3], 2. CL and vision: [4,5,6]. 
 >
 > - Our contributions are: 
 >
->   1. proposing a novel evaluation protocol to systematically evaluate the compositionality in three aspects: sys, pro, sub. 
+>   1. proposing a novel evaluation protocol to systematically evaluate the compositionality in three aspects: sys, pro, sub. Previous works mainly considered sys. 
 >
->   2. constructing two diagnosing benchmarks assisted with the protocol. 
+>   2. constructing two diagnosing benchmarks to assist the protocol. 
 >
-> - Our proposed evalution metric, i.e., Hn, is also a average test accuracy. [和Acon一样，可以在CL完成任意一个task后进行evaluation。但是我觉得他可能是想要在continual task上去evaluate]
+> - Our proposed evalution metric, i.e., Hn, is exactly the average test accuracy and is also a CL evaluation metric. The evaluation can be conducted at any checkpoint, although we report the performance after finishing all continual training tasks.  We report the per-task Hn on 10-way COBJ as follows:
+> 
+>   | Methods | Hn_1 | Hn_2 | Hn_3 |
+>   | -----------  | ---      | ---      | ---     |
+>   | Finetune  | 37.57 | 38.32 | 37.82 |
+>   | ER        | 30.27 | 33.33 | 36.99 |
+>   | GEM       | 38.05 | 37.60 | 37.36 |
+>   | LwF       | 38.13 | 43.34 | 45.19 |
+>   | EWC       | 37.34 | 36.86 | 38.68 |
+>   | Finetune* | 37.41 | 37.07 | 40.93 | 
+>   | ER*       | 31.11 | 37.30 | 38.66 |
+>   | GEM*      | 37.45 | 35.60 | 40.93 |
+>   | LwF*      | 37.84 | 44.01 | 44.75 |
+>   | EWC*      | 30.76 | 34.18 | 36.20 |
+>    
+>   - where Hn_1 denotes Hn after finishing the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
 >
->   - Our reference metric, i.e., $A_{non}$, only considers the feature extractor, and is a complement of the average test accuracy on the continually trained tasks, which could be regarded as your expected metric truly evaluating the CL ability of a feature extractor. It is the average test accuracy on the few-shot tasks in which the labels are from $\mathcal{Y}_{tr}$ instead of $\mathcal{Y}_{sys}$. 
+>   - A rough observation: methods tend to improve compositionality when seeing more labels (combinations of concepts). 
+>
+> - We clearly understand that we should also compare Hn with some reference metrics to make meaningful conclusions. 
+>
+>   - Our reference metric, i.e., $A_{non}$, could be regarded as your expected metric truly evaluating the CL ability of a feature extractor. 
+>
+>   - In order to eliminate the effect of the classifier, we design the few-shot tasks in which the labels are from $\mathcal{Y}_{tr}$ instead of $\mathcal{Y}_{sys}$, thus, complement the evaluation on the continually trained tasks. And $A_{non}$ is also just the average test accuracy and a CL evaluation metric which can be conducted at any checkpoint. 
+>
+> - By the way, we have improved the motivations of three compositionalities and clarified the label setting in our revision. Please kindly have a check and let me know if there is still any misleading. 
 >
 > References:
-
+> 
 > 1. Li, Y., Zhao, L., Church, K., & Elhoseiny, M. (2020). Compositional language continual learning. ICLR. 
 >
 > 2. Biesialska, M., Biesialska, K., & Costa-Jussa, M. R. (2020). Continual lifelong learning in natural language processing: A survey. COLING. 
@@ -484,7 +503,11 @@ We sincerely appreciate your constructive comments on this paper. We detail our 
 Thank you again for your comments.
 
 
-****Response to all reviews****
+
+
+
+
+# Response to all reviews
 
 Thank you for reviews. We summarized some updates based on the suggestions. 
 
