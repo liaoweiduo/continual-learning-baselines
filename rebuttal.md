@@ -361,61 +361,56 @@ Q1: As suggested by authors, Acon is not a suitable metrics to evaluate the stab
 
 This evaluation metrics is critical to validate the paper's claim. To verify the main paper's contribution "compositionality addresses the stability-plasticity dilemma", the paper has to include this CL evaluation metrics and analyze its correlation with the compositionality metrics, i.e., Hn. Otherwise, we cannot make a meaningful conclusion that "compositionality addresses the stability-plasticity dilemma". Only inspecting few qualitative visualization is not sufficient to make such a conclusion. Meaningful quantitative evaluations are needed.
 
-# Thank you for your response
 
-### Contribution
->
-> We would like to humbly clarify that ''compositionality addresses the stability-plasticity dilemma'' is not our contribution. 
->
-> - It has been proposed or observed in many literatures including: 1. CL and NLP: [1,2,3], 2. CL and vision: [4,5,6]. 
->
-> - Our contributions are: 
->
->   1. proposing a novel evaluation protocol to systematically evaluate the compositionality in three aspects: sys, pro, sub. Previous works mainly considered sys. 
->
->   2. constructing two diagnosing benchmarks to assist the protocol. 
->
-> - Our proposed evalution metric, i.e., Hn, is exactly the average test accuracy and is also a CL evaluation metric. The evaluation can be conducted at any checkpoint, although we report the performance after finishing all continual training tasks.  We report the per-task Hn on 10-way COBJ as follows:
+
+# Thank you for your reply
+​
+We sincerely appreciate your reply for acknowledging our motivations and pointing out the remaining concern. Please find our response below, and kindly let us know if it satisfactorily addresses your remaining concern. 
+​
+> - First and foremost, we would like to humbly clarify that we are not the first to draw the conclusion that ''compositionality addresses the stability-plasticity dilemma''; it **has been proposed or observed** in a couple of continual learning literatures including those for NLP [1,2,3] and for CV [4,5,6]. 
 > 
->   | Methods | Hn_1 | Hn_2 | Hn_3 |
->   | -----------  | ---      | ---      | ---     |
->   | Finetune  | 37.57 | 38.32 | 37.82 |
->   | ER        | 30.27 | 33.33 | 36.99 |
->   | GEM       | 38.05 | 37.60 | 37.36 |
->   | LwF       | 38.13 | 43.34 | 45.19 |
->   | EWC       | 37.34 | 36.86 | 38.68 |
->   | Finetune* | 37.41 | 37.07 | 40.93 | 
->   | ER*       | 31.11 | 37.30 | 38.66 |
->   | GEM*      | 37.45 | 35.60 | 40.93 |
->   | LwF*      | 37.84 | 44.01 | 44.75 |
->   | EWC*      | 30.76 | 34.18 | 36.20 |
->    
->   - where Hn_1 denotes Hn after finishing the first continual task. We deepcopy the feature extractor and train a new classifier for each compositional testing task.
->
->   - A rough observation: methods tend to improve compositionality when seeing more labels (combinations of concepts). 
->
-> - We clearly understand that we should also compare Hn with some reference metrics to make meaningful conclusions. 
->
->   - Our reference metric, i.e., $A_{non}$, could be regarded as your expected metric truly evaluating the CL ability of a feature extractor. 
->
->   - In order to eliminate the effect of the classifier, we design the few-shot tasks in which the labels are from $\mathcal{Y}_{tr}$ instead of $\mathcal{Y}_{sys}$, thus, complement the evaluation on the continually trained tasks. And $A_{non}$ is also just the average test accuracy and a CL evaluation metric which can be conducted at any checkpoint. 
->
-> - By the way, we have improved the motivations of three compositionalities and clarified the label setting in our revision. Please kindly have a check and let me know if there is still any misleading. 
->
-> References:
+> - Secondly, compared to the abovementioned literature, **we are the first** to 
+>   
+>   - propose a novel evaluation protocol to systematically evaluate the compositionality in **all of the three aspects**: sys, pro, sub, rather than sys only that has been investigated in previous works.
+>   
+>   - provide **two comprehensive diagnosing benchmarks** that are **much closer to real-world applications** than the synthetic ColorMNIST that has been used in previous works.
+> 
+> - Thirdly, our current empirical results also validate the above conclusion.
+>   
+>   - The proposed evaluation metric $H_n$ on compositionality shows **high positive Pearson coefficients of 0.975 (on CGQA) and 0.971 (on COBJ) with our reference metric of $A_{non}$**, which can be regarded as your expected metric truly evaluating the CL ability of a feature extractor. Note that $A_{non}$ eliminates the effect of the classifier via evaluation on few-shot tasks whose labels are from $\mathcal{Y}_{tr}$ instead of $\mathcal{Y}_{sys}$.
+>   
+>   - Beyond the high correlation with such a continual learning metric, the breakdown of $H_n$ into three proposed **multi-dimensional measures**, including $A_{sys}$, $A_{pro}$, and $A_{sub}$, offers a comprehensive evaluation of the compositionality and foothold for detailed comparison between methods. 
+>   
+>   - Moreover, we highlight that both $H_n$ and $A_{non}$ are **indeed continual learning metrics**, which can be conducted at any checkpoint, though we report the performance after continual learning of all tasks. The result of $H_{n}(i)$ at the $i$-th task on the 10-way COBJ dataset is shown below, from which we conclude that methods tend to improve compositionality when seeing more labels (combinations of concepts).
+>     
+>     | Methods   | $H_n(1)$ | $H_n(2)$ | $H_n(3)$ |
+>     | --------- | -------- | -------- | -------- |
+>     | Finetune  | 37.57    | 38.32    | 37.82    |
+>     | ER        | 30.27    | 33.33    | 36.99    |
+>     | GEM       | 38.05    | 37.60    | 37.36    |
+>     | LwF       | 38.13    | 43.34    | 45.19    |
+>     | EWC       | 37.34    | 36.86    | 38.68    |
+>     | Finetune* | 37.41    | 37.07    | 40.93    |
+>     | ER*       | 31.11    | 37.30    | 38.66    |
+>     | GEM*      | 37.45    | 35.60    | 40.93    |
+>     | LwF*      | 37.84    | 44.01    | 44.75    |
+>     | EWC*      | 30.76    | 34.18    | 36.20    |
+>   
+>   
+> 
+> **References**:
 > 
 > 1. Li, Y., Zhao, L., Church, K., & Elhoseiny, M. (2020). Compositional language continual learning. ICLR. 
->
+> 
 > 2. Biesialska, M., Biesialska, K., & Costa-Jussa, M. R. (2020). Continual lifelong learning in natural language processing: A survey. COLING. 
->
+> 
 > 3. Zhang, Y., Wang, X., & Yang, D. (2022). Continual sequence generation with adaptive compositional modules. ACL.
->
+> 
 > 4. Mendez, J. A., & Eaton, E. (2021). Lifelong learning of compositional structures. ICLR.
->
+> 
 > 5. Ostapenko, O., Rodriguez, P., Caccia, M., & Charlin, L. (2021). Continual learning via local module composition. NeurIPS.
->
+> 
 > 6. Veniat, T., Denoyer, L., & Ranzato, M. A. (2021). Efficient continual learning with modular networks and task-driven priors. ICLR.
-
 
 
 
@@ -507,11 +502,37 @@ Thank you again for your comments.
 
 
 
+
+Acknowledgement of reading the authors' responses
+
+I would like to thank the authors for clarifying my doubts. The responses provided by the authors adequately addressed my concerns. This is an indeed interesting problem setting and a reasonable setup, which can be potentially used in real-world applications.
+
+Initially, I got confused by Fig1 (I believe that reviewer xdij also raised a similar confusion and I got to think this way after reading all the other reviewers' comments). I suggest that you remove the 0 and 1 for all the labels and simplify figure designs to make them align better with the proposed problem settings.
+
+Another comment that I initially forgot to ask the authors: In addition to forgetting, BWT [2] nd FWT [1] are also useful and essential metrics for continual learning. It would be interesting to include results with these two standard evaluation metrics in the final version. These results can tell us how much positive and backward compositional knowledge transfer happens across tasks.
+
+[1] Sen Lin, Li Yang, Deliang Fan, and Junshan Zhang. Beyond not-forgetting: Continual learning with backward knowledge transfer. Advances in Neural Information Processing Systems, 35:16165–16177, 2022.
+
+[2] David Lopez-Paz and Marc’Aurelio Ranzato. Gradient episodic memory for continual learning. Advances in neural information processing systems, 30, 2017
+
+I would like to raise my scores to 7.
+
+
+
+
+
+
+
+
+
 # Response to all reviews
 
-Thank you for reviews. We summarized some updates based on the suggestions. 
-
-- rearranged Sec 2 Related Works: moved continual learning methods from the Appendix to the main text and included more papers suggested by the reviewers.
-- Sec 3: improved Remark3.2 and clarify the label space and notations.
-- Sec 4: revised the writing and removed some redundant texts.
-- Sec 5: moved the construction process of CGQA and COBJ from the Appendix to the main text.
+Thank you for the reviews. We summarized some updates based on the suggestions and the changes in revision were highlighted in blue. 
+>
+> - Abstract: Explained the acronyms (i.e., CGQA, COBJ, CFST). 
+> - Fig 1: Clarified hidden and given labels and added the ''one-hot label'' mark. 
+> - Rearranged Sec 2 Related Works: Moved continual learning methods from the Appendix to the main text and included more papers suggested by the reviewers.
+> - Sec 3: Improved Remark3.2 and clarified the label space and notations. **Specifically, We separated the definitions of labels $y$ and concept combinations $c^{1:M}$.**
+> - Sec 4: Revised the writing and removed some redundant texts.
+> - Sec 5: Moved the construction process of CGQA and COBJ from the Appendix to the main text.
+> - Sec 7: added discussion about the societal impact. 

@@ -24,6 +24,7 @@ from experiments.config import default_args, FIXED_CLASS_ORDER
 from experiments.fewshot_testing import fewshot_test
 from tests.utils import get_average_metric
 from strategies.select_module import SelectionPluginMetric, ImageSimilarityPluginMetric
+from strategies.forward_transfer import forward_transfer_metrics
 
 
 def continual_train(override_args=None):
@@ -68,7 +69,7 @@ def continual_train(override_args=None):
         # ####################
         # MODEL
         # ####################
-        model = get_model(args)
+        model = get_model(args, masking=False)
 
         # ####################
         # LOGGER
@@ -100,6 +101,7 @@ def continual_train(override_args=None):
             metrics.accuracy_metrics(epoch=True, experience=True, stream=True),
             metrics.loss_metrics(epoch=True, experience=True, stream=True),
             metrics.forgetting_metrics(experience=True, stream=True),
+            metrics.forward_transfer_metrics(experience=True, stream=True),
             metrics.class_accuracy_metrics(stream=True),
             metrics.timing_metrics(epoch=True),
             metrics.disk_usage_metrics(paths_to_monitor=exp_path, epoch=True),      # only train , experience=True
@@ -165,7 +167,8 @@ def continual_train(override_args=None):
         #     results.append(strategy.eval(benchmark.test_stream))
         #     image_similarity_plugin_metric.set_active(False)
 
-        strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
+        # strategy.train(experience, eval_streams=[val_task], pin_memory=False, num_workers=10)
+        strategy.train(experience, eval_streams=[benchmark.test_stream], pin_memory=False, num_workers=10)
         print("Training completed")
 
         print("Computing accuracy on the whole test set.")

@@ -58,7 +58,7 @@ def create_experiment_folder(root='.', exp_name=None, project_name=None):
     return exp_path, checkpoint_path
 
 
-def get_model(args, checkpoint_path=None, checkpoint_model_id=-1, multi_task_baseline=False):
+def get_model(args, checkpoint_path=None, checkpoint_model_id=-1, multi_task_baseline=False, masking=True):
     # '''Check resume'''
     # if os.path.exists(os.path.join(checkpoint_path, 'model.pth')):
     #     pretrained, pretrained_model_path = True, os.path.join(checkpoint_path, 'model.pth')
@@ -88,7 +88,7 @@ def get_model(args, checkpoint_path=None, checkpoint_model_id=-1, multi_task_bas
             args=vars(args),
             multi_head=multi_head,
             pretrained=pretrained, pretrained_model_path=pretrained_model_path,
-            masking=True if not multi_task_baseline else False,
+            masking=True if (not multi_task_baseline and masking) else False,
             fix=fix)
     elif args.model_backbone == "resnet18":
         from models.resnet import get_resnet
@@ -96,7 +96,7 @@ def get_model(args, checkpoint_path=None, checkpoint_model_id=-1, multi_task_bas
             multi_head=multi_head,
             initial_out_features=100 if args.strategy == 'icarl' else 2,
             pretrained=pretrained, pretrained_model_path=pretrained_model_path,
-            masking=True if not multi_task_baseline else False,
+            masking=True if (not multi_task_baseline and masking) else False,
             add_multi_class_classifier=True if args.strategy == 'concept' else False,
             fix=fix,
             normal_classifier=True if args.strategy == 'icarl' else False,
@@ -111,7 +111,7 @@ def get_model(args, checkpoint_path=None, checkpoint_model_id=-1, multi_task_bas
             multi_head=multi_head,
             pretrained=pretrained, pretrained_model_path=pretrained_model_path,
             fix=fix,
-            masking=True if not multi_task_baseline else False,
+            masking=True if (not multi_task_baseline and masking) else False,
             patch_size=args.vit_patch_size, dim=args.vit_dim, depth=args.vit_depth, heads=args.vit_heads,
             mlp_dim=args.vit_mlp_dim, dropout=args.vit_dropout, emb_dropout=args.vit_emb_dropout)
     else:
